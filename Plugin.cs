@@ -1,6 +1,7 @@
 using BepInEx;
 using HarmonyLib;
 using TNRD.ZeepLogicScript.Spike;
+using ZeepSDK.LevelEditor;
 using ZeepSDK.UI;
 
 namespace TNRD.ZeepLogicScript
@@ -16,7 +17,10 @@ namespace TNRD.ZeepLogicScript
             _harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
             _harmony.PatchAll();
 
-            UIApi.AddToolbarDrawer(new SpikeToolbarDrawer(Logger));
+            SpikeEscapeWindow escapeWindow = new(Logger);
+            UIApi.AddZeepGUIDrawer(escapeWindow);
+            UIApi.AddToolbarDrawer(new SpikeToolbarDrawer(Logger, escapeWindow));
+            LevelEditorApi.EnteredLevelEditor += () => SpikeBlocks.CheckGenerateNewBlockSignature(Logger);
 
             Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         }

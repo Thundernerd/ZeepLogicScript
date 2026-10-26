@@ -9,10 +9,12 @@ namespace TNRD.ZeepLogicScript.Spike
     internal class SpikeToolbarDrawer : IZeepToolbarDrawer
     {
         private readonly ManualLogSource _logger;
+        private readonly SpikeEscapeWindow _escapeWindow;
 
-        public SpikeToolbarDrawer(ManualLogSource logger)
+        public SpikeToolbarDrawer(ManualLogSource logger, SpikeEscapeWindow escapeWindow)
         {
             _logger = logger;
+            _escapeWindow = escapeWindow;
         }
 
         public string MenuTitle => "Logic Script";
@@ -25,8 +27,18 @@ namespace TNRD.ZeepLogicScript.Spike
                 return;
             }
 
-            if (gui.Menu("Spike: place a & b"))
-                BatchCreateSpike.Run(_logger);
+            if (gui.Menu("Spike: place test group"))
+                BatchCreateSpike.PlaceGroup(_logger);
+            if (gui.Menu("Spike: recompile test group"))
+                BatchCreateSpike.RecompileGroup(_logger);
+            if (gui.Menu("Spike: inspect groups"))
+                SpikeInspector.Inspect(_logger);
+            if (gui.Menu("Spike: place collision test"))
+                BatchCreateSpike.PlaceCollisionTest(_logger);
+            if (gui.Menu("Spike: Escape test window"))
+                _escapeWindow.Toggle();
+            if (gui.Menu("Spike: check private method"))
+                SpikeBlocks.CheckGenerateNewBlockSignature(_logger);
         }
     }
 }

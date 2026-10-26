@@ -1,214 +1,142 @@
+using System;
 using System.Collections.Generic;
 using BepInEx.Logging;
 using UnityEngine;
-using ZeepSDK.Utilities;
+using static TNRD.ZeepLogicScript.Spike.SpikeBlocks;
 
 namespace TNRD.ZeepLogicScript.Spike
 {
     /// <summary>
-    /// Throwaway spike: places a hard-coded `x = a & b` (two Generators + one AND Logic block),
-    /// wired, as a single undo step. See .scratch/logic-script/research/03-batch-create-path.md.
+    /// Throwaway spike scenarios for the in-game checks in .scratch/logic-script/spike-checklist.md.
     /// </summary>
     internal static class BatchCreateSpike
     {
-        private const string Source = "ZeepLogicScript Spike";
-
-        private const int GeneratorBlockId = 2414;
-        private const int GeneratorOut = 0;
-        private const string KeyGeneratorPower = "lbp";
-
-        private const int LogicBlockId = 2420;
-        private const int LogicInA = 0;
-        private const int LogicInB = 1;
-        private const string KeyLogicOperator = "xmo";
-        private const int LogicOperatorAnd = 0;
-
-        private const string KeyConnectionBase = "id";
-        private const string KeyPaintBase = "p";
         private const float Spacing = 16;
 
-        public static void Run(ManualLogSource logger)
+        // Layout of the test group relative to its origin; the carrier (generator A) is first
+        private static readonly Vector3 GeneratorAOffset = new(-Spacing, 0, Spacing / 2);
+        private static readonly Vector3 GeneratorBOffset = new(-Spacing, 0, -Spacing / 2);
+        private static readonly Vector3 LogicOffset = Vector3.zero;
+        private static readonly Vector3 DisplayOffset = new(Spacing, 0, 0);
+
+        /// <summary>
+        /// Two Generators (power 1) into a Logic block, its output into a Power Display, tagged as one Block Group.
+        /// </summary>
+        public static void PlaceGroup(ManualLogSource logger)
         {
-            LEV_LevelEditorCentral central = ComponentCache.Get<LEV_LevelEditorCentral>();
-            if (central == null)
+            if (!TryGetCentral(logger, out LEV_LevelEditorCentral central))
+                return;
+
+            string scriptId = Guid.NewGuid().ToString("N");
+            List<BlockPropertyJSON> jsons = BuildGroup(GetOrigin(central), LogicOperatorAnd);
+            Tag(jsons, scriptId, SpikeCarrier.TestName, SpikeCarrier.BuildTestText());
+
+            List<BlockProperties> blocks = CreateBlocks(central, jsons);
+            RegisterUndo(central, [], [], blocks);
+
+            logger.LogInfo($"[place] Block Group {scriptId}: {blocks.Count} blocks, AND, carrier {blocks[0].UID}");
+        }
+
+        /// <summary>
+        /// Replaces the first Block Group found (by tag) with a new one that flips AND/OR, as one undo step.
+        /// </summary>
+        public static void RecompileGroup(ManualLogSource logger)
+        {
+            if (!TryGetCentral(logger, out LEV_LevelEditorCentral central))
+                return;
+
+            SpikeGroup group = null;
+            foreach (SpikeGroup candidate in SpikeInspector.FindGroups(central).Values)
             {
-                logger.LogError("No LEV_LevelEditorCentral found");
+                if (candidate.Carrier != null)
+                {
+                    group = candidate;
+                    break;
+                }
+            }
+
+            if (group == null)
+            {
+                logger.LogWarning("[recompile] No Block Group with a carrier found; place one first");
                 return;
             }
 
-            if (central.gizmos.isGrabbing)
+            int oldOperator = LogicOperatorAnd;
+            foreach (BlockProperties member in group.Members)
             {
-                logger.LogWarning("Can't run while grabbing blocks; BreakLock would skip the undo step");
-                return;
+                if (member.blockID == LogicBlockId)
+                    oldOperator = member.customBlockEditProperties.GetIntDictionaryValue(KeyLogicOperator);
             }
 
-            if (!CheckPrefab(central, GeneratorBlockId, logger) || !CheckPrefab(central, LogicBlockId, logger))
+            int newOperator = oldOperator == LogicOperatorAnd ? LogicOperatorOr : LogicOperatorAnd;
+            Vector3 origin = group.Carrier.transform.position - GeneratorAOffset;
+            SpikeCarrier.TryParse(
+                group.Carrier.customBlockEditProperties.GetStringDictionaryValue(KeyScriptText),
+                out _,
+                out _,
+                out string name,
+                out string text);
+
+            List<BlockPropertyJSON> jsons = BuildGroup(origin, newOperator);
+            Tag(jsons, group.ScriptId, name, text);
+
+            List<BlockProperties> removed = group.Members;
+            List<string> removedBefore = RemoveBlocks(central, removed);
+            List<BlockProperties> added = CreateBlocks(central, jsons);
+            RegisterUndo(central, removed, removedBefore, added);
+
+            logger.LogInfo(
+                $"[recompile] Block Group {group.ScriptId}: replaced {removed.Count} → {added.Count} blocks, " +
+                $"{(oldOperator == LogicOperatorAnd ? "AND" : "OR")} → {(newOperator == LogicOperatorAnd ? "AND" : "OR")}");
+        }
+
+        /// <summary>
+        /// A visible Generator → Passthrough pair with a long Wire, and the same pair hidden in game, to drive into.
+        /// </summary>
+        public static void PlaceCollisionTest(ManualLogSource logger)
+        {
+            if (!TryGetCentral(logger, out LEV_LevelEditorCentral central))
                 return;
 
             Vector3 origin = GetOrigin(central);
+            List<BlockPropertyJSON> jsons = [];
+            AddPair(jsons, origin, false);
+            AddPair(jsons, origin + new Vector3(Spacing * 3, 0, 0), true);
 
-            BlockPropertyJSON generatorA = CreateJson(GeneratorBlockId, origin + new Vector3(-Spacing, 0, Spacing / 2));
-            BlockPropertyJSON generatorB = CreateJson(GeneratorBlockId, origin + new Vector3(-Spacing, 0, -Spacing / 2));
-            BlockPropertyJSON logic = CreateJson(LogicBlockId, origin);
+            List<BlockProperties> blocks = CreateBlocks(central, jsons);
+            RegisterUndo(central, [], [], blocks);
+
+            logger.LogInfo("[collision] Placed a visible pair (left) and a hidden pair (right), each with a 64-unit Wire");
+        }
+
+        private static void AddPair(List<BlockPropertyJSON> jsons, Vector3 origin, bool hide)
+        {
+            BlockPropertyJSON generator = CreateJson(GeneratorBlockId, origin);
+            BlockPropertyJSON passthrough = CreateJson(PassthroughBlockId, origin + new Vector3(0, 0, Spacing * 4));
+            generator.d.SetStringDictionaryValue(KeyGeneratorPower, "1");
+            generator.d.SetBoolDictionaryValue(KeyHide, hide);
+            passthrough.d.SetBoolDictionaryValue(KeyHide, hide);
+            AddWire(generator, GeneratorOut, passthrough, PassthroughIn);
+            jsons.Add(generator);
+            jsons.Add(passthrough);
+        }
+
+        private static List<BlockPropertyJSON> BuildGroup(Vector3 origin, int logicOperator)
+        {
+            BlockPropertyJSON generatorA = CreateJson(GeneratorBlockId, origin + GeneratorAOffset);
+            BlockPropertyJSON generatorB = CreateJson(GeneratorBlockId, origin + GeneratorBOffset);
+            BlockPropertyJSON logic = CreateJson(LogicBlockId, origin + LogicOffset);
+            BlockPropertyJSON display = CreateJson(PowerDisplayBlockId, origin + DisplayOffset);
 
             generatorA.d.SetStringDictionaryValue(KeyGeneratorPower, "1");
             generatorB.d.SetStringDictionaryValue(KeyGeneratorPower, "1");
-            logic.d.SetIntDictionaryValue(KeyLogicOperator, LogicOperatorAnd);
+            logic.d.SetIntDictionaryValue(KeyLogicOperator, logicOperator);
 
             AddWire(generatorA, GeneratorOut, logic, LogicInA);
             AddWire(generatorB, GeneratorOut, logic, LogicInB);
+            AddWire(logic, LogicOut, display, PowerDisplayIn);
 
-            List<BlockPropertyJSON> jsons = [generatorA, generatorB, logic];
-
-            // Pass 1: create every block and register it, so Wires can resolve their targets
-            List<BlockProperties> blocks = [];
-            foreach (BlockPropertyJSON json in jsons)
-            {
-                blocks.Add(CreateBlock(central, json));
-            }
-
-            // Pass 2: LoadProperties_v15 skips connector scripts; load them now that all blocks are tracked
-            foreach (BlockProperties block in blocks)
-            {
-                foreach (BlockEdit_v18 blockEdit in block.GetAllBlockEditV18sFromThisBlock())
-                {
-                    if (blockEdit.HasConnectors())
-                        blockEdit.GetBlockEditV18ConnectionBase().LoadProperties();
-                }
-            }
-
-            foreach (BlockProperties block in blocks)
-            {
-                foreach (BlockEdit_v18 blockEdit in block.GetAllBlockEditV18sFromThisBlock())
-                {
-                    if (blockEdit.HasConnectors())
-                        blockEdit.GetBlockEditV18ConnectionBase().ForceRedrawConnectionVisualizers(Source);
-                }
-            }
-
-            // One undo step: before = null marks each block as added
-            List<string> before = [];
-            List<string> after = [];
-            foreach (BlockProperties block in blocks)
-            {
-                before.Add(null);
-                after.Add(block.ConvertBlockToJSON_v15_string(true));
-            }
-
-            Change_Collection collection = central.undoRedo.ConvertBeforeAndAfterListToCollection(
-                before,
-                after,
-                blocks,
-                [],
-                []);
-            central.validation.BreakLock(collection, Source);
-
-            for (int i = 0; i < blocks.Count; i++)
-            {
-                logger.LogInfo($"Created {blocks[i].gameObject.name} ({blocks[i].UID}): {after[i]}");
-            }
-        }
-
-        private static bool CheckPrefab(LEV_LevelEditorCentral central, int blockId, ManualLogSource logger)
-        {
-            List<BlockProperties> prefabs = central.manager.loader.globalBlockList.blocks;
-            if (blockId >= prefabs.Count || prefabs[blockId] == null)
-            {
-                logger.LogError($"No prefab at index {blockId}");
-                return false;
-            }
-
-            BlockProperties prefab = prefabs[blockId];
-            logger.LogInfo($"Prefab {blockId}: {prefab.gameObject.name} (blockID {prefab.blockID})");
-            return true;
-        }
-
-        private static Vector3 GetOrigin(LEV_LevelEditorCentral central)
-        {
-            Transform camera = central.cam.cameraTransform;
-            Vector3 forward = Vector3.Scale(camera.forward, new Vector3(1, 0, 1)).normalized;
-            Vector3 origin = central.cam.transform.position + forward * 80;
-            return new Vector3(Mathf.Round(origin.x), Mathf.Max(0, Mathf.Round(origin.y)), Mathf.Round(origin.z));
-        }
-
-        private static BlockPropertyJSON CreateJson(int blockId, Vector3 position)
-        {
-            return new BlockPropertyJSON
-            {
-                i = blockId,
-                u = PlayerManager.Instance.GenerateUniqueIDforBlocks(blockId.ToString()),
-                p = new CV3(position),
-                r = new CV3(Vector3.zero),
-                s = new CV3(Vector3.one),
-                d = new PropertyDictionariesJSON()
-            };
-        }
-
-        /// <summary>
-        /// Writes the Wire into both blocks' dictionaries, like LEV_ConnectorTool does via Connect on both ends.
-        /// The output end is the drawing leader.
-        /// </summary>
-        private static void AddWire(BlockPropertyJSON from, int fromConnector, BlockPropertyJSON to, int toConnector)
-        {
-            AddConnection(from, fromConnector, new ConnectionStruct(to.u, toConnector, true));
-            AddConnection(to, toConnector, new ConnectionStruct(from.u, fromConnector, false));
-        }
-
-        private static void AddConnection(BlockPropertyJSON json, int connector, ConnectionStruct connection)
-        {
-            string countKey = KeyConnectionBase + connector;
-            int count = json.d.GetIntDictionaryValue(countKey);
-            json.d.SetStringDictionaryValue(countKey + "-" + count, connection.Serialize());
-            json.d.SetIntDictionaryValue(countKey, count + 1);
-        }
-
-        /// <summary>
-        /// Mirrors LEV_UndoRedo.GenerateNewBlock plus the steps its redo caller adds.
-        /// </summary>
-        private static BlockProperties CreateBlock(LEV_LevelEditorCentral central, BlockPropertyJSON json)
-        {
-            BlockProperties prefab = central.manager.loader.globalBlockList.blocks[json.i];
-            AddDefaultPaint(prefab, json);
-
-            BlockProperties block = Object.Instantiate(prefab);
-            block.gameObject.name = prefab.gameObject.name;
-
-            block.CreateBlock();
-            block.DrawDebugUID();
-            block.properties.Clear();
-            block.isEditor = true;
-            block.UID = json.u;
-
-            block.LoadProperties_v15(json, false);
-            block.isLoading = false;
-            block.NewBlockCreatedFromEditorForV15JSON();
-
-            StaticConnectorTracker.AddBlockToTracker(block, Source);
-            return block;
-        }
-
-        /// <summary>
-        /// Paint is stored per renderer material slot as n["p{index}"]; a missing key loads as material 0.
-        /// Mirrors Properties_RoadPainter.SavePaintProperties, which only runs from the CreateBlock step we skip.
-        /// </summary>
-        private static void AddDefaultPaint(BlockProperties prefab, BlockPropertyJSON json)
-        {
-            Properties_RoadPainter painter = prefab.GetComponent<Properties_RoadPainter>();
-            if (painter == null || !MaterialManager.DoesExist())
-                return;
-
-            int slot = 0;
-            foreach (MeshRenderer renderer in painter.renderers)
-            {
-                foreach (Material material in renderer.sharedMaterials)
-                {
-                    string key = KeyPaintBase + slot;
-                    if (json.d.n == null || !json.d.n.ContainsKey(key))
-                        json.d.SetIntDictionaryValue(key, MaterialManager.GetMaterialHolderFromMaterial(material).materialID);
-
-                    slot++;
-                }
-            }
+            return [generatorA, generatorB, logic, display];
         }
     }
 }
