@@ -1,5 +1,7 @@
 using BepInEx;
 using HarmonyLib;
+using TNRD.ZeepLogicScript.Spike;
+using ZeepSDK.UI;
 
 namespace TNRD.ZeepLogicScript
 {
@@ -13,6 +15,8 @@ namespace TNRD.ZeepLogicScript
         {
             _harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
             _harmony.PatchAll();
+
+            UIApi.AddToolbarDrawer(new SpikeToolbarDrawer(Logger));
 
             Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         }
