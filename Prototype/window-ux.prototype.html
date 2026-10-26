@@ -1,0 +1,972 @@
+<title>Logic Script Window</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* PROTOTYPE, throwaway. Layout: the Script window floats over a mock level-editor viewport; three layout variants share the same live components. */
+:root {
+  color-scheme: dark;
+  --sky-top: #20262e; --sky-bottom: #2d353d; --floor-line: rgba(255,255,255,0.05);
+  --panel: #1d1f22; --panel-2: #25282c; --panel-3: #2e3237; --line: #3b4047;
+  --text: #e8e4dd; --muted: #9b968e; --faint: #6c6963;
+  --accent: #f08a2a; --accent-ink: #1d1206; --accent-soft: rgba(240,138,42,0.16);
+  --err: #ff6b62; --err-soft: rgba(255,107,98,0.14); --warn: #f2c14e; --ok: #74d39a; --sel: #5aa9ff;
+  --c-fn: #f3a65a; --c-ref: #8fc7ff; --c-num: #c6a6ff; --c-str: #9fd8a8; --c-com: #6f7a74; --c-op: #d8d2c8;
+  --ui: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --ui-cond: "Barlow Condensed", "Barlow", "Arial Narrow", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+html, body { height: 100%; }
+body { background: var(--sky-bottom); color: var(--text); font-family: var(--ui); font-size: 14px; overflow: hidden; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--sel); outline-offset: 1px; }
+
+/* ---------- mock editor viewport ---------- */
+.viewport { position: fixed; inset: 0; overflow: hidden; background: linear-gradient(var(--sky-top), var(--sky-bottom)); }
+.world { position: absolute; left: 0; top: 0; width: 1700px; height: 1100px; transition: transform 450ms ease; background-image: linear-gradient(var(--floor-line) 1px, transparent 1px), linear-gradient(90deg, var(--floor-line) 1px, transparent 1px); background-size: 32px 32px; }
+@media (prefers-reduced-motion: reduce) { .world { transition: none; } }
+.lb { position: absolute; padding: 6px 9px; border-radius: 4px; background: #48505a; border: 2px solid #59626d; font-size: 12px; color: #dfe5ea; cursor: pointer; user-select: none; white-space: nowrap; }
+.lb small { display: block; font-family: var(--mono); font-size: 10px; color: #aab3bb; }
+.lb.t-trigger { background: #3a5560; border-color: #4d717e; }
+.lb.t-lamp { background: #5d5530; border-color: #7c7140; }
+.lb.t-block { background: #5a4c44; border-color: #75645a; padding: 18px 26px; }
+.lb.hl { box-shadow: 0 0 0 3px var(--accent), 0 0 18px rgba(240,138,42,0.7); background-color: #7a5428; }
+.lb.sel, .chip.sel { outline: 2px solid var(--sel); outline-offset: 2px; }
+.cluster { position: absolute; display: flex; gap: 10px; padding: 10px; border: 1px dashed rgba(255,255,255,0.18); border-radius: 6px; }
+.cluster .cap { position: absolute; top: -18px; left: 0; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+.chip { width: 22px; height: 22px; border-radius: 3px; background: #3d6b4f; border: 1px solid #569070; cursor: pointer; }
+.cluster.plain .chip { background: #4a5058; border-color: #626a73; }
+
+/* ---------- game toolbar ---------- */
+.toolbar { position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 4px; padding: 6px max(16px, env(safe-area-inset-right, 0px)) 6px max(16px, env(safe-area-inset-left, 0px)); background: rgba(16,17,19,0.92); border-bottom: 1px solid var(--line); z-index: 5; flex-wrap: wrap; }
+.toolbar .tb { padding: 4px 10px; border-radius: 3px; background: none; border: 0; color: var(--muted); cursor: pointer; }
+.toolbar .tb:hover { background: var(--panel-3); color: var(--text); }
+.toolbar .tb.zls { color: var(--accent); }
+.toolbar .hint { margin-left: auto; font-size: 12px; color: var(--faint); }
+kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; color: var(--muted); }
+
+/* ---------- Imui-style window ---------- */
+.win { position: fixed; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 18px 50px rgba(0,0,0,0.55); z-index: 10; min-width: 0; overflow: hidden; }
+.titlebar { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; background: var(--panel-2); border-bottom: 2px solid var(--accent); cursor: grab; user-select: none; }
+.titlebar h1 { margin: 0; font-family: var(--ui-cond); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700; }
+.titlebar .sp { flex: 1; }
+.iconbtn { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 3px; background: none; color: var(--muted); cursor: pointer; }
+.iconbtn:hover { background: var(--panel-3); color: var(--text); }
+.btn { padding: 5px 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel-3); cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: #565c64; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.primary:hover { background: #ff9a3c; }
+.btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.btn.small { padding: 2px 8px; font-size: 12px; }
+.btn.danger { border-color: rgba(255,107,98,0.5); color: var(--err); }
+.label { font-family: var(--ui-cond); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+/* regions */
+.row { display: flex; min-height: 0; flex: 1; }
+.colflex { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.side { width: 210px; flex-shrink: 0; border-right: 1px solid var(--line); background: var(--panel); }
+.side.right { width: 260px; border-right: 0; border-left: 1px solid var(--line); }
+.side.collapsed { width: 26px; }
+.side.collapsed > :not(.sidehead) { display: none; }
+.side.collapsed .sidehead .label { display: none; }
+.sidehead { display: flex; align-items: center; justify-content: space-between; padding: 6px 4px 6px 10px; border-bottom: 1px solid var(--line); }
+.centre { flex: 1; }
+.scroll { overflow: auto; min-height: 0; }
+
+/* script list */
+.slist { display: flex; flex-direction: column; padding: 4px; gap: 1px; }
+.srow { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 4px; cursor: pointer; border: 0; background: none; text-align: left; width: 100%; }
+.srow:hover { background: var(--panel-3); }
+.srow.on { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+.srow .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mark { font-size: 12px; width: 12px; text-align: center; }
+.mark.nc { color: var(--accent); } .mark.cm { color: var(--warn); } .mark.nv { color: var(--muted); }
+.srow input { flex: 1; min-width: 0; font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--sel); border-radius: 3px; padding: 1px 4px; }
+.listfoot { padding: 6px 8px 10px; }
+.orph { padding: 8px 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.orow { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid rgba(242,193,78,0.35); border-radius: 4px; background: rgba(242,193,78,0.06); }
+.orow .t { font-size: 13px; }
+.orow .acts { display: flex; flex-wrap: wrap; gap: 4px; }
+.empty { color: var(--faint); font-size: 12px; padding: 4px 2px; }
+
+/* header */
+.head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.head .sname { font-weight: 600; font-size: 15px; }
+.pill { font-size: 11px; padding: 1px 7px; border-radius: 10px; border: 1px solid; white-space: nowrap; }
+.pill.nc { color: var(--accent); border-color: rgba(240,138,42,0.5); }
+.pill.ok { color: var(--ok); border-color: rgba(116,211,154,0.45); }
+.head .sp { flex: 1; }
+.banner { padding: 6px 10px; font-size: 12.5px; border-bottom: 1px solid var(--line); }
+.banner.warn { background: rgba(242,193,78,0.09); color: var(--warn); }
+.banner.info { background: var(--panel-2); color: var(--muted); }
+
+/* code editor */
+.editor { display: flex; flex: 1; min-height: 120px; background: #17191b; position: relative; }
+.gutter { width: 40px; flex-shrink: 0; overflow: hidden; padding: 8px 0; background: #17191b; border-right: 1px solid #2a2d31; }
+.gutter div { height: 20px; line-height: 20px; text-align: right; padding-right: 8px; font-family: var(--mono); font-size: 12px; color: var(--faint); }
+.gutter div.e { color: var(--err); background: var(--err-soft); }
+.gutter div.cur { color: var(--text); }
+.code { position: relative; flex: 1; min-width: 0; }
+.code pre, .code textarea { position: absolute; inset: 0; margin: 0; padding: 8px 10px; border: 0; font-family: var(--mono); font-size: 13px; line-height: 20px; white-space: pre; tab-size: 4; overflow: auto; }
+.code pre { pointer-events: none; color: var(--c-op); overflow: hidden; }
+.code textarea { background: transparent; color: transparent; caret-color: var(--text); resize: none; outline: none; }
+.code textarea::selection { background: rgba(90,169,255,0.35); color: transparent; }
+.tk-fn { color: var(--c-fn); } .tk-ref { color: var(--c-ref); } .tk-num { color: var(--c-num); } .tk-str { color: var(--c-str); } .tk-com { color: var(--c-com); font-style: italic; } .tk-kw { color: #e5a0c6; } .tk-arg { color: #b9b3a9; }
+.tk-err { text-decoration: underline wavy var(--err); text-underline-offset: 3px; }
+
+/* problems */
+.problems { border-top: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+.plist { max-height: 110px; overflow: auto; }
+.prob { display: flex; gap: 10px; align-items: baseline; padding: 4px 10px; cursor: pointer; border: 0; background: none; width: 100%; text-align: left; font-size: 13px; }
+.prob:hover { background: var(--panel-3); }
+.prob .loc { font-family: var(--mono); font-size: 12px; color: var(--err); min-width: 44px; }
+.prob .x { color: var(--err); }
+.result { padding: 5px 10px; font-size: 12.5px; color: var(--ok); border-top: 1px solid #2a2d31; }
+.result.none { color: var(--faint); }
+.result .note { color: var(--warn); }
+
+/* tabs */
+.tabs { display: flex; gap: 2px; padding: 4px 6px 0; border-bottom: 1px solid var(--line); background: var(--panel-2); flex-wrap: wrap; }
+.tab { padding: 5px 10px; border: 0; border-radius: 4px 4px 0 0; background: none; color: var(--muted); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.tab:hover { color: var(--text); }
+.tab.on { background: var(--panel); color: var(--text); box-shadow: inset 0 2px 0 var(--accent); }
+.tabbody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* placed panel */
+.placed { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.prow { display: flex; flex-direction: column; gap: 1px; padding: 6px 10px; border-bottom: 1px solid #2a2d31; cursor: pointer; border-left: 2px solid transparent; }
+.prow:hover { background: var(--panel-3); border-left-color: var(--accent); }
+.prow .a { display: flex; justify-content: space-between; gap: 8px; }
+.prow .n { font-family: var(--mono); font-size: 12.5px; color: var(--c-ref); }
+.prow .ty { font-size: 12px; color: var(--muted); }
+.prow .u { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.prow.miss .n, .prow.miss .ty { color: var(--err); }
+.pfoot { padding: 8px 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.pfoot .msg { font-size: 12px; color: var(--warn); }
+.pfoot .tip { font-size: 12px; color: var(--faint); }
+
+/* reference */
+.ref { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.ref input { margin: 8px 10px; padding: 5px 8px; background: #17191b; border: 1px solid var(--line); border-radius: 4px; color: var(--text); font: inherit; }
+.rrow { padding: 6px 10px; border-bottom: 1px solid #2a2d31; font-size: 12.5px; }
+.rrow .f { font-family: var(--mono); color: var(--c-fn); }
+.rrow .al { font-family: var(--mono); color: var(--muted); font-size: 11.5px; }
+.rrow dl { margin: 3px 0 0; display: flex; flex-direction: column; gap: 1px; }
+.rrow dl div { display: flex; gap: 6px; }
+.rrow dt { color: var(--faint); width: 52px; flex-shrink: 0; }
+.rrow dd { margin: 0; color: var(--text); font-family: var(--mono); font-size: 11.5px; min-width: 0; overflow-wrap: anywhere; }
+
+/* foldouts (variant C) */
+.fold { border-top: 1px solid var(--line); }
+.fold > summary { padding: 6px 10px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; background: var(--panel-2); }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold[open] > summary { border-bottom: 1px solid var(--line); }
+.fold .fbody { max-height: 220px; overflow: auto; display: flex; flex-direction: column; }
+
+/* script tabs (variant B) */
+.stabs { display: flex; gap: 2px; padding: 6px 8px 0; background: var(--panel-2); border-bottom: 1px solid var(--line); overflow-x: auto; }
+.stab { display: inline-flex; gap: 6px; align-items: center; padding: 6px 12px; border: 0; border-radius: 4px 4px 0 0; background: none; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.stab.on { background: #17191b; color: var(--text); box-shadow: inset 0 2px 0 var(--accent); }
+.stab:hover { color: var(--text); }
+
+/* menus and popups */
+.menu { position: fixed; z-index: 40; min-width: 160px; padding: 4px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+.menu button { text-align: left; padding: 6px 10px; border: 0; border-radius: 3px; background: none; cursor: pointer; }
+.menu button:hover { background: var(--accent-soft); }
+.menu button.danger { color: var(--err); }
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 30; padding: 16px; }
+.popup { width: 340px; max-width: 100%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 12px 34px rgba(0,0,0,0.6); }
+.popup h2 { margin: 0; font-size: 15px; font-weight: 600; text-wrap: balance; }
+.popup p { margin: 0; color: var(--muted); font-size: 13px; }
+.popup input { padding: 6px 8px; background: #17191b; border: 1px solid var(--line); border-radius: 4px; color: var(--text); font: inherit; }
+.popup .err { color: var(--err); font-size: 12px; min-height: 16px; }
+.popup .acts { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.tooltip { position: fixed; z-index: 50; max-width: 260px; padding: 5px 8px; background: #0f1011; border: 1px solid var(--line); border-radius: 4px; font-size: 12px; pointer-events: none; }
+
+/* prototype bar */
+.proto { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: calc(100% - 32px); padding: 6px 10px; background: #f4efe6; color: #1b1a18; border-radius: 22px; box-shadow: 0 6px 22px rgba(0,0,0,0.5); font-size: 12.5px; }
+.proto button { border: 0; background: #1b1a18; color: #f4efe6; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; }
+.proto .vl { font-weight: 600; min-width: 150px; text-align: center; }
+.proto .st { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-family: var(--mono); font-size: 11.5px; color: #4a4741; }
+.proto .st b { color: #1b1a18; font-weight: 500; }
+.proto label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+.proto .tag { font-family: var(--ui-cond); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; color: #b0561a; }
+.toast { position: fixed; z-index: 55; left: 50%; transform: translateX(-50%); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); padding: 6px 12px; background: #0f1011; border: 1px solid var(--line); border-radius: 4px; font-size: 12.5px; max-width: calc(100% - 32px); }
+
+/* variant geometry */
+.win.va { top: 56px; left: max(16px, 4vw); width: min(1120px, calc(100% - 32px)); height: min(640px, calc(100% - 140px)); }
+.win.vb { left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: 64px; height: min(560px, calc(100% - 130px)); }
+.win.vc { top: 41px; right: 0; bottom: 0; width: min(400px, 100%); border-radius: 0; border-right: 0; border-bottom: 0; padding-bottom: 56px; }
+@media (max-width: 720px) {
+  .win.va { left: 16px; width: calc(100% - 32px); }
+  .win.va .side { width: 26px; }
+  .win.va .side > :not(.sidehead) { display: none; }
+  .win.va .side .sidehead .label { display: none; }
+}
+</style>
+
+<div class="viewport" id="viewport"><div class="world" id="world"></div></div>
+
+<div class="toolbar">
+  <button class="tb">File</button><button class="tb">Edit</button><button class="tb">View</button><button class="tb">Blocks</button>
+  <button class="tb zls" id="tbOpen">Logic Script</button>
+  <span class="hint">ZeepSDK menu bar shown for the mock · <kbd>F12</kbd> toggles the window</span>
+</div>
+
+<div class="win va" id="win"></div>
+<div class="proto" id="proto">
+  <span class="tag">Prototype</span>
+  <button id="vPrev" aria-label="Previous variant">‹</button>
+  <span class="vl" id="vLabel"></span>
+  <button id="vNext" aria-label="Next variant">›</button>
+  <span class="st" id="state"></span>
+  <label><input type="checkbox" id="grab"> grabbing a block</label>
+</div>
+
+<script>
+// ---------- domain data (example level and Scripts) ----------
+const BLOCK_FUNCS = new Set("generator logic math math_3_pins lerp digitizer transistor multiplexer mux demultiplexer demux delay pulser random ticker resettable_ticker timer simple_memory cheese_memory counter toggle_latch date_timer player_input simple_telemetry wheel_telemetry passthrough power_display toggler door death parking state_changer force_giver property_multiplier".split(" "));
+const REF_TYPES = new Set("trigger distance_sensor lamp cannon dynamic_mover dynamic_rotator advanced_mover".split(" "));
+const OPTION_WORDS = new Set("and or nand nor xor xnor add subtract multiply divide modulo less greater less_equal greater_equal equal not_equal min max pow log abs sign repeat ping_pong sin cos tan asin acos atan atan2 sqrt divide_scaled lerp smooth_lerp rise fall any_rise any_fall increased decreased basic local_velocity global_velocity grounded slipping surface physics_material normal skinny_1h skinny_2h skinny_3h compact acceleration force impulse velocity_change local global follow_velocity local_rotation global_rotation none booster slowster feather flying fan true false all".split(" "));
+const OPERATORS = new Set(["&","|","^","!","+","-","*","/","%","<",">","<=",">=","==","!="]);
+
+const REFERENCE = [
+  ["operators", "", "a & b, a | b, a ^ b", "single", "& | ^ → logic · ! → digitizer invert · + - * / % < > <= >= == != → math · unary - is 0 - a · precedence: unary, * / %, + -, comparisons, &, ^, |"],
+  ["generator", "", "–", "single", "power"],
+  ["logic", "", "a, b, op_in", "single", "op: and, or, nand, nor, xor, xnor"],
+  ["math", "", "a, b, op_in", "single", "op: add, subtract, multiply, divide, modulo, less, greater, less_equal, greater_equal, equal, not_equal, min, max, pow, log, abs, sign, repeat, ping_pong, sin, cos, tan, asin, acos, atan, atan2, sqrt, divide_scaled"],
+  ["math_3_pins", "lerp", "start, end, t, op_in", "single", "op: lerp, smooth_lerp"],
+  ["digitizer", "", "x", "single", "invert"],
+  ["transistor", "", "data, gate", "single", "–"],
+  ["multiplexer", "mux", "in1, in2, in3, in4, select", "single", "–"],
+  ["demultiplexer", "demux", "select, data", "ch1, ch2, ch3, ch4", "–"],
+  ["delay", "", "x", "single", "ticks (required)"],
+  ["pulser", "", "x", "single", "mode: rise, fall, any_rise, any_fall, increased, decreased"],
+  ["random", "", "trigger, max_in", "single", "min, max"],
+  ["ticker", "", "–", "single", "–"],
+  ["resettable_ticker", "", "reset", "single", "–"],
+  ["timer", "", "duration, start", "single", "–"],
+  ["simple_memory", "", "data, write", "single", "initial"],
+  ["cheese_memory", "", "data, write", "single", "initial"],
+  ["counter", "", "increment, decrement, reset", "single", "max_reset, min_reset"],
+  ["toggle_latch", "", "x", "single", "initial"],
+  ["date_timer", "", "–", "year, month, day, hour, minute, second", "utc"],
+  ["player_input", "", "–", "arms_up, brake, left, right, analog_left, analog_right, horn", "player: 1–4"],
+  ["simple_telemetry", "", "–", "per mode (basic: speed, yaw, up, state)", "player: 1–4, mode: basic, local_velocity, global_velocity"],
+  ["wheel_telemetry", "", "–", "all, any, lf, rf, lr, rr", "player: 1–4, mode: grounded, slipping, surface, physics_material"],
+  ["passthrough", "", "x", "single", "style: normal, skinny_1h, skinny_2h, skinny_3h"],
+  ["power_display", "", "x", "single", "style: normal, compact"],
+  ["toggler", "door", "x", "–", "targets: 1–8 placed blocks"],
+  ["death", "", "trigger", "–", "player: all, 1–4"],
+  ["parking", "", "x", "–", "player: all, 1–4"],
+  ["state_changer", "", "trigger, state", "–", "player: all, 1–4"],
+  ["force_giver", "", "enable, x, y, z", "–", "player, force_mode, space, particles"],
+  ["property_multiplier", "", "apply, reset", "–", "player: all, 1–4"],
+  ["placed(\"UID\")", "", "per type", "per type", "trigger, distance_sensor, lamp, cannon, dynamic_mover, dynamic_rotator, advanced_mover, or any block as a toggler target"],
+];
+
+const LEVEL = [
+  { uid: "aB3kQ9xLmP2wR7t", type: "trigger", label: "Trigger", x: 230, y: 380 },
+  { uid: "Zp8rT2vNq5Yc1Hd", type: "trigger", label: "Trigger", x: 330, y: 470 },
+  { uid: "Gt7uW4sKe9Lm3Xa", type: "block", label: "Gate wall", x: 520, y: 330 },
+  { uid: "Lm2pQ8rV6nB4cZw", type: "lamp", label: "Lamp", x: 700, y: 440 },
+  { uid: "Dk9sF3hJ7gT1yRe", type: "distance_sensor", label: "Distance Sensor", x: 860, y: 330 },
+  { uid: "Mv5xC2bN8kL6pQs", type: "dynamic_mover", label: "Dynamic Mover", x: 980, y: 470 },
+];
+
+const DOORS_COMPILED = `# open the gate while both pads are pressed
+default hide: true
+pad_a = placed("aB3kQ9xLmP2wR7t")
+pad_b = placed("Zp8rT2vNq5Yc1Hd")
+gate = placed("Gt7uW4sKe9Lm3Xa")
+
+both = pad_a > 0 & pad_b > 0
+held = delay(both, ticks: 25)
+open = both | held
+toggler(open, targets: [gate])`;
+const DOORS_DRAFT = DOORS_COMPILED + `
+lamp_1 = placed("Lm2pQ8rV6nB4cZw")
+
+# new: count how often the gate opened
+opens = counter(pulser(open, mode: rise), reset: pad_c)
+lamp_1(intensity: opens * 100)`;
+const TIMER = `# lap clock on a compact display
+t = ticker()
+seconds = t / 50
+power_display(seconds, style: compact)`;
+const SCOREBOARD = `# best lap so far (work in progress)
+start = placed("Dk9sF3hJ7gT1yRe")
+laps = counter(start.distance < 200)`;
+
+let nextId = 4;
+const S = {
+  variant: "A",
+  open: true,
+  current: "s1",
+  scripts: [
+    { id: "s1", name: "doors", text: DOORS_DRAFT, compiled: DOORS_COMPILED, carrierMissing: false, outsideWires: 1 },
+    { id: "s2", name: "timer", text: TIMER, compiled: TIMER, carrierMissing: true, outsideWires: 0 },
+    { id: "s3", name: "scoreboard", text: SCOREBOARD, compiled: null, carrierMissing: false, outsideWires: 0 },
+  ],
+  groups: {}, // scriptId -> { x, y, uids[] }
+  plain: [],  // untagged clusters { x, y, uids[] }
+  orphans: [{ id: "o1", count: 14, draftName: "lights", draftText: `# warning lights near the finish\nsensor = placed("Dk9sF3hJ7gT1yRe")\nclose = sensor.distance < 300\nblink = toggle_latch(pulser(ticker() % 20 == 0))\nlamp_1 = placed("Lm2pQ8rV6nB4cZw")\nlamp_1(intensity: close & blink)`, x: 160, y: 700 }],
+  selection: new Set(),
+  focus: "level",
+  grabbing: false,
+  errors: [],
+  refs: [],
+  result: null,
+  placedMsg: "",
+  rightTab: "placed",
+  drawerTab: "problems",
+  leftCollapsed: false,
+  rightCollapsed: false,
+  hover: null,
+};
+const cur = () => S.scripts.find(s => s.id === S.current);
+
+// ---------- tiny lexer + checker (stands in for the real Compile front end) ----------
+const TOKEN_RE = /(#.*)|("[^"\n]*"?)|(\d+)|([A-Za-z_]\w*)|(==|!=|<=|>=|[&|^!+\-*\/%<>=:.,()\[\]])|(\s+)|(.)/g;
+function lex(line) {
+  const out = []; let m; TOKEN_RE.lastIndex = 0;
+  while ((m = TOKEN_RE.exec(line))) {
+    const type = m[1] ? "com" : m[2] ? "str" : m[3] ? "num" : m[4] ? "id" : m[5] ? "op" : m[6] ? "ws" : "bad";
+    out.push({ type, text: m[0], col: m.index + 1 });
+  }
+  return out;
+}
+function uidOwner(uid) {
+  for (const [sid, g] of Object.entries(S.groups)) if (g.uids.includes(uid)) return S.scripts.find(s => s.id === sid);
+  return null;
+}
+function levelHas(uid) {
+  return LEVEL.some(b => b.uid === uid) || Object.values(S.groups).some(g => g.uids.includes(uid)) || S.plain.some(g => g.uids.includes(uid));
+}
+function check(text) {
+  const lines = text.split("\n");
+  const errors = [], refs = [], defined = new Map(), all = new Set();
+  lines.forEach(l => { const t = lex(l).filter(x => x.type !== "ws" && x.type !== "com"); if (t[0]?.type === "id" && t[1]?.text === "=") all.add(t[0].text); });
+  let blocks = 0; const literals = new Set();
+  lines.forEach((line, i) => {
+    const ln = i + 1;
+    const toks = lex(line).filter(x => x.type !== "ws" && x.type !== "com");
+    if (!toks.length || toks[0].text === "default") return;
+    let rest = toks, lhs = null;
+    if (toks[0].type === "id" && toks[1]?.text === "=") {
+      lhs = toks[0]; rest = toks.slice(2);
+      if (BLOCK_FUNCS.has(lhs.text) || lhs.text === "placed") errors.push({ line: ln, col: lhs.col, len: lhs.text.length, msg: `'${lhs.text}' is a Block Function name; pick another name` });
+      else if (defined.has(lhs.text)) errors.push({ line: ln, col: lhs.col, len: lhs.text.length, msg: `'${lhs.text}' is already defined on line ${defined.get(lhs.text)}` });
+    }
+    const stack = [];
+    rest.forEach((t, j) => {
+      const prev = rest[j - 1], next = rest[j + 1];
+      if (t.type === "op") {
+        if (t.text === ")") { const f = stack.pop(); if (f && f.name === "delay" && !f.named.has("ticks")) errors.push({ line: ln, col: f.col, len: 5, msg: "delay needs ticks:, for example delay(x, ticks: 1)" }); }
+        if (OPERATORS.has(t.text) && !(t.text === "-" && false)) blocks++;
+        return;
+      }
+      if (t.type === "num") { if (prev?.text !== ":") literals.add(t.text); return; }
+      if (t.type === "str") {
+        if (prev?.text === "(" && rest[j - 2]?.text === "placed") {
+          const uid = t.text.replace(/"/g, "");
+          const owner = uidOwner(uid);
+          if (!levelHas(uid)) errors.push({ line: ln, col: t.col, len: t.text.length, msg: `No block with UID "${uid}" in this level` });
+          else if (owner) errors.push({ line: ln, col: t.col, len: t.text.length, msg: `This block belongs to Script '${owner.name}'. Connect Scripts through a Passthrough you place by hand` });
+          if (lhs) refs.push({ name: lhs.text, uid, line: ln });
+        }
+        return;
+      }
+      if (t.type !== "id") return;
+      if (prev?.text === ".") return;
+      if (next?.text === ":") { if (stack.length) stack[stack.length - 1].named.add(t.text); return; }
+      if (prev?.text === ":" && OPTION_WORDS.has(t.text)) return;
+      const inDelay = stack.some(f => f.name === "delay");
+      if (next?.text === "(") {
+        stack.push({ name: t.text, col: t.col, named: new Set() });
+        if (t.text === "placed" || defined.has(t.text)) return;
+        if (BLOCK_FUNCS.has(t.text)) { blocks++; return; }
+        if (REF_TYPES.has(t.text)) errors.push({ line: ln, col: t.col, len: t.text.length, msg: `A Script can't place a ${t.text}. Place it in the level and reference it with placed("UID")` });
+        else errors.push({ line: ln, col: t.col, len: t.text.length, msg: `Unknown Block Function '${t.text}'` });
+        return;
+      }
+      if (defined.has(t.text)) return;
+      if (inDelay && all.has(t.text)) return;
+      if (lhs && t.text === lhs.text) errors.push({ line: ln, col: t.col, len: t.text.length, msg: `'${t.text}' refers to itself; only delay(...) can do that` });
+      else if (all.has(t.text)) errors.push({ line: ln, col: t.col, len: t.text.length, msg: `'${t.text}' is defined later; define names before using them` });
+      else errors.push({ line: ln, col: t.col, len: t.text.length, msg: `Unknown name '${t.text}'` });
+    });
+    if (lhs && !defined.has(lhs.text)) defined.set(lhs.text, ln);
+  });
+  return { errors, refs, defined, blocks: blocks + literals.size };
+}
+
+// ---------- world (mock level viewport) ----------
+const world = document.getElementById("world");
+const viewport = document.getElementById("viewport");
+let cam = { x: 700, y: 520 };
+function placeCam() { world.style.transform = `translate(${viewport.clientWidth / 2 - cam.x}px, ${viewport.clientHeight / 2 - cam.y}px)`; }
+function makeUids(n, seed) { return Array.from({ length: n }, (_, i) => `${seed}${String(i).padStart(2, "0")}xQ7mK2vL9pR`.slice(0, 15)); }
+function setGroup(sid, n, x, y) { const old = S.groups[sid]; S.groups[sid] = { x: old?.x ?? x, y: old?.y ?? y, uids: makeUids(n, sid + "g" + nextId++) }; }
+
+function renderWorld() {
+  world.replaceChildren();
+  for (const b of LEVEL) {
+    const d = document.createElement("div");
+    d.className = `lb t-${b.type}` + (S.selection.has(b.uid) ? " sel" : "") + (S.hover === b.uid && !S.selection.has(b.uid) ? " hl" : "");
+    d.style.left = b.x + "px"; d.style.top = b.y + "px";
+    d.innerHTML = `${b.label}<small>${b.uid}</small>`;
+    d.dataset.uid = b.uid;
+    world.append(d);
+  }
+  const clusters = [
+    ...Object.entries(S.groups).map(([sid, g]) => ({ g, cap: `Block Group · ${S.scripts.find(s => s.id === sid)?.name} · ${g.uids.length} blocks`, plain: false })),
+    ...S.plain.map(g => ({ g, cap: `plain blocks (untagged) · ${g.uids.length}`, plain: true })),
+    ...S.orphans.map(o => ({ g: { x: o.x, y: o.y, uids: o.uids }, cap: `Orphaned Group · ${o.count} blocks`, plain: false })),
+  ];
+  for (const { g, cap, plain } of clusters) {
+    const c = document.createElement("div");
+    c.className = "cluster" + (plain ? " plain" : "");
+    c.style.left = g.x + "px"; c.style.top = g.y + "px";
+    c.innerHTML = `<span class="cap">${esc(cap)}</span>`;
+    let col;
+    g.uids.forEach((u, i) => {
+      if (i % 3 === 0) { col = document.createElement("div"); col.className = "col"; c.append(col); }
+      const ch = document.createElement("div");
+      ch.className = "chip" + (S.selection.has(u) ? " sel" : "");
+      ch.dataset.uid = u; ch.title = u;
+      col.append(ch);
+    });
+    world.append(c);
+  }
+}
+world.addEventListener("click", e => {
+  const el = e.target.closest("[data-uid]");
+  if (!el) { if (S.selection.size) { S.selection.clear(); toast("Selection cleared"); renderAll(); } return; }
+  const u = el.dataset.uid;
+  S.selection.has(u) ? S.selection.delete(u) : S.selection.add(u);
+  renderAll();
+});
+viewport.addEventListener("click", e => { if (e.target === viewport) { S.selection.clear(); renderAll(); } });
+
+// ---------- persistent components ----------
+const $ = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// editor
+const editorEl = $("div", "editor");
+const gutter = $("div", "gutter");
+const codeWrap = $("div", "code");
+const hl = $("pre", ""); hl.setAttribute("aria-hidden", "true");
+const ta = document.createElement("textarea");
+ta.id = "script-text"; ta.spellcheck = false; ta.setAttribute("aria-label", "Script text");
+ta.setAttribute("autocomplete", "off"); ta.setAttribute("autocapitalize", "off");
+codeWrap.append(hl, ta); editorEl.append(gutter, codeWrap);
+
+const headEl = $("div", "head");
+const bannerEl = $("div", "");
+const problemsEl = $("div", "problems");
+const scriptListEl = $("div", "colflex");
+const scriptTabsEl = $("div", "stabs");
+const orphansEl = $("div", "");
+const placedEl = $("div", "placed");
+const refEl = $("div", "ref");
+const refFilter = document.createElement("input");
+refFilter.id = "ref-filter"; refFilter.placeholder = "Filter Block Functions"; refFilter.setAttribute("aria-label", "Filter Block Functions");
+const refList = $("div", "scroll");
+refEl.append(refFilter, refList);
+refFilter.addEventListener("input", renderReference);
+
+function highlight(text) {
+  const errs = S.errors;
+  return text.split("\n").map((line, i) => lex(line).map(t => {
+    const e = errs.find(e => e.line === i + 1 && t.col >= e.col && t.col < e.col + Math.max(e.len, 1));
+    let cls = "";
+    if (t.type === "com") cls = "tk-com";
+    else if (t.type === "str") cls = "tk-str";
+    else if (t.type === "num") cls = "tk-num";
+    else if (t.type === "id") {
+      if (BLOCK_FUNCS.has(t.text) || t.text === "placed") cls = "tk-fn";
+      else if (t.text === "default") cls = "tk-kw";
+      else if (OPTION_WORDS.has(t.text)) cls = "tk-arg";
+      else cls = "tk-ref";
+    }
+    if (e && t.type !== "ws") cls += " tk-err";
+    return cls ? `<span class="${cls}">${esc(t.text)}</span>` : esc(t.text);
+  }).join("")).join("\n") + "\n ";
+}
+function caretLine() { return ta.value.slice(0, ta.selectionStart).split("\n").length; }
+function renderEditor() {
+  hl.innerHTML = highlight(ta.value);
+  const n = ta.value.split("\n").length, cl = caretLine();
+  const errLines = new Set(S.errors.map(e => e.line));
+  gutter.innerHTML = Array.from({ length: n }, (_, i) => `<div class="${errLines.has(i + 1) ? "e" : ""}${i + 1 === cl && S.focus === "editor" ? " cur" : ""}">${i + 1}</div>`).join("");
+  syncScroll();
+}
+function syncScroll() { hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft; gutter.scrollTop = ta.scrollTop; }
+ta.addEventListener("scroll", syncScroll);
+let checkTimer = null;
+ta.addEventListener("input", () => {
+  cur().text = ta.value; S.result = null;
+  renderEditor(); renderHeader(); renderScripts(); renderProblems();
+  clearTimeout(checkTimer); checkTimer = setTimeout(runCheck, 350);
+});
+ta.addEventListener("keyup", () => renderEditor());
+ta.addEventListener("click", () => renderEditor());
+ta.addEventListener("focus", () => { S.focus = "editor"; renderState(); renderEditor(); });
+ta.addEventListener("blur", () => { S.focus = "level"; renderState(); renderEditor(); });
+ta.addEventListener("keydown", e => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); compile(); }
+  else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); ta.blur(); toast("Escape left the Script field; the pause menu stays closed"); }
+  else if (e.key === "Tab") { e.preventDefault(); insertText("    "); }
+});
+function insertText(s) {
+  ta.focus();
+  if (!document.execCommand("insertText", false, s)) ta.setRangeText(s, ta.selectionStart, ta.selectionEnd, "end");
+  ta.dispatchEvent(new Event("input"));
+}
+function runCheck() {
+  const r = check(ta.value);
+  S.errors = r.errors; S.refs = r.refs; S.estimate = r.blocks;
+  renderEditor(); renderHeader(); renderProblems(); renderPlaced(); renderTabsCounts();
+}
+function jumpTo(e) {
+  const lines = ta.value.split("\n");
+  let idx = 0; for (let i = 0; i < e.line - 1; i++) idx += lines[i].length + 1;
+  idx += e.col - 1;
+  ta.focus(); ta.setSelectionRange(idx, idx + e.len);
+  ta.scrollTop = Math.max(0, (e.line - 4) * 20);
+  renderEditor();
+}
+
+// header
+function compileBlocker() {
+  if (S.errors.length) return `Fix ${S.errors.length} error${S.errors.length > 1 ? "s" : ""} first`;
+  if (S.grabbing) return "Release the block you're holding first: the editor ignores changes while grabbing";
+  return null;
+}
+function renderHeader() {
+  const s = cur();
+  if (!s) { headEl.innerHTML = `<span class="empty">No Script selected. Create one with New.</span>`; bannerEl.className = ""; bannerEl.textContent = ""; return; }
+  const dirty = s.compiled !== s.text;
+  const blocker = compileBlocker();
+  headEl.innerHTML = `<span class="sname">${esc(s.name)}</span>
+    ${s.compiled == null ? `<span class="pill nc">never compiled</span>` : dirty ? `<span class="pill nc">not compiled</span>` : `<span class="pill ok">compiled</span>`}
+    <span class="sp"></span>
+    <span class="label">${S.groups[s.id] ? S.groups[s.id].uids.length + " blocks placed" : "no blocks"}</span>
+    <span id="compileWrap"><button class="btn primary" id="compileBtn" ${blocker ? "disabled" : ""}>Compile · Ctrl+Enter</button></span>`;
+  headEl.querySelector("#compileBtn").addEventListener("click", compile);
+  if (blocker) tip(headEl.querySelector("#compileWrap"), blocker);
+  if (s.compiled == null && s.text.trim()) { bannerEl.className = "banner warn"; bannerEl.textContent = "Not stored in the level yet. Compile to keep it."; }
+  else if (s.carrierMissing) { bannerEl.className = "banner warn"; bannerEl.textContent = "The block holding this Script's text was deleted. Compile to store it again."; }
+  else { bannerEl.className = ""; bannerEl.textContent = ""; }
+}
+function compile() {
+  const s = cur(); if (!s) return;
+  const blocker = compileBlocker(); if (blocker) { toast(blocker); return; }
+  const n = S.estimate || 0;
+  const before = S.groups[s.id]?.uids.length || 0;
+  if (n === 0) delete S.groups[s.id];
+  else setGroup(s.id, n, 1150, 160 + Object.keys(S.groups).length * 200);
+  const wires = s.outsideWires; s.outsideWires = 0;
+  S.result = n === 0
+    ? { text: before ? `Empty Script: removed ${before} blocks. The Script is no longer stored in the level.` : "Empty Script: nothing to place.", note: "" }
+    : { text: before ? `Replaced ${before} → ${n} blocks` : `Placed ${n} blocks`, note: wires ? ` · ${wires} Wire from outside the group was removed; use placed(...) to keep it` : "" };
+  s.compiled = n === 0 ? null : s.text; s.carrierMissing = false;
+  S.selection.clear();
+  runCheck(); renderAll();
+}
+
+// problems
+function renderProblems() {
+  problemsEl.replaceChildren();
+  const list = $("div", "plist");
+  if (!S.errors.length) list.append($("div", "empty", "&nbsp;&nbsp;No problems. Checked as you type."));
+  for (const e of S.errors) {
+    const b = $("button", "prob", `<span class="loc">${e.line}:${e.col}</span><span><span class="x">✖</span> ${esc(e.msg)}</span>`);
+    b.addEventListener("click", () => jumpTo(e));
+    list.append(b);
+  }
+  problemsEl.append(list);
+  const r = $("div", "result" + (S.result ? "" : " none"));
+  r.innerHTML = S.result ? `${esc(S.result.text)}<span class="note">${esc(S.result.note)}</span>` : "Compile result shows here.";
+  problemsEl.append(r);
+}
+
+// scripts
+function marks(s) {
+  if (s.compiled == null) return `<span class="mark nv" title="Never compiled">◌</span>`;
+  if (s.carrierMissing) return `<span class="mark cm" title="Text block missing">⚠</span>`;
+  if (s.compiled !== s.text) return `<span class="mark nc" title="Not compiled">●</span>`;
+  return `<span class="mark"></span>`;
+}
+let renaming = null;
+function scriptRow(s, cls) {
+  const b = $("div", cls + (s.id === S.current ? " on" : ""));
+  b.tabIndex = 0; b.setAttribute("role", "button");
+  b.addEventListener("keydown", e => { if (e.key === "Enter" && e.target === b) selectScript(s.id); });
+  if (renaming === s.id) {
+    b.innerHTML = `${marks(s)}<input id="rename-${s.id}" value="${esc(s.name)}" maxlength="40" aria-label="Script name">`;
+    const inp = b.querySelector("input");
+    setTimeout(() => { inp.focus(); inp.select(); });
+    inp.addEventListener("keydown", e => {
+      if (e.key === "Enter") { const err = nameError(inp.value, s.id); if (err) { toast(err); return; } s.name = inp.value.trim(); renaming = null; renderAll(); }
+      if (e.key === "Escape") { renaming = null; renderAll(); }
+      e.stopPropagation();
+    });
+    inp.addEventListener("blur", () => { if (renaming === s.id) { renaming = null; renderAll(); } });
+  } else b.innerHTML = `${marks(s)}<span class="nm">${esc(s.name)}</span>`;
+  b.addEventListener("click", () => selectScript(s.id));
+  b.addEventListener("contextmenu", e => { e.preventDefault(); openMenu(e.clientX, e.clientY, s); });
+  return b;
+}
+function renderScripts() {
+  scriptListEl.replaceChildren();
+  const l = $("div", "slist scroll");
+  S.scripts.forEach(s => l.append(scriptRow(s, "srow")));
+  if (!S.scripts.length) l.append($("div", "empty", "No Scripts in this level."));
+  const f = $("div", "listfoot");
+  const nb = $("button", "btn small", "+ New Script"); nb.addEventListener("click", openNew);
+  f.append(nb, $("div", "empty", "Right-click a Script for more."));
+  scriptListEl.append(l, f);
+
+  scriptTabsEl.replaceChildren();
+  S.scripts.forEach(s => {
+    const t = scriptRow(s, "stab");
+    scriptTabsEl.append(t);
+  });
+  const nt = $("button", "stab", "+"); nt.title = "New Script"; nt.addEventListener("click", openNew);
+  scriptTabsEl.append(nt);
+}
+function selectScript(id) {
+  if (S.current === id) return;
+  S.current = id; ta.value = cur()?.text ?? ""; S.result = null; ta.scrollTop = 0;
+  runCheck(); renderAll();
+}
+function renderOrphans() {
+  orphansEl.replaceChildren();
+  if (!S.orphans.length) return;
+  const box = $("div", "orph");
+  box.append($("div", "label", `Orphaned groups (${S.orphans.length})`));
+  for (const o of S.orphans) {
+    const r = $("div", "orow");
+    r.append($("div", "t", `${o.count} blocks · Script text missing`));
+    const acts = $("div", "acts");
+    const mk = (label, fn, cls = "") => { const b = $("button", "btn small " + cls, label); b.addEventListener("click", () => fn(o)); acts.append(b); };
+    mk("Delete", orphanDelete, "danger"); mk("Untag", orphanUntag); mk("Select", orphanSelect);
+    if (o.draftText) mk("Restore from Draft", orphanRestore);
+    r.append(acts); box.append(r);
+  }
+  orphansEl.append(box);
+}
+function orphanDelete(o) { S.orphans = S.orphans.filter(x => x !== o); toast(`Deleted ${o.count} blocks (one undo step)`); renderAll(); }
+function orphanUntag(o) { S.orphans = S.orphans.filter(x => x !== o); S.plain.push({ x: o.x, y: o.y, uids: o.uids }); toast(`Untagged ${o.count} blocks; they're plain blocks now`); renderAll(); }
+function orphanSelect(o) { S.selection = new Set(o.uids); frame(o.x + 40, o.y + 30); toast(`Selected ${o.count} blocks (one undo step)`); renderAll(); }
+function orphanRestore(o) {
+  const id = "s" + nextId++;
+  let name = o.draftName; while (S.scripts.some(s => s.name === name)) name += " (restored)";
+  S.scripts.push({ id, name, text: o.draftText, compiled: o.draftText, carrierMissing: true, outsideWires: 0 });
+  S.groups[id] = { x: o.x, y: o.y, uids: o.uids };
+  S.orphans = S.orphans.filter(x => x !== o);
+  toast(`Restored Script '${name}' from this computer's Draft`);
+  selectScript(id); renderAll();
+}
+
+// placed blocks
+function blockByUid(uid) {
+  const b = LEVEL.find(b => b.uid === uid); if (b) return b;
+  return null;
+}
+function renderPlaced() {
+  placedEl.replaceChildren();
+  const list = $("div", "scroll");
+  list.style.flex = "1";
+  if (!S.refs.length) list.append($("div", "empty", "&nbsp;&nbsp;No placed(...) references in this Script."));
+  for (const r of S.refs) {
+    const b = blockByUid(r.uid);
+    const row = $("div", "prow" + (b ? "" : " miss"));
+    row.innerHTML = `<div class="a"><span class="n">${esc(r.name)}</span><span class="ty">${b ? (b.type === "block" ? "toggler target" : b.type) : "missing"}</span></div><span class="u">${esc(r.uid)} · line ${r.line}</span>`;
+    if (b) {
+      row.addEventListener("mouseenter", () => { S.hover = b.uid; renderWorld(); });
+      row.addEventListener("mouseleave", () => { S.hover = null; renderWorld(); });
+      row.addEventListener("click", () => { frame(b.x + 40, b.y + 15); toast(`Camera framed on ${r.name}; selection unchanged`); });
+    }
+    list.append(row);
+  }
+  const f = $("div", "pfoot");
+  const ib = $("button", "btn small", `Insert selected (${S.selection.size})`);
+  ib.disabled = !S.selection.size;
+  ib.addEventListener("click", insertSelected);
+  f.append(ib);
+  f.append($("div", S.placedMsg ? "msg" : "tip", esc(S.placedMsg || "Click blocks in the level to select them, then insert them at the caret.")));
+  placedEl.append(list, f);
+}
+function insertSelected() {
+  const s = cur(); if (!s) return;
+  const defined = check(ta.value).defined;
+  const referenced = new Set(S.refs.map(r => r.uid));
+  const lines = [], skipped = [];
+  for (const uid of S.selection) {
+    const owner = uidOwner(uid);
+    if (owner) { skipped.push(`one block belongs to Script '${owner.name}'`); continue; }
+    if (referenced.has(uid)) { skipped.push(`${S.refs.find(r => r.uid === uid).name} is already referenced`); continue; }
+    const b = blockByUid(uid);
+    if (!b) { skipped.push("untagged or orphaned blocks can't be referenced in this mock"); continue; }
+    const base = b.type === "block" ? "block" : b.type;
+    let n = 1; while (defined.has(`${base}_${n}`) || lines.some(l => l.startsWith(`${base}_${n} `))) n++;
+    lines.push(`${base}_${n} = placed("${uid}")`);
+  }
+  S.placedMsg = skipped.length ? "Skipped: " + [...new Set(skipped)].join("; ") : "";
+  if (lines.length) {
+    const atLineStart = ta.selectionStart === 0 || ta.value[ta.selectionStart - 1] === "\n";
+    insertText((atLineStart ? "" : "\n") + lines.join("\n") + "\n");
+  }
+  renderPlaced();
+}
+function frame(x, y) { cam = { x, y }; placeCam(); }
+
+// reference
+function renderReference() {
+  const q = refFilter.value.trim().toLowerCase();
+  refList.replaceChildren();
+  for (const [f, al, ins, outs, set] of REFERENCE) {
+    if (q && !(f + " " + al + " " + set + " " + outs).toLowerCase().includes(q)) continue;
+    const r = $("div", "rrow");
+    r.innerHTML = `<span class="f">${esc(f)}</span>${al ? ` <span class="al">alias ${esc(al)}</span>` : ""}
+      <dl><div><dt>inputs</dt><dd>${esc(ins)}</dd></div><div><dt>outputs</dt><dd>${esc(outs)}</dd></div><div><dt>settings</dt><dd>${esc(set)}${f.includes("(") || f === "operators" ? "" : ", hide"}</dd></div></dl>`;
+    refList.append(r);
+  }
+  if (!refList.children.length) refList.append($("div", "empty", "&nbsp;&nbsp;Nothing matches."));
+}
+
+// ---------- tabs, menus, popups, tooltips ----------
+function makeTabs(defs, getOn, setOn) {
+  const wrap = $("div", "colflex"); wrap.style.flex = "1";
+  const bar = $("div", "tabs"), body = $("div", "tabbody");
+  wrap.append(bar, body);
+  wrap.refresh = () => {
+    bar.replaceChildren();
+    for (const d of defs) {
+      const b = $("button", "tab" + (getOn() === d.key ? " on" : ""), esc(d.label()));
+      b.addEventListener("click", () => { setOn(d.key); wrap.refresh(); });
+      bar.append(b);
+    }
+    const on = defs.find(d => d.key === getOn());
+    if (body.firstChild !== on.node) body.replaceChildren(on.node);
+  };
+  return wrap;
+}
+let tabsInstances = [];
+function renderTabsCounts() { tabsInstances.forEach(t => t.refresh()); }
+
+let menuEl = null;
+function closeMenu() { menuEl?.remove(); menuEl = null; }
+function openMenu(x, y, s) {
+  closeMenu();
+  menuEl = $("div", "menu");
+  const item = (label, fn, cls = "") => { const b = $("button", cls, label); b.addEventListener("click", () => { closeMenu(); fn(); }); menuEl.append(b); };
+  item("Rename", () => { renaming = s.id; renderAll(); });
+  item("Select group", () => {
+    const g = S.groups[s.id];
+    if (!g) { toast(`'${s.name}' has no blocks placed`); return; }
+    S.selection = new Set(g.uids); frame(g.x + 40, g.y + 30); toast(`Selected ${g.uids.length} blocks of '${s.name}' (one undo step)`); renderAll();
+  });
+  item("Delete…", () => openDelete(s), "danger");
+  document.body.append(menuEl);
+  menuEl.style.left = Math.min(x, innerWidth - 180) + "px"; menuEl.style.top = Math.min(y, innerHeight - 120) + "px";
+}
+document.addEventListener("click", e => { if (menuEl && !menuEl.contains(e.target)) closeMenu(); });
+
+function popup(build) {
+  const scrim = $("div", "scrim"), p = $("div", "popup");
+  scrim.append(p); win.append(scrim);
+  const close = () => scrim.remove();
+  build(p, close);
+  scrim.addEventListener("click", e => { if (e.target === scrim) close(); });
+  scrim.addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); close(); } });
+  return close;
+}
+function nameError(v, selfId) {
+  const n = v.trim();
+  if (!n) return "Give the Script a name.";
+  if (n.length > 40) return "Names can be at most 40 characters.";
+  if (S.scripts.some(s => s.name === n && s.id !== selfId)) return `There's already a Script named '${n}' in this level.`;
+  return null;
+}
+function openNew() {
+  popup((p, close) => {
+    p.innerHTML = `<h2>New Script</h2><input id="new-name" maxlength="40" placeholder="for example: doors" aria-label="Script name"><div class="err"></div><div class="acts"><button class="btn">Cancel</button><button class="btn primary">Create</button></div>`;
+    const inp = p.querySelector("input"), err = p.querySelector(".err"), [cancel, ok] = p.querySelectorAll("button");
+    setTimeout(() => inp.focus());
+    const go = () => {
+      const e = nameError(inp.value); if (e) { err.textContent = e; return; }
+      const id = "s" + nextId++;
+      S.scripts.push({ id, name: inp.value.trim(), text: "", compiled: null, carrierMissing: false, outsideWires: 0 });
+      close(); selectScript(id); ta.focus();
+    };
+    inp.addEventListener("input", () => { err.textContent = nameError(inp.value) || ""; });
+    inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    cancel.addEventListener("click", close); ok.addEventListener("click", go);
+  });
+}
+function openDelete(s) {
+  const g = S.groups[s.id], n = g ? g.uids.length : 0;
+  popup((p, close) => {
+    p.innerHTML = `<h2>Delete Script '${esc(s.name)}'?</h2><p>${n ? `It has ${n} blocks in the level. Delete them too, or keep them as plain blocks you edit by hand.` : "It has no blocks in the level."}</p><div class="acts"><button class="btn">Cancel</button>${n ? `<button class="btn">Keep blocks</button>` : ""}<button class="btn primary">${n ? "Delete blocks too" : "Delete"}</button></div>`;
+    const bs = [...p.querySelectorAll("button")];
+    bs[0].addEventListener("click", close);
+    const finish = keep => {
+      if (g) { if (keep) S.plain.push(g); delete S.groups[s.id]; }
+      S.scripts = S.scripts.filter(x => x !== s);
+      if (S.current === s.id) { S.current = null; selectScript(S.scripts[0]?.id ?? null); }
+      toast(n ? (keep ? `Deleted '${s.name}'; kept ${n} blocks as plain blocks` : `Deleted '${s.name}' and its ${n} blocks (one undo step)`) : `Deleted '${s.name}'`);
+      close(); renderAll();
+    };
+    if (n) bs[1].addEventListener("click", () => finish(true));
+    bs[bs.length - 1].addEventListener("click", () => finish(false));
+    setTimeout(() => bs[bs.length - 1].focus());
+  });
+}
+let tipEl = null;
+function tip(el, text) {
+  el.addEventListener("mouseenter", e => { tipEl = $("div", "tooltip", esc(text)); document.body.append(tipEl); tipEl.style.left = Math.min(e.clientX + 10, innerWidth - 270) + "px"; tipEl.style.top = e.clientY + 16 + "px"; });
+  el.addEventListener("mouseleave", () => { tipEl?.remove(); tipEl = null; });
+}
+let toastTimer;
+function toast(t) {
+  let el = document.querySelector(".toast"); if (!el) { el = $("div", "toast"); document.body.append(el); }
+  el.textContent = t; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.remove(), 3200);
+}
+
+// ---------- variants ----------
+const win = document.getElementById("win");
+const VARIANTS = {
+  A: "Three regions",
+  B: "Script tabs + drawer",
+  C: "Docked side panel",
+};
+function titlebar() {
+  const t = $("div", "titlebar", `<h1>Logic Script</h1><span class="sp"></span>`);
+  const x = $("button", "iconbtn", "✕"); x.setAttribute("aria-label", "Close window (F12)"); x.addEventListener("click", () => setOpen(false));
+  t.append(x);
+  if (S.variant === "A") dragBy(t);
+  return t;
+}
+function dragBy(handle) {
+  handle.addEventListener("pointerdown", e => {
+    if (e.target.closest("button")) return;
+    const r = win.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+    const move = ev => { win.style.left = Math.max(0, Math.min(innerWidth - 120, ev.clientX - dx)) + "px"; win.style.top = Math.max(41, Math.min(innerHeight - 60, ev.clientY - dy)) + "px"; };
+    const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); };
+    addEventListener("pointermove", move); addEventListener("pointerup", up);
+  });
+}
+function centreColumn() {
+  const c = $("div", "colflex centre");
+  c.append(headEl, bannerEl, editorEl, problemsEl);
+  return c;
+}
+function buildLayout() {
+  win.className = "win v" + S.variant.toLowerCase();
+  win.removeAttribute("style");
+  win.replaceChildren(titlebar());
+  tabsInstances = [];
+  if (S.variant === "A") {
+    const row = $("div", "row");
+    const left = $("div", "side colflex" + (S.leftCollapsed ? " collapsed" : ""));
+    const lh = $("div", "sidehead", `<span class="label">Scripts</span>`);
+    const lb = $("button", "iconbtn", S.leftCollapsed ? "»" : "«"); lb.setAttribute("aria-label", "Collapse Scripts panel");
+    lb.addEventListener("click", () => { S.leftCollapsed = !S.leftCollapsed; buildLayout(); });
+    lh.append(lb);
+    const leftBody = $("div", "colflex scroll"); leftBody.style.flex = "1";
+    leftBody.append(scriptListEl, orphansEl);
+    left.append(lh, leftBody);
+    const right = $("div", "side right colflex" + (S.rightCollapsed ? " collapsed" : ""));
+    const rh = $("div", "sidehead", `<span class="label">Level</span>`);
+    const rb = $("button", "iconbtn", S.rightCollapsed ? "«" : "»"); rb.setAttribute("aria-label", "Collapse side panel");
+    rb.addEventListener("click", () => { S.rightCollapsed = !S.rightCollapsed; buildLayout(); });
+    rh.prepend(rb);
+    const tabs = makeTabs([
+      { key: "placed", label: () => `Placed blocks (${S.refs.length})`, node: placedEl },
+      { key: "reference", label: () => "Reference", node: refEl },
+    ], () => S.rightTab, v => S.rightTab = v);
+    tabsInstances.push(tabs);
+    right.append(rh, tabs);
+    row.append(left, centreColumn(), right);
+    win.append(row);
+  } else if (S.variant === "B") {
+    const c = $("div", "colflex"); c.style.flex = "1";
+    const top = $("div", "colflex"); top.style.flex = "1.4";
+    top.append(scriptTabsEl, headEl, bannerEl, editorEl);
+    const drawer = makeTabs([
+      { key: "problems", label: () => `Problems (${S.errors.length})`, node: problemsEl },
+      { key: "placed", label: () => `Placed blocks (${S.refs.length})`, node: placedEl },
+      { key: "reference", label: () => "Reference", node: refEl },
+      { key: "orphans", label: () => `Orphaned (${S.orphans.length})`, node: orphansEl },
+    ], () => S.drawerTab, v => S.drawerTab = v);
+    drawer.style.flex = "1"; drawer.style.borderTop = "1px solid var(--line)";
+    tabsInstances.push(drawer);
+    c.append(top, drawer);
+    win.append(c);
+  } else {
+    const c = $("div", "colflex scroll"); c.style.flex = "1";
+    const fold = (title, node, open) => {
+      const d = $("details", "fold"); if (open) d.open = true;
+      const sm = $("summary", "", `<span class="label">${title}</span><span class="label">▾</span>`);
+      const b = $("div", "fbody"); b.append(node); d.append(sm, b); return d;
+    };
+    c.append(fold("Scripts", scriptListEl, true), headEl, bannerEl);
+    editorEl.style.minHeight = "240px";
+    c.append(editorEl, problemsEl, fold("Placed blocks", placedEl, true), fold("Reference", refEl, false));
+    if (S.orphans.length) c.append(fold("Orphaned groups", orphansEl, true));
+    win.append(c);
+  }
+  if (S.variant !== "C") editorEl.style.minHeight = "";
+  renderAll();
+}
+function setVariant(v) {
+  S.variant = v;
+  try { history.replaceState(null, "", "#" + v.toLowerCase()); } catch (e) {}
+  document.getElementById("vLabel").textContent = `${v} · ${VARIANTS[v]}`;
+  buildLayout();
+}
+const keys = Object.keys(VARIANTS);
+document.getElementById("vPrev").addEventListener("click", () => setVariant(keys[(keys.indexOf(S.variant) + keys.length - 1) % keys.length]));
+document.getElementById("vNext").addEventListener("click", () => setVariant(keys[(keys.indexOf(S.variant) + 1) % keys.length]));
+
+function setOpen(v) { S.open = v; win.hidden = !v; if (!v && document.activeElement === ta) ta.blur(); renderState(); }
+document.getElementById("tbOpen").addEventListener("click", () => setOpen(!S.open));
+document.addEventListener("keydown", e => {
+  if (e.key === "F12") { e.preventDefault(); if (S.focus !== "editor") setOpen(!S.open); return; }
+  const typing = e.target.closest?.("input, textarea, [contenteditable]");
+  if (typing) return;
+  if (e.key === "ArrowLeft") document.getElementById("vPrev").click();
+  if (e.key === "ArrowRight") document.getElementById("vNext").click();
+});
+document.getElementById("grab").addEventListener("change", e => { S.grabbing = e.target.checked; renderHeader(); renderState(); });
+
+function renderState() {
+  document.getElementById("state").innerHTML =
+    `<span>focus <b>${S.focus === "editor" ? "Script field" : "level"}</b></span>` +
+    `<span>editor shortcuts <b>${S.focus === "editor" ? "blocked" : "active"}</b></span>` +
+    `<span>selected <b>${S.selection.size}</b></span>` +
+    `<span>window <b>${S.open ? "open" : "closed"}</b></span>`;
+}
+function renderAll() {
+  renderScripts(); renderOrphans(); renderHeader(); renderProblems(); renderPlaced(); renderEditor(); renderWorld(); renderState(); renderTabsCounts();
+}
+
+// ---------- boot ----------
+setGroup("s1", check(DOORS_COMPILED).blocks, 1180, 520);
+S.groups.s1.x = 1180; S.groups.s1.y = 560;
+setGroup("s2", check(TIMER).blocks, 1340, 260);
+S.groups.s2.x = 1340; S.groups.s2.y = 260;
+S.orphans[0].uids = makeUids(14, "orph");
+ta.value = cur().text;
+renderReference();
+const h = (location.hash || "").replace("#", "").toUpperCase();
+runCheck();
+setVariant(VARIANTS[h] ? h : "A");
+placeCam();
+addEventListener("resize", placeCam);
+</script>
