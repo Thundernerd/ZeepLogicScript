@@ -428,3 +428,6 @@ FodyWeavers.xsd
 *.msm
 *.msp
 .idea/
+
+# Local design notes and game-internal research (repo is public)
+.scratch/

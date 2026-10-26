@@ -1,0 +1,3 @@
+# Names are defined once, in order, except inside delay
+
+A Script reads top to bottom: a name can only be used after the line that defines it, and each name is defined exactly once. The one exception is inside `delay(...)`, where a name may refer to a later definition or to the name being defined (`held = delay(held ^ press)`). This keeps the script-like reading the player expects, and it means a Dependency Loop can't be written at all: feedback is only possible through a Delay, the same rule the Logic Blocks enforce. Redefining a name (`x = x | c`) was rejected because it would make a reference inside `delay(...)` ambiguous.
