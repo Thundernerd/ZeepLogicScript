@@ -68,6 +68,10 @@ _Avoid_: output, generated blocks, selection
 A Block Group whose Script text no longer exists in the level, usually because the block carrying the text was deleted by hand. It can't be recompiled, only deleted, untagged into plain blocks, or selected.
 _Avoid_: lost group, stale blocks
 
+**Draft**:
+A Script's latest typed text, kept on the player's own machine. The level only holds the text of the last Compile; a Draft that differs from it is shown as "not compiled".
+_Avoid_: unsaved text, buffer, autosave
+
 **Placed Block Reference**:
 A Script's pointer to a block the player already placed in the level, written `name = placed("UID")`. It's the only way a Script reaches blocks whose position matters (triggers, sensors, lamps, movers) and Toggler targets; a Script reads their outputs and wires into their inputs, but never changes their Settings.
 _Avoid_: external block, UID literal
