@@ -61,8 +61,12 @@ A per-block option saved in the block's property dictionary under a short key (e
 _Avoid_: property, parameter, field
 
 **Block Group**:
-The set of Logic Blocks one Compile placed, tagged so recompiling the same Script replaces them.
+The set of Logic Blocks one Compile placed, each tagged with its Script and its own UID. Recompiling the same Script replaces the whole group; a pasted copy of a group block is not a member. A level can hold several Scripts, each with its own Block Group.
 _Avoid_: output, generated blocks, selection
+
+**Orphaned Group**:
+A Block Group whose Script text no longer exists in the level, usually because the block carrying the text was deleted by hand. It can't be recompiled, only deleted, untagged into plain blocks, or selected.
+_Avoid_: lost group, stale blocks
 
 **Placed Block Reference**:
 A Script's pointer to a block the player already placed in the level, written `name = placed("UID")`. It's the only way a Script reaches blocks whose position matters (triggers, sensors, lamps, movers) and Toggler targets; a Script reads their outputs and wires into their inputs, but never changes their Settings.
