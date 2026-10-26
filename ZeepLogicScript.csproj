@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
-    <AssemblyName>ZeepLogicScript</AssemblyName>
+    <AssemblyName>net.tnrd.zeeplogicscript</AssemblyName>
     <Version>0.1.0</Version>
     <LangVersion>latest</LangVersion>
     <Product>ZeepLogicScript</Product>
