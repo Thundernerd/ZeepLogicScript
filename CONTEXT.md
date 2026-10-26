@@ -13,7 +13,7 @@ Turning a Script into placed, wired Logic Blocks in the open level, as one undoa
 _Avoid_: build, generate, run, execute
 
 **Logic Block**:
-A game block from the v18 "Logic v2" set (block IDs 2413+), e.g. Generator, Trigger, Logic, Math, Delay, Door. In game code it is a prefab with a `BlockEdit_v18_C_Logic_*` (editor/data) and a `LogicScript_*` (runtime) component pair.
+A game block from the v18 "Logic v2" set (block IDs 2413+), e.g. Generator, Trigger, Logic, Math, Delay, Toggler. In game code it is a prefab with a `BlockEdit_v18_C_Logic_*` (editor/data) and a `LogicScript_*` (runtime) component pair.
 _Avoid_: node, gate (unless it is the Logic gate block), chip
 
 **Ball Logic**:
@@ -65,5 +65,5 @@ The set of Logic Blocks one Compile placed, tagged so recompiling the same Scrip
 _Avoid_: output, generated blocks, selection
 
 **Placed Block Reference**:
-A Script's pointer to a block the player already placed in the level, written `name = placed("UID")`. It's the only way a Script reaches blocks whose position matters (triggers, sensors, lamps, movers) and Door targets; a Script reads their outputs and wires into their inputs, but never changes their Settings.
+A Script's pointer to a block the player already placed in the level, written `name = placed("UID")`. It's the only way a Script reaches blocks whose position matters (triggers, sensors, lamps, movers) and Toggler targets; a Script reads their outputs and wires into their inputs, but never changes their Settings.
 _Avoid_: external block, UID literal
