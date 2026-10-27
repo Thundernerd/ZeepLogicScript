@@ -25,5 +25,7 @@ jobs:
       run: dotnet restore Zeepkist.LogicScripting.csproj
     - name: Build
       run: dotnet build Zeepkist.LogicScripting.csproj --no-restore --configuration Release
+    - name: Test
+      run: dotnet test Zeepkist.LogicScripting.Compiler.Tests/Zeepkist.LogicScripting.Compiler.Tests.csproj --configuration Release
     - name: Audit dependencies
       run: dotnet list Zeepkist.LogicScripting.csproj package --vulnerable --include-transitive

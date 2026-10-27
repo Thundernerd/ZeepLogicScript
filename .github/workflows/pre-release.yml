@@ -64,7 +64,7 @@ jobs:
           regex: '^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)\.(?<revision>0|[1-9]\d*)$'
 
       - name: Publish
-        run: dotnet publish -c Debug --artifacts-path "C:\out"
+        run: dotnet publish ${{ steps.csproj.outputs.csproj_name }}.csproj -c Debug --artifacts-path "C:\out"
 
       - name: Get AssemblyName
         id: asm
@@ -83,6 +83,12 @@ jobs:
         run: >
           "C:\Program Files\Mono\bin\pdb2mdb.bat"
           "C:\out\publish\${{ steps.csproj.outputs.csproj_name }}\debug\${{ steps.asm.outputs.assembly_name }}.dll"
+
+      - name: PDB2MDB (compiler)
+        shell: cmd
+        run: >
+          "C:\Program Files\Mono\bin\pdb2mdb.bat"
+          "C:\out\publish\${{ steps.csproj.outputs.csproj_name }}\debug\${{ steps.csproj.outputs.csproj_name }}.Compiler.dll"
 
       - name: Zip build
         shell: pwsh
