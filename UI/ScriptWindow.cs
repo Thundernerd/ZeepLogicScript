@@ -13,7 +13,8 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// </summary>
 internal sealed class ScriptWindow : IZeepGUIDrawer
 {
-    private const KeyCode ToggleKey = KeyCode.F12;
+    // F12 is Steam's screenshot key; F9 is the only F key the game itself leaves free
+    private const KeyCode ToggleKey = KeyCode.F9;
     private const float FieldHeight = 240;
 
     private readonly ManualLogSource _logger;
@@ -83,6 +84,11 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         var fieldId = gui.GetNextControlId();
         var rect = ImTextEdit.AddRect(gui, new ImSize(gui.GetLayoutWidth(), FieldHeight), true, out _);
         ref var state = ref gui.Storage.Get<ImTextEditState>(fieldId);
+
+        // Imui never sees clicks that land in the level, so the field would keep focus and keep taking keys
+        if (!_mouseOver && gui.IsControlActive(fieldId) && IsAnyMouseButtonDown())
+            gui.ResetActiveControl();
+
         gui.TextEdit(fieldId, ref _text, ref state, rect, true);
 
         _fieldFocused = gui.IsControlActive(fieldId);
@@ -93,6 +99,11 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         }
 
         SetKeyboardBlocked(_fieldFocused);
+    }
+
+    private static bool IsAnyMouseButtonDown()
+    {
+        return Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1) || Input.GetMouseButtonDown(2);
     }
 
     private void SetMouseBlocked(bool blocked)
