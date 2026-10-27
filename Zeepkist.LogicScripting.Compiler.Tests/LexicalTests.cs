@@ -28,7 +28,7 @@ public class LexicalTests
     {
         var result = ScriptCompiler.Compile("x = logic(\n  1,\n  nope)\ny = nope2", 0);
 
-        Assert.Equal(["3:3", "4:5"], result.Errors.Select(e => $"{e.Line}:{e.Column}"));
+        Assert.Equal(["3:3", "4:5"], result.Errors.Select(e => $"{e.Position}"));
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class LexicalTests
 
         Assert.Equal(
             ["1:5 '(' isn't closed", "2:15 'nope' isn't defined"],
-            result.Errors.Select(e => $"{e.Line}:{e.Column} {e.Message}"));
+            result.Errors.Select(e => $"{e.Position} {e.Message}"));
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class LexicalTests
     {
         var result = ScriptCompiler.Compile("x = 1 &\n2\ny = nope", 0);
 
-        Assert.Equal(["1:8", "3:5"], result.Errors.Select(e => $"{e.Line}:{e.Column}"));
+        Assert.Equal(["1:8", "3:5"], result.Errors.Select(e => $"{e.Position}"));
     }
 
     [Theory]
@@ -78,6 +78,6 @@ public class LexicalTests
         var result = ScriptCompiler.Compile(text, 0);
 
         var error = Assert.Single(result.Errors);
-        Assert.Equal((line, column, message), (error.Line, error.Column, error.Message));
+        Assert.Equal((line, column, message), (error.Position.Line, error.Position.Column, error.Message));
     }
 }

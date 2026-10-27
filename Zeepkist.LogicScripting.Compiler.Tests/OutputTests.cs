@@ -57,6 +57,6 @@ public class OutputTests
         var result = ScriptCompiler.Compile(text, 0);
 
         var error = Assert.Single(result.Errors);
-        Assert.Equal((line, column, message), (error.Line, error.Column, error.Message));
+        Assert.Equal((line, column, message), (error.Position.Line, error.Position.Column, error.Message));
     }
 }

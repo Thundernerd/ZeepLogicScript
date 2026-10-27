@@ -102,7 +102,7 @@ public class ScriptCompilerTests
         Assert.False(result.Succeeded);
         Assert.Empty(result.Blocks);
         var error = Assert.Single(result.Errors);
-        Assert.Equal((line, column, message), (error.Line, error.Column, error.Message));
+        Assert.Equal((line, column, message), (error.Position.Line, error.Position.Column, error.Message));
     }
 
     [Fact]
@@ -127,6 +127,6 @@ public class ScriptCompilerTests
     {
         var result = ScriptCompiler.Compile("power_display(b)\nx = (\npower_display(a)", 0);
 
-        Assert.Equal(["1:15", "2:5", "3:15"], result.Errors.Select(e => $"{e.Line}:{e.Column}"));
+        Assert.Equal(["1:15", "2:5", "3:15"], result.Errors.Select(e => $"{e.Position}"));
     }
 }
