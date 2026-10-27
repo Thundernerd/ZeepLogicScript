@@ -49,7 +49,7 @@ A cycle of Wires with no Delay in it. The editor refuses to wire one by hand; at
 _Avoid_: infinite loop, recursion, deadlock (deadlock is the runtime symptom)
 
 **Block Manifest**:
-The mod's per-Logic-Block-type description: block ID, Block Function name, Connector indices, directions and output names, Setting keys with their option names and defaults. Built mostly at runtime from prefabs; names, value meanings and defaults are hand-written.
+The mod's per-Logic-Block-type description: block ID, Block Function name, Connector indices, directions and names, Setting keys with their option names and defaults. Built mostly at runtime from prefabs; names, value meanings and defaults are hand-written.
 _Avoid_: schema, registry, block definitions
 
 **Block Function**:
