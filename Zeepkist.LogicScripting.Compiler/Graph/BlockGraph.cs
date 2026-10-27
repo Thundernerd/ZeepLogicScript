@@ -11,9 +11,9 @@ internal sealed class BlockGraph
     public List<BlockNode> Blocks { get; } = [];
     public List<GraphWire> Wires { get; } = [];
 
-    public BlockNode AddBlock(BlockType type, params Setting[] settings)
+    public BlockNode AddBlock(BlockType type, BlockStyle style, params Setting[] settings)
     {
-        var block = new BlockNode(Blocks.Count, type, settings);
+        var block = new BlockNode(Blocks.Count, type, style, settings);
         Blocks.Add(block);
         return block;
     }

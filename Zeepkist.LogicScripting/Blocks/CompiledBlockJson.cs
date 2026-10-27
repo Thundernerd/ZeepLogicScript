@@ -21,8 +21,8 @@ internal static class CompiledBlockJson
         {
             var json = new BlockPropertyJSON
             {
-                i = block.Type.BlockId,
-                u = PlayerManager.Instance.GenerateUniqueIDforBlocks(block.Type.BlockId.ToString()),
+                i = block.Style.BlockId,
+                u = PlayerManager.Instance.GenerateUniqueIDforBlocks(block.Style.BlockId.ToString()),
                 p = new CV3(origin + new Vector3(block.Cell.X, 0, block.Cell.Z) * GridCell.Size),
                 r = new CV3(new Vector3(0, block.Yaw, 0)),
                 s = new CV3(Vector3.one),

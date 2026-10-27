@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -13,17 +14,22 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 internal sealed partial class GraphBuilder
 {
     private readonly List<Diagnostic> _diagnostics;
+    private readonly IReadOnlyCollection<int> _disabledBlockIds;
     private readonly BlockGraph _graph = new();
     private readonly Dictionary<long, BlockOutput> _literals = [];
 
-    private GraphBuilder(List<Diagnostic> diagnostics)
+    private GraphBuilder(List<Diagnostic> diagnostics, IReadOnlyCollection<int> disabledBlockIds)
     {
         _diagnostics = diagnostics;
+        _disabledBlockIds = disabledBlockIds;
     }
 
-    public static BlockGraph Build(List<Statement> statements, List<Diagnostic> diagnostics)
+    /// <param name="statements">The parsed Script.</param>
+    /// <param name="diagnostics">Where to add the errors found.</param>
+    /// <param name="disabledBlockIds">Blocks that don't match the game; placing one is an error.</param>
+    public static BlockGraph Build(List<Statement> statements, List<Diagnostic> diagnostics, IReadOnlyCollection<int> disabledBlockIds)
     {
-        var builder = new GraphBuilder(diagnostics);
+        var builder = new GraphBuilder(diagnostics, disabledBlockIds);
         builder.CollectDefinitions(statements);
 
         foreach (var statement in statements)
@@ -32,6 +38,7 @@ internal sealed partial class GraphBuilder
         }
 
         builder.ConnectDeferredWires();
+        builder.ApplyDefaults();
         return builder._graph;
     }
 
@@ -41,6 +48,9 @@ internal sealed partial class GraphBuilder
         {
             case Definition definition:
                 VisitDefinition(definition);
+                break;
+            case DefaultStatement defaultStatement:
+                VisitDefault(defaultStatement);
                 break;
             case ExpressionStatement { Expression: CallExpression call }:
                 VisitCall(call);
@@ -60,7 +70,7 @@ internal sealed partial class GraphBuilder
         switch (expression)
         {
             case IntegerLiteral literal:
-                return Resolved.Of(GetLiteral(literal.Value));
+                return Resolved.Of(GetLiteral(literal, literal.Value));
 
             case NameExpression name:
                 return LookUp(name);
@@ -79,10 +89,10 @@ internal sealed partial class GraphBuilder
                 if (block == null)
                     return null;
 
-                return block.Type.Outputs.Count switch
+                return block.Outputs.Count switch
                 {
                     0 => Fail(call, $"'{call.Function}' has no output to use as a value"),
-                    1 => Resolved.Of(new BlockOutput(block, block.Type.Outputs[0].Index)),
+                    1 => Resolved.Of(new BlockOutput(block, block.Outputs[0].Index)),
                     _ => Resolved.Of(block)
                 };
 
@@ -103,7 +113,7 @@ internal sealed partial class GraphBuilder
         if (value.Value.Output != null)
             return value.Value.Output;
 
-        var first = value.Value.Block.Type.Outputs[0].Name;
+        var first = value.Value.Block.Outputs[0].Name;
         var example = expression is NameExpression name ? $"{name.Name}.{first}" : $"{Describe(expression)}().{first}";
         Error(expression, $"'{Describe(expression)}' has several outputs; pick one, like {example}");
         return null;
@@ -115,21 +125,24 @@ internal sealed partial class GraphBuilder
         if (target == null)
             return null;
 
-        var type = target.Value.Block.Type;
+        var block = target.Value.Block;
         if (target.Value.Output != null)
             return Fail(member, $"'{Describe(member.Target)}' has a single output; use it without .{member.Output}");
 
-        var picked = type.FindOutput(member.Output);
-        if (picked != null)
-            return Resolved.Of(new BlockOutput(target.Value.Block, picked.Index));
-
         List<string> names = [];
-        foreach (var output in type.Outputs)
+        foreach (var output in block.Outputs)
         {
+            if (output.Name == member.Output)
+                return Resolved.Of(new BlockOutput(block, output.Index));
+
             names.Add(output.Name);
         }
 
-        return Fail(member, $"'{type.Function}' has no output '{member.Output}'; use {string.Join(", ", names)}");
+        var type = block.Type;
+        var mode = type.Modes == null
+            ? string.Empty
+            : $" in {type.Modes.Setting.Name} {type.Modes.Setting.Options[type.GetModeIndex(block.Settings)]}";
+        return Fail(member, $"'{type.Function}' has no output '{member.Output}'{mode}; use {string.Join(", ", names)}");
     }
 
     private static string Describe(Expression expression)
@@ -142,16 +155,34 @@ internal sealed partial class GraphBuilder
         };
     }
 
-    private BlockOutput GetLiteral(long value)
+    /// <param name="origin">What the literal is written as; the shared Generator is placed by the first one.</param>
+    /// <param name="value">The literal's value.</param>
+    private BlockOutput GetLiteral(SyntaxNode origin, long value)
     {
         if (_literals.TryGetValue(value, out var output))
             return output;
 
         var type = BlockManifest.Generator;
         var power = Setting.Text(BlockManifest.GeneratorPowerKey, value.ToString(CultureInfo.InvariantCulture));
-        output = new BlockOutput(_graph.AddBlock(type, power), type.Outputs[0].Index);
+        var block = AddBlock(origin, type, type.DefaultStyle, power);
+        output = new BlockOutput(block, block.Outputs[0].Index);
         _literals.Add(value, output);
         return output;
+    }
+
+    /// <summary>
+    /// Adds a block to the graph; reports it at <paramref name="origin"/>, the call, operator or literal that places
+    /// it, when the startup check turned its block off.
+    /// </summary>
+    private BlockNode AddBlock(SyntaxNode origin, BlockType type, BlockStyle style, params Setting[] settings)
+    {
+        if (_disabledBlockIds.Contains(style.BlockId))
+        {
+            var name = type.Styles.Count > 1 ? $"'{type.Function}' style {style.Name}" : $"'{type.Function}'";
+            Error(origin, $"{name} doesn't match this game version and is turned off");
+        }
+
+        return _graph.AddBlock(type, style, settings);
     }
 
     private Resolved? Fail(SyntaxNode node, string message)

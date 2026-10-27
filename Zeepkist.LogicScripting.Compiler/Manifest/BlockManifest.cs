@@ -3,7 +3,8 @@ using System.Collections.Generic;
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 
 /// <summary>
-/// The hand-written table of Logic Block types the compiler can place.
+/// The hand-written table of Logic Block types: the Block Functions a Script can call, and the placed-only types it
+/// can only refer to. Option words follow the editor's list labels, in the order the editor stores them.
 /// </summary>
 public static class BlockManifest
 {
@@ -26,6 +27,11 @@ public static class BlockManifest
 
     public static readonly BlockSetting DigitizerInvert = BlockSetting.Bool("invert", "xt1");
 
+    public static readonly BlockSetting SimpleTelemetryMode = BlockSetting.Option(
+        "mode",
+        "xbs",
+        "basic", "local_velocity", "global_velocity");
+
     public static readonly BlockType Generator = new(
         "generator",
         2414,
@@ -34,12 +40,58 @@ public static class BlockManifest
         [new BlockConnector("out", 0)],
         BlockSetting.Number("power", GeneratorPowerKey));
 
-    public static readonly BlockType Death = new(
-        "death",
-        2427,
+    public static readonly BlockType Logic = new(
+        "logic",
+        2420,
+        3,
+        Numbered(0, "a", "b", "op_in"),
+        [new BlockConnector("out", 3)],
+        LogicOperator);
+
+    public static readonly BlockType Math = new(
+        "math",
+        2416,
+        3,
+        Numbered(0, "a", "b", "op_in"),
+        [new BlockConnector("out", 3)],
+        MathOperator);
+
+    public static readonly BlockType Math3Pins = new(
+        "math_3_pins",
+        2453,
+        4,
+        Numbered(0, "start", "end", "t", "op_in"),
+        [new BlockConnector("out", 4)],
+        BlockSetting.Option("op", "xmo", "lerp", "smooth_lerp"));
+
+    public static readonly BlockType Digitizer = new(
+        "digitizer",
+        2418,
         1,
-        [new BlockConnector("trigger", 0)],
-        []);
+        [new BlockConnector("x", 0)],
+        [new BlockConnector("out", 1)],
+        DigitizerInvert);
+
+    public static readonly BlockType Transistor = new(
+        "transistor",
+        2419,
+        2,
+        Numbered(0, "data", "gate"),
+        [new BlockConnector("out", 2)]);
+
+    public static readonly BlockType Multiplexer = new(
+        "multiplexer",
+        2436,
+        3,
+        Numbered(0, "in1", "in2", "in3", "in4", "select"),
+        [new BlockConnector("out", 5)]);
+
+    public static readonly BlockType Demultiplexer = new(
+        "demultiplexer",
+        2437,
+        3,
+        Numbered(4, "select", "data"),
+        Numbered(0, "ch1", "ch2", "ch3", "ch4"));
 
     public static readonly BlockType Delay = new(
         "delay",
@@ -50,74 +102,313 @@ public static class BlockManifest
         // 0 ticks, the untouched value, throws every tick in play mode
         BlockSetting.Number("ticks", "ldl", isRequired: true, minimum: 1));
 
-    public static readonly BlockType Demultiplexer = new(
-        "demultiplexer",
-        2437,
-        3,
-        [new BlockConnector("select", 4), new BlockConnector("data", 5)],
-        [new BlockConnector("ch1", 0), new BlockConnector("ch2", 1), new BlockConnector("ch3", 2), new BlockConnector("ch4", 3)]);
-
-    public static readonly BlockType Digitizer = new(
-        "digitizer",
-        2418,
+    public static readonly BlockType Pulser = new(
+        "pulser",
+        2439,
         1,
         [new BlockConnector("x", 0)],
         [new BlockConnector("out", 1)],
-        DigitizerInvert);
+        BlockSetting.Option("mode", "xpl", "rise", "fall", "any_rise", "any_fall", "increased", "decreased"));
 
-    public static readonly BlockType Logic = new(
-        "logic",
-        2420,
-        3,
-        [new BlockConnector("a", 0), new BlockConnector("b", 1), new BlockConnector("op_in", 2)],
-        [new BlockConnector("out", 3)],
-        LogicOperator);
+    public static readonly BlockType Random = new(
+        "random",
+        2425,
+        1,
+        Numbered(0, "trigger", "max_in"),
+        [new BlockConnector("out", 2)],
+        BlockSetting.Number("min", "xv1"),
+        BlockSetting.Number("max", "xv2"));
 
-    public static readonly BlockType Math = new(
-        "math",
-        2416,
-        3,
-        [new BlockConnector("a", 0), new BlockConnector("b", 1), new BlockConnector("op_in", 2)],
+    public static readonly BlockType Ticker = new(
+        "ticker",
+        2429,
+        1,
+        [],
+        [new BlockConnector("out", 0)]);
+
+    public static readonly BlockType ResettableTicker = new(
+        "resettable_ticker",
+        2433,
+        1,
+        [new BlockConnector("reset", 0)],
+        [new BlockConnector("out", 1)]);
+
+    public static readonly BlockType Timer = new(
+        "timer",
+        2444,
+        2,
+        Numbered(0, "duration", "start"),
+        [new BlockConnector("out", 2)]);
+
+    public static readonly BlockType SimpleMemory = new(
+        "simple_memory",
+        2431,
+        2,
+        Numbered(0, "data", "write"),
+        [new BlockConnector("out", 2)],
+        BlockSetting.Number("initial", "oi2"));
+
+    public static readonly BlockType CheeseMemory = new(
+        "cheese_memory",
+        2432,
+        2,
+        Numbered(0, "data", "write"),
+        [new BlockConnector("out", 2)],
+        BlockSetting.Number("initial", "oi2"));
+
+    public static readonly BlockType Counter = new(
+        "counter",
+        2434,
+        2,
+        Numbered(0, "increment", "decrement", "reset"),
         [new BlockConnector("out", 3)],
-        MathOperator);
+        BlockSetting.Number("max_reset", "ld1"),
+        BlockSetting.Number("min_reset", "ld2"));
+
+    public static readonly BlockType ToggleLatch = new(
+        "toggle_latch",
+        2435,
+        1,
+        [new BlockConnector("x", 0)],
+        [new BlockConnector("out", 1)],
+        BlockSetting.Bool("initial", "x5"));
+
+    public static readonly BlockType DateTimer = new(
+        "date_timer",
+        2430,
+        3,
+        [],
+        Numbered(0, "year", "month", "day", "hour", "minute", "second"),
+        BlockSetting.Bool("utc", "utc"));
 
     public static readonly BlockType PlayerInput = new(
         "player_input",
         2438,
         2,
         [],
-        [
-            new BlockConnector("arms_up", 0),
-            new BlockConnector("brake", 1),
-            new BlockConnector("left", 2),
-            new BlockConnector("right", 3),
-            new BlockConnector("analog_left", 4),
-            new BlockConnector("analog_right", 5),
-            new BlockConnector("horn", 6)
-        ]);
+        Numbered(0, "arms_up", "brake", "left", "right", "analog_left", "analog_right", "horn"),
+        BlockSetting.Player("xpr", hasEveryone: false));
 
-    public static readonly BlockType PowerDisplay = new(
-        "power_display",
-        2415,
-        2,
+    public static readonly BlockType SimpleTelemetry = new(
+        "simple_telemetry",
+        [new BlockStyle(null, 2440, 3)],
+        [],
+        Numbered(0, "speed", "yaw", "up", "state"),
+        [BlockSetting.Player("xpr", hasEveryone: false), SimpleTelemetryMode],
+        new BlockModes(
+            SimpleTelemetryMode,
+            Numbered(0, "speed", "yaw", "up", "state"),
+            Numbered(0, "yaw", "x", "y", "z"),
+            Numbered(0, "x", "y", "z", "heading")));
+
+    public static readonly BlockType WheelTelemetry = new(
+        "wheel_telemetry",
+        2441,
+        3,
+        [],
+        Numbered(0, "all", "any", "lf", "rf", "lr", "rr"),
+        BlockSetting.Player("xpr", hasEveryone: false),
+        BlockSetting.Option("mode", "xbs", "grounded", "slipping", "surface", "physics_material"));
+
+    public static readonly BlockType Passthrough = new(
+        "passthrough",
+        [
+            new BlockStyle("normal", 2426, 1),
+            new BlockStyle("skinny_1h", 2505, 1),
+            new BlockStyle("skinny_2h", 2506, 1),
+            new BlockStyle("skinny_3h", 2507, 1)
+        ],
         [new BlockConnector("x", 0)],
         [new BlockConnector("out", 1)]);
 
-    private static readonly Dictionary<string, BlockType> _functions = new()
+    public static readonly BlockType PowerDisplay = new(
+        "power_display",
+        [new BlockStyle("normal", 2415, 2), new BlockStyle("compact", 2513, 1)],
+        [new BlockConnector("x", 0)],
+        [new BlockConnector("out", 1)]);
+
+    public static readonly BlockType Toggler = new(
+        "toggler",
+        2417,
+        1,
+        [new BlockConnector("x", 0)],
+        [],
+        BlockSetting.Targets("targets", "xuid"));
+
+    public static readonly BlockType Death = new(
+        "death",
+        2427,
+        1,
+        [new BlockConnector("trigger", 0)],
+        [],
+        BlockSetting.Player("xpr", hasEveryone: true));
+
+    public static readonly BlockType Parking = new(
+        "parking",
+        2443,
+        1,
+        [new BlockConnector("x", 0)],
+        [],
+        BlockSetting.Player("xpr", hasEveryone: true));
+
+    public static readonly BlockType StateChanger = new(
+        "state_changer",
+        2450,
+        1,
+        Numbered(0, "trigger", "state"),
+        [],
+        BlockSetting.Player("xpr", hasEveryone: true));
+
+    public static readonly BlockType ForceGiver = new(
+        "force_giver",
+        2446,
+        3,
+        Numbered(0, "enable", "x", "y", "z"),
+        [],
+        BlockSetting.Player("xpr", hasEveryone: true),
+        BlockSetting.Option("force_mode", "xfm", "acceleration", "force", "impulse", "velocity_change"),
+        BlockSetting.Option("space", "xco", "local", "global", "follow_velocity", "local_rotation", "global_rotation"),
+        BlockSetting.Option("particles", "xpt", "none", "booster", "slowster", "feather", "flying", "fan"));
+
+    // Its ~59 multipliers come later
+    public static readonly BlockType PropertyMultiplier = new(
+        "property_multiplier",
+        2449,
+        1,
+        Numbered(0, "apply", "reset"),
+        [],
+        BlockSetting.Player("xpr", hasEveryone: true));
+
+    public static readonly BlockType Trigger = PlacedOnly(
+        "trigger",
+        [new BlockStyle(null, 2413, 1)],
+        [],
+        [new BlockConnector("out", 0)]);
+
+    public static readonly BlockType DistanceSensor = PlacedOnly(
+        "distance_sensor",
+        [new BlockStyle(null, 2442, 3)],
+        [],
+        Numbered(0, "distance", "x", "y", "z"));
+
+    public static readonly BlockType Lamp = PlacedOnly(
+        "lamp",
+        [new BlockStyle(null, 2448, 1)],
+        Numbered(0, "intensity", "red", "green", "blue", "range", "angle"),
+        []);
+
+    public static readonly BlockType Cannon = PlacedOnly(
+        "cannon",
+        [new BlockStyle(null, 2451, 1)],
+        Numbered(0, "fire", "object"),
+        []);
+
+    public static readonly BlockType DynamicMover = PlacedOnly(
+        "dynamic_mover",
+        [new BlockStyle("normal", 2452, 1), new BlockStyle("primitives", 2457, 1)],
+        [new BlockConnector("go", 0), new BlockConnector("return", 1), new BlockConnector("reverse", 5)],
+        Numbered(2, "arrived_target", "arrived_start", "player_on"));
+
+    public static readonly BlockType DynamicRotator = PlacedOnly(
+        "dynamic_rotator",
+        [new BlockStyle(null, 2455, 1)],
+        Numbered(0, "speed", "stop_at_target", "target_angle"),
+        Numbered(3, "arrived", "angle"));
+
+    public static readonly BlockType AdvancedMover = PlacedOnly(
+        "advanced_mover",
+        [new BlockStyle("normal", 2456, 1), new BlockStyle("primitives", 2458, 1)],
+        Numbered(0, "x", "y", "z", "rot_x", "rot_y", "rot_z"),
+        []);
+
+    /// <summary>
+    /// Every type, Block Functions first. The decorative Simple Rotator has no Connectors and isn't one of them.
+    /// </summary>
+    public static readonly IReadOnlyList<BlockType> All =
+    [
+        Generator, Logic, Math, Math3Pins, Digitizer, Transistor, Multiplexer, Demultiplexer,
+        Delay, Pulser, Random, Ticker, ResettableTicker, Timer,
+        SimpleMemory, CheeseMemory, Counter, ToggleLatch,
+        DateTimer, PlayerInput, SimpleTelemetry, WheelTelemetry,
+        Passthrough, PowerDisplay, Toggler,
+        Death, Parking, StateChanger, ForceGiver, PropertyMultiplier,
+        Trigger, DistanceSensor, Lamp, Cannon, DynamicMover, DynamicRotator, AdvancedMover
+    ];
+
+    private static readonly Dictionary<string, BlockType> _functions = CreateFunctions();
+    private static readonly Dictionary<string, BlockType> _placedOnly = CreatePlacedOnly();
+
+    /// <summary>
+    /// Short names for Block Functions.
+    /// </summary>
+    public static IReadOnlyDictionary<string, BlockType> Aliases { get; } = new Dictionary<string, BlockType>
     {
-        [Death.Function] = Death,
-        [Delay.Function] = Delay,
-        [Demultiplexer.Function] = Demultiplexer,
-        [Digitizer.Function] = Digitizer,
-        [Generator.Function] = Generator,
-        [Logic.Function] = Logic,
-        [Math.Function] = Math,
-        [PlayerInput.Function] = PlayerInput,
-        [PowerDisplay.Function] = PowerDisplay
+        ["mux"] = Multiplexer,
+        ["demux"] = Demultiplexer,
+        ["lerp"] = Math3Pins,
+        ["door"] = Toggler
     };
 
+    /// <summary>
+    /// The Block Function with this name or alias.
+    /// </summary>
     public static bool TryGetFunction(string name, out BlockType type)
     {
-        return _functions.TryGetValue(name, out type);
+        return _functions.TryGetValue(name, out type) || Aliases.TryGetValue(name, out type);
+    }
+
+    /// <summary>
+    /// The placed-only type with this name.
+    /// </summary>
+    public static bool TryGetPlacedOnly(string name, out BlockType type)
+    {
+        return _placedOnly.TryGetValue(name, out type);
+    }
+
+    private static Dictionary<string, BlockType> CreateFunctions()
+    {
+        Dictionary<string, BlockType> functions = [];
+        foreach (var type in All)
+        {
+            if (!type.IsPlacedOnly)
+                functions.Add(type.Function, type);
+        }
+
+        return functions;
+    }
+
+    private static Dictionary<string, BlockType> CreatePlacedOnly()
+    {
+        Dictionary<string, BlockType> placedOnly = [];
+        foreach (var type in All)
+        {
+            if (type.IsPlacedOnly)
+                placedOnly.Add(type.Function, type);
+        }
+
+        return placedOnly;
+    }
+
+    private static BlockType PlacedOnly(
+        string function,
+        IReadOnlyList<BlockStyle> styles,
+        IReadOnlyList<BlockConnector> inputs,
+        IReadOnlyList<BlockConnector> outputs)
+    {
+        return new BlockType(function, styles, inputs, outputs, isPlacedOnly: true);
+    }
+
+    /// <summary>
+    /// Connectors with consecutive indices, starting at <paramref name="firstIndex"/>.
+    /// </summary>
+    private static BlockConnector[] Numbered(int firstIndex, params string[] names)
+    {
+        var connectors = new BlockConnector[names.Length];
+        for (var i = 0; i < names.Length; i++)
+        {
+            connectors[i] = new BlockConnector(names[i], firstIndex + i);
+        }
+
+        return connectors;
     }
 }

@@ -6,15 +6,22 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler;
 
 public sealed class CompiledBlock
 {
-    public CompiledBlock(BlockType type, IReadOnlyList<Setting> settings, GridCell cell, int yaw)
+    public CompiledBlock(BlockType type, BlockStyle style, IReadOnlyList<Setting> settings, GridCell cell, int yaw)
     {
         Type = type;
+        Style = style;
         Settings = settings;
         Cell = cell;
         Yaw = yaw;
     }
 
     public BlockType Type { get; }
+
+    /// <summary>
+    /// Which of the type's blocks to place.
+    /// </summary>
+    public BlockStyle Style { get; }
+
     public IReadOnlyList<Setting> Settings { get; }
 
     /// <summary>

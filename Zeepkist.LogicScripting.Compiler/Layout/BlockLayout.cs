@@ -28,7 +28,7 @@ internal static class BlockLayout
         {
             var column = columns[block.Index];
             rows[block.Index] = rowCounts[column]++;
-            lengths[column] = Math.Max(lengths[column], block.Type.Length);
+            lengths[column] = Math.Max(lengths[column], block.Style.Length);
         }
 
         var depth = 0;

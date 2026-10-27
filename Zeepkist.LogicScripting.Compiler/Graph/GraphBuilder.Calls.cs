@@ -1,3 +1,4 @@
+using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -14,7 +15,9 @@ internal sealed partial class GraphBuilder
                 EvaluateFeed(argument);
             }
 
-            Error(call, $"'{call.Function}' isn't a Block Function");
+            Error(call, BlockManifest.TryGetPlacedOnly(call.Function, out _)
+                ? $"'{call.Function}' is placed by hand; a Script can only refer to one with placed(...)"
+                : $"'{call.Function}' isn't a Block Function");
             return null;
         }
 
@@ -32,7 +35,7 @@ internal sealed partial class GraphBuilder
         if (check.Failed)
             return null;
 
-        var block = _graph.AddBlock(type, type.OrderSettings(check.Settings));
+        var block = AddBlock(call, type, check.Style, type.OrderSettings(check.Settings));
         for (var i = 0; i < check.Inputs.Length; i++)
         {
             var feed = check.Inputs[i]?.Feed;
@@ -89,6 +92,12 @@ internal sealed partial class GraphBuilder
             return;
         }
 
+        if (argument.Name == BlockType.StyleName && check.Type.Styles.Count > 1)
+        {
+            check.ChooseStyle(GetStyle(check.Type, argument));
+            return;
+        }
+
         var blockSetting = check.Type.FindSetting(argument.Name);
         if (blockSetting == null)
         {
@@ -97,5 +106,24 @@ internal sealed partial class GraphBuilder
         }
 
         check.GiveSetting(blockSetting, GetSettingValue(blockSetting, argument));
+    }
+
+    /// <summary>
+    /// The style a <c>style:</c> argument names, or null after reporting why it names none.
+    /// </summary>
+    private BlockStyle GetStyle(BlockType type, NamedArgument argument)
+    {
+        var styles = string.Join(", ", type.Styles.Select(s => s.Name));
+        if (argument.Value is not NameExpression word)
+        {
+            ValueError(argument, $"{BlockType.StyleName} takes a word: {styles}");
+            return null;
+        }
+
+        var style = type.FindStyle(word.Name);
+        if (style == null)
+            ValueError(argument, $"'{word.Name}' isn't a style of {type.Function}; use {styles}");
+
+        return style;
     }
 }
