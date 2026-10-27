@@ -57,13 +57,13 @@ internal sealed partial class GraphBuilder
     /// Reports each required Setting the call leaves out. One a misspelt name was probably meant as has
     /// already been reported.
     /// </summary>
-    private bool HasRequiredSettings(CallArguments arguments)
+    private bool HasRequiredSettings(ArgumentCheck check)
     {
-        var call = arguments.Call;
+        var call = check.Call;
         var hasAll = true;
-        foreach (var blockSetting in arguments.Type.Settings)
+        foreach (var blockSetting in check.Type.Settings)
         {
-            if (blockSetting.IsRequired && !arguments.IsGivenOrMeant(blockSetting.Name))
+            if (blockSetting.IsRequired && !check.IsGivenOrMeant(blockSetting.Name))
             {
                 Error(call, $"'{call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
                 hasAll = false;
