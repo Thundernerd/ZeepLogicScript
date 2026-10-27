@@ -7,13 +7,20 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 /// </summary>
 public sealed class BlockType
 {
-    public BlockType(string function, int blockId, int length, IReadOnlyList<BlockConnector> inputs, IReadOnlyList<BlockConnector> outputs)
+    public BlockType(
+        string function,
+        int blockId,
+        int length,
+        IReadOnlyList<BlockConnector> inputs,
+        IReadOnlyList<BlockConnector> outputs,
+        params BlockSetting[] settings)
     {
         Function = function;
         BlockId = blockId;
         Length = length;
         Inputs = inputs;
         Outputs = outputs;
+        Settings = settings;
     }
 
     public string Function { get; }
@@ -29,7 +36,12 @@ public sealed class BlockType
     /// </summary>
     public IReadOnlyList<BlockConnector> Inputs { get; }
 
+    /// <summary>
+    /// Output Connectors; a block with more than one is used through dot access.
+    /// </summary>
     public IReadOnlyList<BlockConnector> Outputs { get; }
+
+    public IReadOnlyList<BlockSetting> Settings { get; }
 }
 
 /// <summary>

@@ -8,7 +8,7 @@ using ZeepSDK.UI;
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// The Logic Scripting window: a Script field, a Compile button and a result line. Editor mouse input is blocked
+/// The Logic Scripting window: a Script field, a Compile button and the result (a line, or the error list). Editor mouse input is blocked
 /// while the cursor is over the window, editor keyboard input while the field has focus.
 /// </summary>
 internal sealed class ScriptWindow : IZeepGUIDrawer
@@ -62,7 +62,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             if (gui.Button("Compile"))
                 _result = ScriptCompile.Run(_text, _logger);
 
-            gui.Text(_result);
+            gui.Text(_result, wrap: true);
         }
 
         gui.EndWindow();

@@ -15,7 +15,7 @@ internal static class ScriptCompile
     private const string UndoLabel = "Logic Scripting Compile";
 
     /// <summary>
-    /// Returns the result line to show in the window.
+    /// Returns the result to show in the window: one line, or the error list.
     /// </summary>
     public static string Run(string text, ManualLogSource logger)
     {
@@ -48,12 +48,13 @@ internal static class ScriptCompile
         return $"Placed {result.Blocks.Count} blocks";
     }
 
+    /// <summary>
+    /// A heading line, then every error as "line:column: message", one per line.
+    /// </summary>
     private static string FormatErrors(CompileResult result)
     {
-        var first = result.Errors[0];
-        return result.Errors.Count == 1
-            ? $"Error at {first}"
-            : $"{result.Errors.Count} errors, first at {first}";
+        var heading = result.Errors.Count == 1 ? "1 error; nothing placed" : $"{result.Errors.Count} errors; nothing placed";
+        return heading + "\n" + string.Join("\n", result.Errors);
     }
 
     /// <summary>
