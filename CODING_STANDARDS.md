@@ -7,6 +7,7 @@
 ## Files
 
 - One top-level type per file: class, struct, record, interface, enum, or delegate. Name the file after the type (`BlockGraph.cs`).
+- The build enforces both with StyleCop (SA1402, SA1649); `stylecop.json` sets the type kinds.
 - Nested types belong to their containing type and stay in its file.
 - A large type may be split with `partial` across files named `<Type>.<Part>.cs` (e.g. `GraphBuilder.Settings.cs`).
 
