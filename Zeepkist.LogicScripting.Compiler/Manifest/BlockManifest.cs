@@ -9,7 +9,6 @@ public static class BlockManifest
 {
     public const string GeneratorPowerKey = "lbp";
     public const string LogicOperatorKey = "xmo";
-    public const int LogicOperatorAnd = 0;
 
     public static readonly BlockSetting MathOperator = BlockSetting.Option(
         "op",

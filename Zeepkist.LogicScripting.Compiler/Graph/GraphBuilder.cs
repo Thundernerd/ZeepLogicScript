@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
@@ -15,7 +16,7 @@ internal sealed class GraphBuilder
     private readonly List<Diagnostic> _diagnostics;
     private readonly BlockGraph _graph = new();
     private readonly Dictionary<string, Definition> _definitions = [];
-    private readonly Dictionary<string, Value> _names = [];
+    private readonly Dictionary<string, Resolved> _names = [];
     private readonly HashSet<string> _failedNames = [];
     private readonly Dictionary<long, BlockOutput> _literals = [];
     private readonly List<DeferredWire> _deferredWires = [];
@@ -93,12 +94,12 @@ internal sealed class GraphBuilder
     /// <summary>
     /// Returns what the expression stands for, or null after reporting why it stands for nothing.
     /// </summary>
-    private Value? Evaluate(Expression expression)
+    private Resolved? Evaluate(Expression expression)
     {
         switch (expression)
         {
             case IntegerLiteral literal:
-                return Value.Of(GetLiteral(literal.Value));
+                return Resolved.Of(GetLiteral(literal.Value));
 
             case NameExpression name:
                 return LookUp(name);
@@ -107,10 +108,10 @@ internal sealed class GraphBuilder
                 return VisitMember(member);
 
             case UnaryExpression unary:
-                return Value.Of(VisitUnary(unary));
+                return Resolved.Of(VisitUnary(unary));
 
             case BinaryExpression binary:
-                return Value.Of(VisitBinary(binary));
+                return Resolved.Of(VisitBinary(binary));
 
             case CallExpression call:
                 var block = VisitCall(call);
@@ -120,8 +121,8 @@ internal sealed class GraphBuilder
                 return block.Type.Outputs.Count switch
                 {
                     0 => Fail(call, $"'{call.Function}' has no output to use as a value"),
-                    1 => Value.Of(new BlockOutput(block, block.Type.Outputs[0].Index)),
-                    _ => Value.Of(block)
+                    1 => Resolved.Of(new BlockOutput(block, block.Type.Outputs[0].Index)),
+                    _ => Resolved.Of(block)
                 };
 
             default:
@@ -151,13 +152,13 @@ internal sealed class GraphBuilder
     /// What feeds an input. Inside <c>delay(...)</c> a name may not be defined yet; its Wire is then connected
     /// once every definition has been visited.
     /// </summary>
-    private Source? EvaluateSource(Expression expression)
+    private InputFeed? EvaluateFeed(Expression expression)
     {
         if (_delayDepth > 0 && IsForwardReference(expression))
-            return Source.Deferred(expression);
+            return InputFeed.Deferred(expression);
 
         var output = EvaluateOutput(expression);
-        return output == null ? null : Source.Of(output.Value);
+        return output == null ? null : InputFeed.Of(output.Value);
     }
 
     private bool IsForwardReference(Expression expression)
@@ -175,7 +176,7 @@ internal sealed class GraphBuilder
             && !_failedNames.Contains(name.Name);
     }
 
-    private Value? LookUp(NameExpression name)
+    private Resolved? LookUp(NameExpression name)
     {
         if (_names.TryGetValue(name.Name, out var value))
             return value;
@@ -195,7 +196,7 @@ internal sealed class GraphBuilder
             : $"'{name.Name}' isn't defined");
     }
 
-    private Value? VisitMember(MemberExpression member)
+    private Resolved? VisitMember(MemberExpression member)
     {
         var target = Evaluate(member.Target);
         if (target == null)
@@ -205,11 +206,9 @@ internal sealed class GraphBuilder
         if (target.Value.Output != null)
             return Fail(member, $"'{Describe(member.Target)}' has a single output; use it without .{member.Output}");
 
-        foreach (var output in type.Outputs)
-        {
-            if (output.Name == member.Output)
-                return Value.Of(new BlockOutput(target.Value.Block, output.Index));
-        }
+        var picked = type.FindOutput(member.Output);
+        if (picked != null)
+            return Resolved.Of(new BlockOutput(target.Value.Block, picked.Index));
 
         List<string> names = [];
         foreach (var output in type.Outputs)
@@ -232,7 +231,7 @@ internal sealed class GraphBuilder
 
     private BlockOutput? VisitUnary(UnaryExpression unary)
     {
-        var operand = EvaluateSource(unary.Operand);
+        var operand = EvaluateFeed(unary.Operand);
         if (operand == null)
             return null;
 
@@ -254,8 +253,8 @@ internal sealed class GraphBuilder
 
     private BlockOutput? VisitBinary(BinaryExpression binary)
     {
-        var left = EvaluateSource(binary.Left);
-        var right = EvaluateSource(binary.Right);
+        var left = EvaluateFeed(binary.Left);
+        var right = EvaluateFeed(binary.Right);
         if (left == null || right == null)
             return null;
 
@@ -286,7 +285,8 @@ internal sealed class GraphBuilder
             BinaryOperator.LessEqual => (BlockManifest.Math, BlockManifest.MathOperator.Choose("less_equal")),
             BinaryOperator.GreaterEqual => (BlockManifest.Math, BlockManifest.MathOperator.Choose("greater_equal")),
             BinaryOperator.Equal => (BlockManifest.Math, BlockManifest.MathOperator.Choose("equal")),
-            _ => (BlockManifest.Math, BlockManifest.MathOperator.Choose("not_equal"))
+            BinaryOperator.NotEqual => (BlockManifest.Math, BlockManifest.MathOperator.Choose("not_equal")),
+            _ => throw new ArgumentOutOfRangeException(nameof(op), op, null)
         };
     }
 
@@ -296,7 +296,7 @@ internal sealed class GraphBuilder
         {
             foreach (var argument in call.Arguments)
             {
-                Evaluate(argument);
+                EvaluateFeed(argument);
             }
 
             Error(call, $"'{call.Function}' isn't a Block Function");
@@ -308,11 +308,11 @@ internal sealed class GraphBuilder
             _delayDepth++;
 
         var failed = false;
-        var inputs = new Source?[type.Inputs.Count];
+        var inputs = new InputFeed?[type.Inputs.Count];
         var wiredByPosition = new bool[type.Inputs.Count];
         for (var i = 0; i < call.Arguments.Count; i++)
         {
-            var output = EvaluateSource(call.Arguments[i]);
+            var output = EvaluateFeed(call.Arguments[i]);
             failed |= output == null;
             if (i < inputs.Length)
             {
@@ -328,20 +328,20 @@ internal sealed class GraphBuilder
         }
 
         Dictionary<BlockSetting, Setting> settings = [];
-        HashSet<string> named = [];
+        HashSet<string> givenNames = [];
         foreach (var argument in call.NamedArguments)
         {
-            if (!named.Add(argument.Name))
+            if (!givenNames.Add(argument.Name))
             {
                 Error(argument, $"'{argument.Name}' is given twice");
                 failed = true;
                 continue;
             }
 
-            var input = IndexOf(type.Inputs, argument.Name);
+            var input = type.IndexOfInput(argument.Name);
             if (input >= 0)
             {
-                var output = EvaluateSource(argument.Value);
+                var output = EvaluateFeed(argument.Value);
                 failed |= output == null;
                 if (wiredByPosition[input])
                 {
@@ -353,7 +353,7 @@ internal sealed class GraphBuilder
                 continue;
             }
 
-            var blockSetting = FindSetting(type, argument.Name);
+            var blockSetting = type.FindSetting(argument.Name);
             if (blockSetting == null)
             {
                 Error(argument, $"'{call.Function}' has no input or Setting '{argument.Name}'");
@@ -439,28 +439,6 @@ internal sealed class GraphBuilder
         }
     }
 
-    private static int IndexOf(IReadOnlyList<BlockConnector> connectors, string name)
-    {
-        for (var i = 0; i < connectors.Count; i++)
-        {
-            if (connectors[i].Name == name)
-                return i;
-        }
-
-        return -1;
-    }
-
-    private static BlockSetting FindSetting(BlockType type, string name)
-    {
-        foreach (var setting in type.Settings)
-        {
-            if (setting.Name == name)
-                return setting;
-        }
-
-        return null;
-    }
-
     private BlockOutput GetLiteral(long value)
     {
         if (_literals.TryGetValue(value, out var output))
@@ -473,25 +451,25 @@ internal sealed class GraphBuilder
         return output;
     }
 
-    private void Connect(Source source, BlockNode to, int toConnector)
+    private void Connect(InputFeed feed, BlockNode to, int toConnector)
     {
-        if (source.Output != null)
-            _graph.AddWire(source.Output.Value, to, toConnector);
+        if (feed.Output != null)
+            _graph.AddWire(feed.Output.Value, to, toConnector);
         else
-            _deferredWires.Add(new DeferredWire(source.Expression, to, toConnector));
+            _deferredWires.Add(new DeferredWire(feed.Expression, to, toConnector));
     }
 
     private void ConnectDeferredWires()
     {
         foreach (var wire in _deferredWires)
         {
-            var output = EvaluateOutput(wire.Source);
+            var output = EvaluateOutput(wire.From);
             if (output != null)
                 _graph.AddWire(output.Value, wire.To, wire.ToConnector);
         }
     }
 
-    private Value? Fail(SyntaxNode node, string message)
+    private Resolved? Fail(SyntaxNode node, string message)
     {
         Error(node, message);
         return null;
@@ -510,9 +488,9 @@ internal sealed class GraphBuilder
     /// <summary>
     /// What a name or expression stands for: one output, or a multi-output block to pick an output from.
     /// </summary>
-    private readonly struct Value
+    private readonly struct Resolved
     {
-        private Value(BlockNode block, BlockOutput? output)
+        private Resolved(BlockNode block, BlockOutput? output)
         {
             Block = block;
             Output = output;
@@ -525,23 +503,23 @@ internal sealed class GraphBuilder
         /// </summary>
         public BlockOutput? Output { get; }
 
-        public static Value? Of(BlockOutput? output)
+        public static Resolved? Of(BlockOutput? output)
         {
-            return output == null ? null : new Value(output.Value.Block, output);
+            return output == null ? null : new Resolved(output.Value.Block, output);
         }
 
-        public static Value Of(BlockNode block)
+        public static Resolved Of(BlockNode block)
         {
-            return new Value(block, null);
+            return new Resolved(block, null);
         }
     }
 
     /// <summary>
     /// What feeds an input: an output, or a name inside <c>delay(...)</c> that isn't defined yet.
     /// </summary>
-    private readonly struct Source
+    private readonly struct InputFeed
     {
-        private Source(BlockOutput? output, Expression expression)
+        private InputFeed(BlockOutput? output, Expression expression)
         {
             Output = output;
             Expression = expression;
@@ -550,27 +528,27 @@ internal sealed class GraphBuilder
         public BlockOutput? Output { get; }
         public Expression Expression { get; }
 
-        public static Source Of(BlockOutput output)
+        public static InputFeed Of(BlockOutput output)
         {
-            return new Source(output, null);
+            return new InputFeed(output, null);
         }
 
-        public static Source Deferred(Expression expression)
+        public static InputFeed Deferred(Expression expression)
         {
-            return new Source(null, expression);
+            return new InputFeed(null, expression);
         }
     }
 
     private sealed class DeferredWire
     {
-        public DeferredWire(Expression source, BlockNode to, int toConnector)
+        public DeferredWire(Expression from, BlockNode to, int toConnector)
         {
-            Source = source;
+            From = from;
             To = to;
             ToConnector = toConnector;
         }
 
-        public Expression Source { get; }
+        public Expression From { get; }
         public BlockNode To { get; }
         public int ToConnector { get; }
     }

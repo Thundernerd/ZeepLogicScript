@@ -98,7 +98,7 @@ internal sealed class Parser
                 _position++;
                 return new UnaryExpression(token.Line, token.Column, UnaryOperator.Not, ParseUnary());
 
-            case TokenKind.Minus when Peek(1).Kind == TokenKind.Integer:
+            case TokenKind.Minus when IsTouchingInteger(token, Peek(1)):
                 // A minus right before a number is part of the literal, so -5 is one Generator, not 0 - 5
                 _position++;
                 return ParseInteger(Current, token, "-");
@@ -110,6 +110,11 @@ internal sealed class Parser
             default:
                 return ParsePostfix();
         }
+    }
+
+    private static bool IsTouchingInteger(Token minus, Token next)
+    {
+        return next.Kind == TokenKind.Integer && next.Line == minus.Line && next.Column == minus.Column + 1;
     }
 
     private Expression ParsePostfix()

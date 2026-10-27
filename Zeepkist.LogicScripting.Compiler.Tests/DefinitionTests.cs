@@ -67,6 +67,7 @@ public class DefinitionTests
     [InlineData("p = player_input()\nx = delay(p, ticks: 1)", 2, 11, "'p' has several outputs; pick one, like p.arms_up")]
     [InlineData("x = delay(p, ticks: 1)\np = player_input()", 1, 11, "'p' has several outputs; pick one, like p.arms_up")]
     [InlineData("x = 1\nx = delay(x, ticks: 1)", 2, 1, "'x' is already defined")]
+    [InlineData("x = delay(nope(later), ticks: 1)\nlater = 1", 1, 11, "'nope' isn't a Block Function")]
     public void Definitions_Errors(string text, int line, int column, string message)
     {
         var result = ScriptCompiler.Compile(text, 0);

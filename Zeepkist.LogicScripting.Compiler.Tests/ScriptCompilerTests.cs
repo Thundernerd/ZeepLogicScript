@@ -23,7 +23,7 @@ public class ScriptCompilerTests
 
         var logic = Assert.Single(result.Blocks[1].Settings);
         Assert.Equal(BlockManifest.LogicOperatorKey, logic.Key);
-        Assert.Equal(BlockManifest.LogicOperatorAnd, logic.IntValue);
+        Assert.Equal(0, logic.IntValue);
 
         Assert.Equal(
             ["0.0 -> 1.0", "0.0 -> 1.1", "1.3 -> 2.0"],

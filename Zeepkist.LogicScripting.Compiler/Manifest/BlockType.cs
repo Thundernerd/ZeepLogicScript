@@ -42,6 +42,42 @@ public sealed class BlockType
     public IReadOnlyList<BlockConnector> Outputs { get; }
 
     public IReadOnlyList<BlockSetting> Settings { get; }
+
+    /// <summary>
+    /// The position of the named input in <see cref="Inputs"/>, or -1.
+    /// </summary>
+    public int IndexOfInput(string name)
+    {
+        for (var i = 0; i < Inputs.Count; i++)
+        {
+            if (Inputs[i].Name == name)
+                return i;
+        }
+
+        return -1;
+    }
+
+    public BlockConnector FindOutput(string name)
+    {
+        foreach (var output in Outputs)
+        {
+            if (output.Name == name)
+                return output;
+        }
+
+        return null;
+    }
+
+    public BlockSetting FindSetting(string name)
+    {
+        foreach (var setting in Settings)
+        {
+            if (setting.Name == name)
+                return setting;
+        }
+
+        return null;
+    }
 }
 
 /// <summary>

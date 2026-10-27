@@ -1,4 +1,5 @@
 using System.Linq;
+using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Tests;
 
@@ -11,7 +12,7 @@ internal static class BlockTree
     public static string Render(CompileResult result, int block)
     {
         var compiled = result.Blocks[block];
-        if (compiled.Type.Function == "generator")
+        if (compiled.Type == BlockManifest.Generator)
             return compiled.Settings.Count == 0 ? "0" : compiled.Settings[0].TextValue;
 
         var settings = compiled.Settings.Count == 0

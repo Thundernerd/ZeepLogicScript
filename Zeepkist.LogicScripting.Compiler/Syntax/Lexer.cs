@@ -93,7 +93,12 @@ internal static class Lexer
         var matched = new bool[tokens.Count];
         for (var i = 0; i < tokens.Count; i++)
         {
-            if (tokens[i].Kind == TokenKind.OpenParen)
+            // A definition can't sit inside brackets, so the brackets still open before one were never closed
+            if (IsDefinitionStart(tokens, i))
+            {
+                open.Clear();
+            }
+            else if (tokens[i].Kind == TokenKind.OpenParen)
             {
                 open.Push(i);
             }
@@ -124,6 +129,15 @@ internal static class Lexer
         }
 
         return joined;
+    }
+
+    private static bool IsDefinitionStart(List<Token> tokens, int index)
+    {
+        return index > 0
+            && index + 1 < tokens.Count
+            && tokens[index - 1].Kind == TokenKind.NewLine
+            && tokens[index].Kind == TokenKind.Name
+            && tokens[index + 1].Kind == TokenKind.Equals;
     }
 
     private static int SkipDigits(string text, int index)

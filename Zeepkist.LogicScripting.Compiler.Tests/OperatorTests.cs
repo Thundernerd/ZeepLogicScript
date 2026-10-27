@@ -89,6 +89,15 @@ public class OperatorTests
     }
 
     [Fact]
+    public void SpacedMinus_IsNegation()
+    {
+        var result = ScriptCompiler.Compile("power_display(- 5)", 0);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("math[xmo=1](0, 5)", BlockTree.RenderLast(result));
+    }
+
+    [Fact]
     public void UnaryOperators_BindTighterThanBinaryOnes()
     {
         var result = ScriptCompiler.Compile("x = 1\npower_display(!x & -x * 2)", 0);

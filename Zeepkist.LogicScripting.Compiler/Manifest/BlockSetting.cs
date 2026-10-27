@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
@@ -71,7 +72,11 @@ public sealed class BlockSetting
     /// </summary>
     public Setting Choose(string option)
     {
-        return Setting.Int(Key, IndexOf(option));
+        var index = IndexOf(option);
+        if (index < 0)
+            throw new ArgumentException($"'{option}' isn't an option of {Name}", nameof(option));
+
+        return Setting.Int(Key, index);
     }
 
     public int IndexOf(string option)

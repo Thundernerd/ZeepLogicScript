@@ -42,6 +42,16 @@ public class LexicalTests
     }
 
     [Fact]
+    public void UnclosedBracket_IsNotClosedByAStrayBracketAfterALaterDefinition()
+    {
+        var result = ScriptCompiler.Compile("x = logic(1\ny = nope\nz = logic(1, 2))", 0);
+
+        Assert.Equal(
+            ["1:10: '(' isn't closed", "2:5: 'nope' isn't defined", "3:16: Expected the end of the line, found ')'"],
+            result.Errors.Select(e => e.ToString()));
+    }
+
+    [Fact]
     public void NewLineOutsideBrackets_EndsTheStatement()
     {
         var result = ScriptCompiler.Compile("x = 1 &\n2", 0);
