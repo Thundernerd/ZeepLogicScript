@@ -19,9 +19,7 @@ internal sealed partial class GraphBuilder
             return null;
         }
 
-        var isDelay = type == BlockManifest.Delay;
-        if (isDelay)
-            _delayDepth++;
+        EnterArguments(type);
 
         var failed = false;
         var inputs = new InputFeed?[type.Inputs.Count];
@@ -95,8 +93,7 @@ internal sealed partial class GraphBuilder
                 settings.Add(blockSetting, setting);
         }
 
-        if (isDelay)
-            _delayDepth--;
+        LeaveArguments(type);
 
         failed |= !HasRequiredSettings(call, type, givenNames, meantNames);
         if (failed)

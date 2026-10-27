@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
@@ -19,6 +20,21 @@ internal sealed partial class GraphBuilder
 
         var output = EvaluateOutput(expression);
         return output == null ? null : InputFeed.Of(output.Value);
+    }
+
+    /// <summary>
+    /// Called around a call's arguments; inside <c>delay(...)</c> they may refer ahead.
+    /// </summary>
+    private void EnterArguments(BlockType type)
+    {
+        if (type == BlockManifest.Delay)
+            _delayDepth++;
+    }
+
+    private void LeaveArguments(BlockType type)
+    {
+        if (type == BlockManifest.Delay)
+            _delayDepth--;
     }
 
     private void Connect(InputFeed feed, BlockNode to, int toConnector)

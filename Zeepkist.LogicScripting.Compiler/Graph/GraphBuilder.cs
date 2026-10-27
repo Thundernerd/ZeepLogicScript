@@ -10,11 +10,6 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 /// one shared Generator per distinct literal value. Names are defined before use, once each; only inside
 /// <c>delay(...)</c> can a name refer to a later definition or to itself, so every cycle passes through a Delay.
 /// </summary>
-/// <remarks>
-/// Split by responsibility: names and definitions in <c>GraphBuilder.Names.cs</c>, Wires and the ones
-/// <c>delay(...)</c> defers in <c>GraphBuilder.Wiring.cs</c>, operators in <c>GraphBuilder.Operators.cs</c>,
-/// Block Function calls in <c>GraphBuilder.Calls.cs</c> and their Settings in <c>GraphBuilder.Settings.cs</c>.
-/// </remarks>
 internal sealed partial class GraphBuilder
 {
     private readonly List<Diagnostic> _diagnostics;
