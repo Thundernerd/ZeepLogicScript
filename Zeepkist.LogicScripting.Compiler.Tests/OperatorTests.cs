@@ -98,6 +98,18 @@ public class OperatorTests
     }
 
     [Fact]
+    public void Negation_PlacesTheZeroGeneratorAfterTheSubtractBlock()
+    {
+        var result = ScriptCompiler.Compile("power_display(- 5)", 0);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(
+            [BlockManifest.Generator, BlockManifest.Math, BlockManifest.Generator, BlockManifest.PowerDisplay],
+            result.Blocks.Select(b => b.Type));
+        Assert.Equal(["2.0 -> 1.0", "0.0 -> 1.1", "1.3 -> 3.0"], result.Wires.Select(Describe));
+    }
+
+    [Fact]
     public void UnaryOperators_BindTighterThanBinaryOnes()
     {
         var result = ScriptCompiler.Compile("x = 1\npower_display(!x & -x * 2)", 0);
