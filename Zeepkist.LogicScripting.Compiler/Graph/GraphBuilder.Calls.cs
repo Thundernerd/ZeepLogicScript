@@ -99,7 +99,7 @@ internal sealed partial class GraphBuilder
         if (failed)
             return null;
 
-        var block = _graph.AddBlock(type, OrderSettings(type, settings));
+        var block = _graph.AddBlock(type, type.OrderSettings(settings));
         for (var i = 0; i < inputs.Length; i++)
         {
             if (inputs[i] != null)

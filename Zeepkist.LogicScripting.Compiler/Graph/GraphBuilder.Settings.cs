@@ -72,19 +72,4 @@ internal sealed partial class GraphBuilder
 
         return hasAll;
     }
-
-    /// <summary>
-    /// The given Settings in the order the Block Function declares them, whatever order the call wrote them in.
-    /// </summary>
-    private static Setting[] OrderSettings(BlockType type, Dictionary<BlockSetting, Setting> settings)
-    {
-        List<Setting> ordered = [];
-        foreach (var blockSetting in type.Settings)
-        {
-            if (settings.TryGetValue(blockSetting, out var setting))
-                ordered.Add(setting);
-        }
-
-        return ordered.ToArray();
-    }
 }

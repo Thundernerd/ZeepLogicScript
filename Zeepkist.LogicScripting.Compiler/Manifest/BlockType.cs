@@ -101,6 +101,21 @@ public sealed class BlockType
         return closest;
     }
 
+    /// <summary>
+    /// The given Settings in the order <see cref="Settings"/> declares them, whatever order they were given in.
+    /// </summary>
+    public Setting[] OrderSettings(IReadOnlyDictionary<BlockSetting, Setting> settings)
+    {
+        List<Setting> ordered = [];
+        foreach (var blockSetting in Settings)
+        {
+            if (settings.TryGetValue(blockSetting, out var setting))
+                ordered.Add(setting);
+        }
+
+        return ordered.ToArray();
+    }
+
     private static int GetEditDistance(string a, string b)
     {
         var previous = new int[b.Length + 1];
