@@ -52,24 +52,4 @@ internal sealed partial class GraphBuilder
                 return setting.Choose(option.Name);
         }
     }
-
-    /// <summary>
-    /// Reports each required Setting the call leaves out. One a misspelt name was probably meant as has
-    /// already been reported.
-    /// </summary>
-    private bool HasRequiredSettings(ArgumentCheck check)
-    {
-        var call = check.Call;
-        var hasAll = true;
-        foreach (var blockSetting in check.Type.Settings)
-        {
-            if (blockSetting.IsRequired && !check.IsGivenOrMeant(blockSetting.Name))
-            {
-                Error(call, $"'{call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
-                hasAll = false;
-            }
-        }
-
-        return hasAll;
-    }
 }
