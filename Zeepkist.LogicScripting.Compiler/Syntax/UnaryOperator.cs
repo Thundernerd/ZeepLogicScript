@@ -12,25 +12,22 @@ internal sealed class UnaryOperator
     public static readonly UnaryOperator Not = new(
         "!",
         signsInteger: false,
-        BlockManifest.Digitizer,
-        Setting.Int(BlockManifest.DigitizerInvert.Key, 1));
+        new OperatorBlock(BlockManifest.Digitizer, Setting.Int(BlockManifest.DigitizerInvert.Key, 1)));
 
     // -x is 0 - x, but -5 is the literal itself
     public static readonly UnaryOperator Negate = new(
         "-",
         signsInteger: true,
         BinaryOperator.Subtract.Block,
-        BinaryOperator.Subtract.Setting,
         0);
 
     public static readonly IReadOnlyList<UnaryOperator> All = [Not, Negate];
 
-    private UnaryOperator(string symbol, bool signsInteger, BlockType block, Setting setting, params long[] leadingLiterals)
+    private UnaryOperator(string symbol, bool signsInteger, OperatorBlock block, params long[] leadingLiterals)
     {
         Symbol = symbol;
         SignsInteger = signsInteger;
         Block = block;
-        Setting = setting;
         LeadingLiterals = leadingLiterals;
     }
 
@@ -42,15 +39,10 @@ internal sealed class UnaryOperator
     public bool SignsInteger { get; }
 
     /// <summary>
-    /// The block type the operator places; its first inputs take <see cref="LeadingLiterals"/>, and the input after
-    /// them takes the operand.
+    /// The block the operator places; its first inputs take <see cref="LeadingLiterals"/>, and the input after them
+    /// takes the operand.
     /// </summary>
-    public BlockType Block { get; }
-
-    /// <summary>
-    /// The Setting that makes <see cref="Block"/> do the operation.
-    /// </summary>
-    public Setting Setting { get; }
+    public OperatorBlock Block { get; }
 
     /// <summary>
     /// The literals fed into <see cref="Block"/>'s first inputs, in order, before the operand.
