@@ -119,9 +119,7 @@ internal sealed partial class Parser
 
     private static bool IsTouchingInteger(Token minus, Token next)
     {
-        return next.Kind == TokenKind.Integer
-            && next.Position.Line == minus.Position.Line
-            && next.Position.Column == minus.Position.Column + 1;
+        return next.Kind == TokenKind.Integer && next.Position.IsDirectlyAfter(minus.Position);
     }
 
     private Expression ParsePostfix()
