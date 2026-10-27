@@ -18,7 +18,7 @@ internal sealed partial class GraphBuilder
             return null;
         }
 
-        var check = new ArgumentCheck(call, type);
+        var check = new ArgumentCheck(call, type, _diagnostics);
         EnterArguments(type);
         VisitPositionalArguments(check);
         foreach (var argument in call.NamedArguments)
@@ -28,7 +28,7 @@ internal sealed partial class GraphBuilder
 
         LeaveArguments(type);
 
-        check.Failed |= !HasRequiredSettings(check);
+        check.CheckRequiredSettings();
         if (check.Failed)
             return null;
 
@@ -58,7 +58,7 @@ internal sealed partial class GraphBuilder
 
         if (call.Arguments.Count > inputCount)
         {
-            Fail(check, call, $"'{call.Function}' takes at most {inputCount} inputs, got {call.Arguments.Count}");
+            check.Fail(call, $"'{call.Function}' takes at most {inputCount} inputs, got {call.Arguments.Count}");
         }
     }
 
@@ -72,34 +72,25 @@ internal sealed partial class GraphBuilder
         return feed;
     }
 
-    private void Fail(ArgumentCheck check, SyntaxNode node, string message)
-    {
-        Error(node, message);
-        check.Failed = true;
-    }
-
     /// <summary>
     /// A named argument wires an input or gives a Setting.
     /// </summary>
     private void VisitNamedArgument(ArgumentCheck check, NamedArgument argument)
     {
-        if (!check.GivenNames.Add(argument.Name))
-        {
-            Fail(check, argument, $"'{argument.Name}' is given twice");
+        if (!check.Give(argument))
             return;
-        }
 
         var input = check.Type.IndexOfInput(argument.Name);
         if (input >= 0)
         {
-            WireNamedInput(check, argument, input);
+            check.WireByName(argument, input, EvaluateArgument(check, argument.Value));
             return;
         }
 
         var blockSetting = check.Type.FindSetting(argument.Name);
         if (blockSetting == null)
         {
-            ReportUnknownName(check, argument);
+            check.ReportUnknownName(argument);
             return;
         }
 
@@ -108,34 +99,5 @@ internal sealed partial class GraphBuilder
             check.Failed = true;
         else
             check.Settings.Add(blockSetting, setting);
-    }
-
-    private void WireNamedInput(ArgumentCheck check, NamedArgument argument, int input)
-    {
-        var feed = EvaluateArgument(check, argument.Value);
-        if (check.Inputs[input]?.IsByPosition == true)
-        {
-            Fail(check, argument, $"Input '{argument.Name}' is already wired by position");
-            return;
-        }
-
-        check.Inputs[input] = WiredInput.ByName(feed);
-    }
-
-    /// <summary>
-    /// Reports a name that is neither an input nor a Setting, with the closest one it was probably meant as.
-    /// </summary>
-    private void ReportUnknownName(ArgumentCheck check, NamedArgument argument)
-    {
-        var call = check.Call;
-        var message = $"'{call.Function}' has no input or Setting '{argument.Name}'";
-        var closest = check.Type.FindClosestName(argument.Name);
-        if (closest != null)
-        {
-            message += $"; did you mean {closest}?";
-            check.MeantNames.Add(closest);
-        }
-
-        Fail(check, argument, message);
     }
 }
