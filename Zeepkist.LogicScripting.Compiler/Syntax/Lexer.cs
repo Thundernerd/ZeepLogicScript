@@ -67,10 +67,10 @@ internal static class Lexer
 
                 tokens.Add(new Token(TokenKind.Name, text.Substring(start, index - start), position));
             }
-            else if (index + 1 < text.Length && GetTwoCharPunctuation(c, text[index + 1]) is { } twoChar)
+            else if (BinaryOperator.Match(text, index) is { } op)
             {
-                tokens.Add(new Token(twoChar, text.Substring(index, 2), position));
-                index += 2;
+                tokens.Add(new Token(op, position));
+                index += op.Symbol.Length;
             }
             else
             {
@@ -155,35 +155,10 @@ internal static class Lexer
         return index;
     }
 
-    private static TokenKind? GetTwoCharPunctuation(char first, char second)
-    {
-        if (second != '=')
-            return null;
-
-        return first switch
-        {
-            '<' => TokenKind.LessEquals,
-            '>' => TokenKind.GreaterEquals,
-            '=' => TokenKind.EqualsEquals,
-            '!' => TokenKind.BangEquals,
-            _ => null
-        };
-    }
-
     private static TokenKind? GetPunctuation(char c)
     {
         return c switch
         {
-            '&' => TokenKind.Ampersand,
-            '|' => TokenKind.Pipe,
-            '^' => TokenKind.Caret,
-            '+' => TokenKind.Plus,
-            '-' => TokenKind.Minus,
-            '*' => TokenKind.Star,
-            '/' => TokenKind.Slash,
-            '%' => TokenKind.Percent,
-            '<' => TokenKind.Less,
-            '>' => TokenKind.Greater,
             '!' => TokenKind.Bang,
             '(' => TokenKind.OpenParen,
             ')' => TokenKind.CloseParen,
