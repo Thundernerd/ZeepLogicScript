@@ -1,3 +1,4 @@
+using System;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -20,11 +21,7 @@ internal sealed partial class GraphBuilder
         }
 
         // -x is 0 - x
-        var op = BinaryOperator.Subtract;
-        var subtract = _graph.AddBlock(op.Block, op.Setting);
-        _graph.AddWire(GetLiteral(0), subtract, op.Block.Inputs[0].Index);
-        Connect(operand.Value, subtract, op.Block.Inputs[1].Index);
-        return new BlockOutput(subtract, op.Block.Outputs[0].Index);
+        return AddOperatorBlock(BinaryOperator.Subtract, () => InputFeed.Of(GetLiteral(0)), operand.Value);
     }
 
     private BlockOutput? VisitBinary(BinaryExpression binary)
@@ -34,10 +31,18 @@ internal sealed partial class GraphBuilder
         if (left == null || right == null)
             return null;
 
-        var type = binary.Operator.Block;
-        var block = _graph.AddBlock(type, binary.Operator.Setting);
-        Connect(left.Value, block, type.Inputs[0].Index);
-        Connect(right.Value, block, type.Inputs[1].Index);
-        return new BlockOutput(block, type.Outputs[0].Index);
+        return AddOperatorBlock(binary.Operator, () => left.Value, right.Value);
+    }
+
+    /// <summary>
+    /// Places the operator's block and wires its operands. <paramref name="left"/> is asked for after the block is
+    /// placed, so a Generator it creates comes after the block.
+    /// </summary>
+    private BlockOutput AddOperatorBlock(BinaryOperator op, Func<InputFeed> left, InputFeed right)
+    {
+        var block = _graph.AddBlock(op.Block, op.Setting);
+        Connect(left(), block, op.Block.Inputs[0].Index);
+        Connect(right, block, op.Block.Inputs[1].Index);
+        return new BlockOutput(block, op.Block.Outputs[0].Index);
     }
 }
