@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>TNRD.Zeepkist.LogicScripting.Compiler</RootNamespace>
+    <Product>Logic Scripting</Product>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- The compiler only reports unused usings (IDE0005) when it generates docs; missing docs aren't an error -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <!-- Full PDBs, so the release workflows can convert them with pdb2mdb -->
+    <DebugType>full</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Zeepkist.LogicScripting.Compiler.Tests" />
+  </ItemGroup>
+
+</Project>
