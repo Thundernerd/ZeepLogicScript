@@ -58,7 +58,7 @@ internal sealed partial class GraphBuilder
 
         if (call.Arguments.Count > inputCount)
         {
-            check.Report(call, $"'{call.Function}' takes at most {inputCount} inputs, got {call.Arguments.Count}");
+            check.ReportAndFail(call, $"'{call.Function}' takes at most {inputCount} inputs, got {call.Arguments.Count}");
         }
     }
 

@@ -38,7 +38,7 @@ internal sealed partial class GraphBuilder
         /// <summary>
         /// Reports a problem with the call and fails.
         /// </summary>
-        public void Report(SyntaxNode node, string message)
+        public void ReportAndFail(SyntaxNode node, string message)
         {
             _error(node, message);
             Failed = true;
@@ -60,7 +60,7 @@ internal sealed partial class GraphBuilder
             if (_givenNames.Add(argument.Name))
                 return true;
 
-            Report(argument, $"'{argument.Name}' is given twice");
+            ReportAndFail(argument, $"'{argument.Name}' is given twice");
             return false;
         }
 
@@ -73,7 +73,7 @@ internal sealed partial class GraphBuilder
         {
             if (Inputs[input]?.IsByPosition == true)
             {
-                Report(argument, $"Input '{argument.Name}' is already wired by position");
+                ReportAndFail(argument, $"Input '{argument.Name}' is already wired by position");
                 return;
             }
 
@@ -104,7 +104,7 @@ internal sealed partial class GraphBuilder
                 _meantNames.Add(closest);
             }
 
-            Report(argument, message);
+            ReportAndFail(argument, message);
         }
 
         /// <summary>
@@ -117,7 +117,7 @@ internal sealed partial class GraphBuilder
             {
                 if (blockSetting.IsRequired && !IsGivenOrMeant(blockSetting.Name))
                 {
-                    Report(Call, $"'{Call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
+                    ReportAndFail(Call, $"'{Call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
                 }
             }
         }
