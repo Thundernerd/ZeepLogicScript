@@ -11,7 +11,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 /// one shared Generator per distinct literal value. Names are defined before use, once each; only inside
 /// <c>delay(...)</c> can a name refer to a later definition or to itself, so every cycle passes through a Delay.
 /// </summary>
-internal sealed class GraphBuilder
+internal sealed partial class GraphBuilder
 {
     private readonly List<Diagnostic> _diagnostics;
     private readonly BlockGraph _graph = new();
@@ -517,73 +517,5 @@ internal sealed class GraphBuilder
     private void ValueError(NamedArgument argument, string message)
     {
         _diagnostics.Add(new Diagnostic(argument.ValueLine, argument.ValueColumn, message));
-    }
-
-    /// <summary>
-    /// What a name or expression stands for: one output, or a multi-output block to pick an output from.
-    /// </summary>
-    private readonly struct Resolved
-    {
-        private Resolved(BlockNode block, BlockOutput? output)
-        {
-            Block = block;
-            Output = output;
-        }
-
-        public BlockNode Block { get; }
-
-        /// <summary>
-        /// Null for a multi-output block.
-        /// </summary>
-        public BlockOutput? Output { get; }
-
-        public static Resolved? Of(BlockOutput? output)
-        {
-            return output == null ? null : new Resolved(output.Value.Block, output);
-        }
-
-        public static Resolved Of(BlockNode block)
-        {
-            return new Resolved(block, null);
-        }
-    }
-
-    /// <summary>
-    /// What feeds an input: an output, or a name inside <c>delay(...)</c> that isn't defined yet.
-    /// </summary>
-    private readonly struct InputFeed
-    {
-        private InputFeed(BlockOutput? output, Expression expression)
-        {
-            Output = output;
-            Expression = expression;
-        }
-
-        public BlockOutput? Output { get; }
-        public Expression Expression { get; }
-
-        public static InputFeed Of(BlockOutput output)
-        {
-            return new InputFeed(output, null);
-        }
-
-        public static InputFeed Deferred(Expression expression)
-        {
-            return new InputFeed(null, expression);
-        }
-    }
-
-    private sealed class DeferredWire
-    {
-        public DeferredWire(Expression from, BlockNode to, int toConnector)
-        {
-            From = from;
-            To = to;
-            ToConnector = toConnector;
-        }
-
-        public Expression From { get; }
-        public BlockNode To { get; }
-        public int ToConnector { get; }
     }
 }

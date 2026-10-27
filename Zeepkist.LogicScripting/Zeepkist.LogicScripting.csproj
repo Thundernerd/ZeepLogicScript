@@ -48,6 +48,7 @@
   <ItemGroup>
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="all" />
     <AdditionalFiles Include="..\stylecop.json" Link="stylecop.json" />
+    <ProjectReference Include="..\Zeepkist.LogicScripting.Analyzers\Zeepkist.LogicScripting.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>
