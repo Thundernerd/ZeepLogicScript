@@ -63,7 +63,7 @@ internal sealed partial class Parser
         {
             var name = Current;
             _position += 2;
-            return new Definition(name.Line, name.Column, name.Text, ParseExpression());
+            return new Definition(name.Position, name.Text, ParseExpression());
         }
 
         return new ExpressionStatement(ParseExpression());
@@ -88,7 +88,7 @@ internal sealed partial class Parser
                 throw DanglingOperator(Current);
 
             var right = ParseBinary(precedence + 1);
-            left = new BinaryExpression(token.Line, token.Column, op, left, right);
+            left = new BinaryExpression(token.Position, op, left, right);
         }
 
         return left;
@@ -101,7 +101,7 @@ internal sealed partial class Parser
         {
             case TokenKind.Bang:
                 _position++;
-                return new UnaryExpression(token.Line, token.Column, UnaryOperator.Not, ParseUnary());
+                return new UnaryExpression(token.Position, UnaryOperator.Not, ParseUnary());
 
             case TokenKind.Minus when IsTouchingInteger(token, Peek(1)):
                 // A minus right before a number is part of the literal, so -5 is one Generator, not 0 - 5
@@ -110,7 +110,7 @@ internal sealed partial class Parser
 
             case TokenKind.Minus:
                 _position++;
-                return new UnaryExpression(token.Line, token.Column, UnaryOperator.Negate, ParseUnary());
+                return new UnaryExpression(token.Position, UnaryOperator.Negate, ParseUnary());
 
             default:
                 return ParsePostfix();
@@ -119,7 +119,9 @@ internal sealed partial class Parser
 
     private static bool IsTouchingInteger(Token minus, Token next)
     {
-        return next.Kind == TokenKind.Integer && next.Line == minus.Line && next.Column == minus.Column + 1;
+        return next.Kind == TokenKind.Integer
+            && next.Position.Line == minus.Position.Line
+            && next.Position.Column == minus.Position.Column + 1;
     }
 
     private Expression ParsePostfix()
@@ -134,7 +136,7 @@ internal sealed partial class Parser
 
             var output = Current;
             Expect(TokenKind.Name, "an output name");
-            expression = new MemberExpression(output.Line, output.Column, expression, output.Text);
+            expression = new MemberExpression(output.Position, expression, output.Text);
         }
 
         return expression;
@@ -177,7 +179,7 @@ internal sealed partial class Parser
                 if (Current.Kind == TokenKind.OpenParen)
                     return ParseCall(token);
 
-                return new NameExpression(token.Line, token.Column, token.Text);
+                return new NameExpression(token.Position, token.Text);
 
             case TokenKind.OpenParen:
                 ExpectOpenParen();
@@ -200,7 +202,7 @@ internal sealed partial class Parser
         if (!long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var value))
             throw Error(start, $"{text} doesn't fit in a Signal");
 
-        return new IntegerLiteral(start.Line, start.Column, value);
+        return new IntegerLiteral(start.Position, value);
     }
 
     private CallExpression ParseCall(Token function)
@@ -211,7 +213,7 @@ internal sealed partial class Parser
         if (Current.Kind == TokenKind.CloseParen)
         {
             _position++;
-            return new CallExpression(function.Line, function.Column, function.Text, arguments, namedArguments);
+            return new CallExpression(function.Position, function.Text, arguments, namedArguments);
         }
 
         while (true)
@@ -222,7 +224,7 @@ internal sealed partial class Parser
                 _position += 2;
                 var valueStart = Current;
                 var value = ParseExpression();
-                namedArguments.Add(new NamedArgument(name.Line, name.Column, name.Text, value, valueStart.Line, valueStart.Column));
+                namedArguments.Add(new NamedArgument(name.Position, name.Text, value, valueStart.Position));
             }
             else
             {
@@ -241,7 +243,7 @@ internal sealed partial class Parser
             }
 
             Expect(TokenKind.CloseParen, "',' or ')'");
-            return new CallExpression(function.Line, function.Column, function.Text, arguments, namedArguments);
+            return new CallExpression(function.Position, function.Text, arguments, namedArguments);
         }
     }
 
@@ -302,13 +304,13 @@ internal sealed partial class Parser
 
     private static SyntaxError Error(Token token, string message)
     {
-        return new SyntaxError(new Diagnostic(token.Line, token.Column, message), false);
+        return new SyntaxError(new Diagnostic(token.Position, message), false);
     }
 
     /// <param name="lineEnd">The line break right after a binary operator.</param>
     private static SyntaxError DanglingOperator(Token lineEnd)
     {
         var message = "Expected a value, found the end of the line; to continue on the next line, put the expression in ( )";
-        return new SyntaxError(new Diagnostic(lineEnd.Line, lineEnd.Column, message), true);
+        return new SyntaxError(new Diagnostic(lineEnd.Position, message), true);
     }
 }

@@ -5,8 +5,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 /// </summary>
 internal sealed class Definition : Statement
 {
-    public Definition(int line, int column, string name, Expression value)
-        : base(line, column)
+    public Definition(Position position, string name, Expression value)
+        : base(position)
     {
         Name = name;
         Value = value;

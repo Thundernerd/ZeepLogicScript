@@ -22,7 +22,7 @@ public static class ScriptCompiler
 
         if (diagnostics.Count > 0)
         {
-            var sorted = diagnostics.OrderBy(d => d.Line).ThenBy(d => d.Column).ToList();
+            var sorted = diagnostics.OrderBy(d => d.Position).ToList();
             return new CompileResult(sorted, [], []);
         }
 

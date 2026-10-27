@@ -2,8 +2,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 internal sealed class IntegerLiteral : Expression
 {
-    public IntegerLiteral(int line, int column, long value)
-        : base(line, column)
+    public IntegerLiteral(Position position, long value)
+        : base(position)
     {
         Value = value;
     }

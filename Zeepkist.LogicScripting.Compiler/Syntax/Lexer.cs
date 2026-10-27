@@ -19,11 +19,11 @@ internal static class Lexer
         while (index < text.Length)
         {
             var c = text[index];
-            var column = index - lineStart + 1;
+            var position = new Position(line, index - lineStart + 1);
 
             if (c == '\n')
             {
-                tokens.Add(new Token(TokenKind.NewLine, "\n", line, column));
+                tokens.Add(new Token(TokenKind.NewLine, "\n", position));
                 index++;
                 line++;
                 lineStart = index;
@@ -43,12 +43,12 @@ internal static class Lexer
             {
                 var start = index;
                 index = SkipDigits(text, index);
-                tokens.Add(new Token(TokenKind.Integer, text.Substring(start, index - start), line, column));
+                tokens.Add(new Token(TokenKind.Integer, text.Substring(start, index - start), position));
 
                 // Keep the whole part as the token, so the rest of the line still parses
                 if (index + 1 < text.Length && text[index] == '.' && IsDigit(text[index + 1]))
                 {
-                    diagnostics.Add(new Diagnostic(line, column, "Only whole numbers are allowed"));
+                    diagnostics.Add(new Diagnostic(position, "Only whole numbers are allowed"));
                     index = SkipDigits(text, index + 1);
                 }
             }
@@ -60,26 +60,26 @@ internal static class Lexer
                     index++;
                 }
 
-                tokens.Add(new Token(TokenKind.Name, text.Substring(start, index - start), line, column));
+                tokens.Add(new Token(TokenKind.Name, text.Substring(start, index - start), position));
             }
             else if (index + 1 < text.Length && GetTwoCharPunctuation(c, text[index + 1]) is { } twoChar)
             {
-                tokens.Add(new Token(twoChar, text.Substring(index, 2), line, column));
+                tokens.Add(new Token(twoChar, text.Substring(index, 2), position));
                 index += 2;
             }
             else
             {
                 var kind = GetPunctuation(c);
                 if (kind == null)
-                    diagnostics.Add(new Diagnostic(line, column, $"Unexpected character '{c}'"));
+                    diagnostics.Add(new Diagnostic(position, $"Unexpected character '{c}'"));
                 else
-                    tokens.Add(new Token(kind.Value, c.ToString(), line, column));
+                    tokens.Add(new Token(kind.Value, c.ToString(), position));
 
                 index++;
             }
         }
 
-        tokens.Add(new Token(TokenKind.End, string.Empty, line, index - lineStart + 1));
+        tokens.Add(new Token(TokenKind.End, string.Empty, new Position(line, index - lineStart + 1)));
         return JoinBracketedLines(tokens);
     }
 
@@ -123,7 +123,7 @@ internal static class Lexer
                 depth--;
 
             if (token.Kind == TokenKind.OpenParen && !matched[i])
-                token = new Token(token.Kind, token.Text, token.Line, token.Column, true);
+                token = new Token(token.Kind, token.Text, token.Position, true);
 
             joined.Add(token);
         }

@@ -5,13 +5,12 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 /// </summary>
 internal sealed class NamedArgument : SyntaxNode
 {
-    public NamedArgument(int line, int column, string name, Expression value, int valueLine, int valueColumn)
-        : base(line, column)
+    public NamedArgument(Position position, string name, Expression value, Position valuePosition)
+        : base(position)
     {
         Name = name;
         Value = value;
-        ValueLine = valueLine;
-        ValueColumn = valueColumn;
+        ValuePosition = valuePosition;
     }
 
     public string Name { get; }
@@ -20,7 +19,5 @@ internal sealed class NamedArgument : SyntaxNode
     /// <summary>
     /// Where the value starts; an operator expression's own position is its operator.
     /// </summary>
-    public int ValueLine { get; }
-
-    public int ValueColumn { get; }
+    public Position ValuePosition { get; }
 }
