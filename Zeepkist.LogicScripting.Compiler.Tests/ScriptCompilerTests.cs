@@ -53,7 +53,7 @@ public class ScriptCompilerTests
     }
 
     [Fact]
-    public void CallArguments_WireIntoInputsInConnectorOrder()
+    public void PositionalArguments_WireIntoInputsInConnectorOrder()
     {
         var result = ScriptCompiler.Compile("power_display(logic(1, 0))", 0);
 
