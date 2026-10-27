@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
@@ -21,7 +20,7 @@ internal sealed partial class GraphBuilder
         }
 
         inputs.Add(() => operand.Value);
-        return AddOperatorBlock(op.Block, op.Setting, inputs);
+        return AddOperatorBlock(op.Block, inputs);
     }
 
     private BlockOutput? VisitBinary(BinaryExpression binary)
@@ -32,16 +31,17 @@ internal sealed partial class GraphBuilder
             return null;
 
         var op = binary.Operator;
-        return AddOperatorBlock(op.Block, op.Setting, [() => left.Value, () => right.Value]);
+        return AddOperatorBlock(op.Block, [() => left.Value, () => right.Value]);
     }
 
     /// <summary>
-    /// Places an operator's block and wires <paramref name="inputs"/> into its first inputs, in order. Each input is
-    /// asked for after the block is placed, so a Generator it creates comes after the block.
+    /// Places <paramref name="operatorBlock"/> and wires <paramref name="inputs"/> into its first inputs, in order. Each
+    /// input is asked for after the block is placed, so a Generator it creates comes after the block.
     /// </summary>
-    private BlockOutput AddOperatorBlock(BlockType type, Setting setting, IReadOnlyList<Func<InputFeed>> inputs)
+    private BlockOutput AddOperatorBlock(OperatorBlock operatorBlock, IReadOnlyList<Func<InputFeed>> inputs)
     {
-        var block = _graph.AddBlock(type, setting);
+        var type = operatorBlock.Type;
+        var block = _graph.AddBlock(type, operatorBlock.Setting);
         for (var i = 0; i < inputs.Count; i++)
         {
             Connect(inputs[i](), block, type.Inputs[i].Index);
