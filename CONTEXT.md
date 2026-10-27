@@ -53,7 +53,7 @@ The mod's per-Logic-Block-type description: block ID, Block Function name, Conne
 _Avoid_: schema, registry, block definitions
 
 **Block Function**:
-The Script function named after a Logic Block type (`logic`, `delay`, `playerinput`). Each call places one block; positional arguments are input Wires in Connector order, named arguments are Settings. Operators like `&` and `+` are shorthand for a Block Function call.
+The Script function named after a Logic Block type (`logic`, `delay`, `player_input`). Each call places one block; positional arguments are input Wires in Connector order, named arguments are Settings. Operators like `&` and `+` are shorthand for a Block Function call.
 _Avoid_: builtin, node constructor, command
 
 **Setting**:
