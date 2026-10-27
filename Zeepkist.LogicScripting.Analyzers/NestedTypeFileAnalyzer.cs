@@ -47,9 +47,9 @@ public sealed class NestedTypeFileAnalyzer : DiagnosticAnalyzer
         if (context.Node.Parent is not TypeDeclarationSyntax)
             return;
 
-        var expected = GetQualifiedName(context.Node) + ".cs";
+        var expected = GetFileName(context.Node);
         var actual = Path.GetFileName(context.Node.SyntaxTree.FilePath);
-        if (actual == expected || ContainsTypeOwningFile(context.Node, actual))
+        if (actual == expected || IsPartialContainerOfFileType(context.Node, actual))
             return;
 
         var identifier = GetIdentifier(context.Node);
@@ -57,17 +57,22 @@ public sealed class NestedTypeFileAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
-    /// Whether the type is a partial declaration that only exists in this file to contain the type the file is
-    /// named for: <c>partial class Middle</c> in <c>Outer.Middle.Inner.cs</c>.
+    /// Whether the type is a partial declaration containing the type the file is named for:
+    /// <c>partial class Middle</c> in <c>Outer.Middle.Inner.cs</c>.
     /// </summary>
-    private static bool ContainsTypeOwningFile(SyntaxNode type, string fileName)
+    private static bool IsPartialContainerOfFileType(SyntaxNode type, string fileName)
     {
         if (type is not TypeDeclarationSyntax declaration || !declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
             return false;
 
-        return declaration.DescendantNodes()
-            .Where(nested => nested is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax)
-            .Any(nested => GetQualifiedName(nested) + ".cs" == fileName);
+        return declaration.DescendantNodes(node => node is TypeDeclarationSyntax)
+            .Where(IsTypeDeclaration)
+            .Any(nested => GetFileName(nested) == fileName);
+    }
+
+    private static string GetFileName(SyntaxNode type)
+    {
+        return GetQualifiedName(type) + ".cs";
     }
 
     /// <summary>
@@ -82,6 +87,11 @@ public sealed class NestedTypeFileAnalyzer : DiagnosticAnalyzer
         }
 
         return name;
+    }
+
+    private static bool IsTypeDeclaration(SyntaxNode node)
+    {
+        return node is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax;
     }
 
     private static SyntaxToken GetIdentifier(SyntaxNode type)
