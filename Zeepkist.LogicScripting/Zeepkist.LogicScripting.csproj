@@ -38,14 +38,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Compile Remove="Zeepkist.LogicScripting.Compiler\**" />
-    <Compile Remove="Zeepkist.LogicScripting.Compiler.Tests\**" />
-    <None Remove="Zeepkist.LogicScripting.Compiler\**" />
-    <None Remove="Zeepkist.LogicScripting.Compiler.Tests\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="Zeepkist.LogicScripting.Compiler\Zeepkist.LogicScripting.Compiler.csproj" />
+    <ProjectReference Include="..\Zeepkist.LogicScripting.Compiler\Zeepkist.LogicScripting.Compiler.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
