@@ -49,10 +49,10 @@ internal sealed partial class GraphBuilder
         var inputCount = check.Type.Inputs.Count;
         for (var i = 0; i < call.Arguments.Count; i++)
         {
-            var output = EvaluateArgument(check, call.Arguments[i]);
+            var feed = EvaluateArgument(check, call.Arguments[i]);
             if (i < inputCount)
             {
-                check.Inputs[i] = WiredInput.ByPosition(output);
+                check.Inputs[i] = WiredInput.ByPosition(feed);
             }
         }
 
@@ -108,7 +108,7 @@ internal sealed partial class GraphBuilder
 
     private void WireNamedInput(ArgumentCheck check, NamedArgument argument, int input)
     {
-        var output = EvaluateArgument(check, argument.Value);
+        var feed = EvaluateArgument(check, argument.Value);
         if (check.Inputs[input]?.IsByPosition == true)
         {
             Error(argument, $"Input '{argument.Name}' is already wired by position");
@@ -116,7 +116,7 @@ internal sealed partial class GraphBuilder
             return;
         }
 
-        check.Inputs[input] = WiredInput.ByName(output);
+        check.Inputs[input] = WiredInput.ByName(feed);
     }
 
     /// <summary>
