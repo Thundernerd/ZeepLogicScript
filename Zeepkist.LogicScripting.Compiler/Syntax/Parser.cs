@@ -80,14 +80,14 @@ internal sealed partial class Parser
     private Expression ParseBinary(int minPrecedence)
     {
         var left = ParseUnary();
-        while (TryGetBinaryOperator(Current.Kind, out var op, out var precedence) && precedence >= minPrecedence)
+        while (Current.Operator is { } op && op.Precedence >= minPrecedence)
         {
             var token = Current;
             _index++;
             if (Current.Kind == TokenKind.NewLine)
                 throw DanglingOperator(Current);
 
-            var right = ParseBinary(precedence + 1);
+            var right = ParseBinary(op.Precedence + 1);
             left = new BinaryExpression(token.Position, op, left, right);
         }
 
@@ -103,12 +103,12 @@ internal sealed partial class Parser
                 _index++;
                 return new UnaryExpression(token.Position, UnaryOperator.Not, ParseUnary());
 
-            case TokenKind.Minus when IsTouchingInteger(token, Peek(1)):
+            case TokenKind.Operator when token.Operator == BinaryOperator.Subtract && IsTouchingInteger(token, Peek(1)):
                 // A minus right before a number is part of the literal, so -5 is one Generator, not 0 - 5
                 _index++;
                 return ParseInteger(Current, token, "-");
 
-            case TokenKind.Minus:
+            case TokenKind.Operator when token.Operator == BinaryOperator.Subtract:
                 _index++;
                 return new UnaryExpression(token.Position, UnaryOperator.Negate, ParseUnary());
 
@@ -138,30 +138,6 @@ internal sealed partial class Parser
         }
 
         return expression;
-    }
-
-    private static bool TryGetBinaryOperator(TokenKind kind, out BinaryOperator op, out int precedence)
-    {
-        (op, precedence) = kind switch
-        {
-            TokenKind.Pipe => (BinaryOperator.Or, 0),
-            TokenKind.Caret => (BinaryOperator.Xor, 1),
-            TokenKind.Ampersand => (BinaryOperator.And, 2),
-            TokenKind.EqualsEquals => (BinaryOperator.Equal, 3),
-            TokenKind.BangEquals => (BinaryOperator.NotEqual, 3),
-            TokenKind.Less => (BinaryOperator.Less, 4),
-            TokenKind.Greater => (BinaryOperator.Greater, 4),
-            TokenKind.LessEquals => (BinaryOperator.LessEqual, 4),
-            TokenKind.GreaterEquals => (BinaryOperator.GreaterEqual, 4),
-            TokenKind.Plus => (BinaryOperator.Add, 5),
-            TokenKind.Minus => (BinaryOperator.Subtract, 5),
-            TokenKind.Star => (BinaryOperator.Multiply, 6),
-            TokenKind.Slash => (BinaryOperator.Divide, 6),
-            TokenKind.Percent => (BinaryOperator.Modulo, 6),
-            _ => (default, -1)
-        };
-
-        return precedence >= 0;
     }
 
     private Expression ParsePrimary()
