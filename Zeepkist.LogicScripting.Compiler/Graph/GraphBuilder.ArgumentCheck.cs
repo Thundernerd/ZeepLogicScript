@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
@@ -12,7 +13,7 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private sealed class ArgumentCheck
     {
-        private readonly List<Diagnostic> _diagnostics;
+        private readonly Action<SyntaxNode, string> _error;
         private readonly HashSet<string> _givenNames = [];
 
         /// <summary>
@@ -20,12 +21,12 @@ internal sealed partial class GraphBuilder
         /// </summary>
         private readonly HashSet<string> _meantNames = [];
 
-        public ArgumentCheck(CallExpression call, BlockType type, List<Diagnostic> diagnostics)
+        public ArgumentCheck(CallExpression call, BlockType type, Action<SyntaxNode, string> error)
         {
             Call = call;
             Type = type;
             Inputs = new WiredInput?[type.Inputs.Count];
-            _diagnostics = diagnostics;
+            _error = error;
         }
 
         public CallExpression Call { get; }
@@ -34,9 +35,12 @@ internal sealed partial class GraphBuilder
         public Dictionary<BlockSetting, Setting> Settings { get; } = [];
         public bool Failed { get; private set; }
 
-        public void Fail(SyntaxNode node, string message)
+        /// <summary>
+        /// Reports a problem with the call and fails.
+        /// </summary>
+        public void ReportAndFail(SyntaxNode node, string message)
         {
-            _diagnostics.Add(new Diagnostic(node.Position, message));
+            _error(node, message);
             Failed = true;
         }
 
@@ -56,7 +60,7 @@ internal sealed partial class GraphBuilder
             if (_givenNames.Add(argument.Name))
                 return true;
 
-            Fail(argument, $"'{argument.Name}' is given twice");
+            ReportAndFail(argument, $"'{argument.Name}' is given twice");
             return false;
         }
 
@@ -69,7 +73,7 @@ internal sealed partial class GraphBuilder
         {
             if (Inputs[input]?.IsByPosition == true)
             {
-                Fail(argument, $"Input '{argument.Name}' is already wired by position");
+                ReportAndFail(argument, $"Input '{argument.Name}' is already wired by position");
                 return;
             }
 
@@ -100,7 +104,7 @@ internal sealed partial class GraphBuilder
                 _meantNames.Add(closest);
             }
 
-            Fail(argument, message);
+            ReportAndFail(argument, message);
         }
 
         /// <summary>
@@ -113,7 +117,7 @@ internal sealed partial class GraphBuilder
             {
                 if (blockSetting.IsRequired && !IsGivenOrMeant(blockSetting.Name))
                 {
-                    Fail(Call, $"'{Call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
+                    ReportAndFail(Call, $"'{Call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
                 }
             }
         }

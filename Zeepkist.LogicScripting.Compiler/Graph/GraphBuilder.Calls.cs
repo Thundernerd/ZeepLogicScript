@@ -18,7 +18,7 @@ internal sealed partial class GraphBuilder
             return null;
         }
 
-        var check = new ArgumentCheck(call, type, _diagnostics);
+        var check = new ArgumentCheck(call, type, Error);
         EnterArguments(type);
         VisitPositionalArguments(check);
         foreach (var argument in call.NamedArguments)
@@ -58,7 +58,7 @@ internal sealed partial class GraphBuilder
 
         if (call.Arguments.Count > inputCount)
         {
-            check.Fail(call, $"'{call.Function}' takes at most {inputCount} inputs, got {call.Arguments.Count}");
+            check.ReportAndFail(call, $"'{call.Function}' takes at most {inputCount} inputs, got {call.Arguments.Count}");
         }
     }
 
