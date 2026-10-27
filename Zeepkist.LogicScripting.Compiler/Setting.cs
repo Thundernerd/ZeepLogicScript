@@ -1,15 +1,6 @@
 namespace TNRD.Zeepkist.LogicScripting.Compiler;
 
 /// <summary>
-/// Which of the block's property maps a Setting is stored in.
-/// </summary>
-public enum SettingKind
-{
-    Int,
-    Text
-}
-
-/// <summary>
 /// A Setting key and value, ready to write into the block's property dictionary.
 /// </summary>
 public sealed class Setting

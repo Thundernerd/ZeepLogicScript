@@ -1,0 +1,21 @@
+using System.Collections.Generic;
+
+namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
+
+/// <summary>
+/// A Block Function call. Positional arguments are inputs in Connector order; named ones are Settings or inputs.
+/// </summary>
+internal sealed class CallExpression : Expression
+{
+    public CallExpression(int line, int column, string function, List<Expression> arguments, List<NamedArgument> namedArguments)
+        : base(line, column)
+    {
+        Function = function;
+        Arguments = arguments;
+        NamedArguments = namedArguments;
+    }
+
+    public string Function { get; }
+    public List<Expression> Arguments { get; }
+    public List<NamedArgument> NamedArguments { get; }
+}
