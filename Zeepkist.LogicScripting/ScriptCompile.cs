@@ -33,7 +33,7 @@ internal static class ScriptCompile
         if (!result.Succeeded)
             return FormatErrors(result);
 
-        if (!check.CanCompile)
+        if (!check.CanPlace)
             return $"No errors, but {StartupCheck.UpdateNeededMessage}; nothing placed";
 
         if (result.Blocks.Count == 0)

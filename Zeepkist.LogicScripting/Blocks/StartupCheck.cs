@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -26,10 +27,10 @@ internal sealed class StartupCheck
     }
 
     /// <summary>
-    /// Whether the game's block creation has the signature Compile calls. Without it, Scripts can still be checked,
-    /// but not placed.
+    /// Whether the game's block creation has the signature Compile calls. Without it, Compile still checks Scripts,
+    /// but places nothing.
     /// </summary>
-    public bool CanCompile { get; private set; } = true;
+    public bool CanPlace { get; private set; } = true;
 
     /// <summary>
     /// Block IDs that don't match their manifest entry; a Script that places one gets an error.
@@ -47,10 +48,20 @@ internal sealed class StartupCheck
             return;
 
         _hasRun = true;
-        CheckBlocks();
-        CheckBlockCreation();
+        try
+        {
+            CheckBlocks();
+            CheckBlockCreation();
+        }
+        catch (Exception e)
+        {
+            // Without a finished check nothing is known to match, so nothing is placed
+            CanPlace = false;
+            _logger.LogError($"{UpdateNeededMessage}: the startup check failed: {e}");
+            return;
+        }
 
-        if (CanCompile && _disabledBlockIds.Count == 0)
+        if (CanPlace && _disabledBlockIds.Count == 0)
             _logger.LogInfo($"Startup check passed: all {BlockManifest.All.Sum(t => t.Styles.Count)} Logic Blocks match this game version");
     }
 
@@ -65,7 +76,7 @@ internal sealed class StartupCheck
                 if (problems.Count == 0)
                     continue;
 
-                var name = type.Styles.Count > 1 ? $"{type.Function} ({style.Name})" : type.Function;
+                var name = type.Describe(style);
                 _disabledBlockIds.Add(style.BlockId);
                 _disabledBlocks.Add(name);
                 _logger.LogWarning($"Block {style.BlockId} ({name}) doesn't match this game version and is turned off: {string.Join("; ", problems)}");
@@ -101,8 +112,8 @@ internal sealed class StartupCheck
             [typeof(BlockPropertyJSON), typeof(string)],
             null);
 
-        CanCompile = method != null && method.ReturnType == typeof(BlockProperties);
-        if (!CanCompile)
+        CanPlace = method != null && method.ReturnType == typeof(BlockProperties);
+        if (!CanPlace)
             _logger.LogError($"{UpdateNeededMessage}: LEV_UndoRedo.GenerateNewBlock(BlockPropertyJSON, string) changed, so Compile is turned off");
     }
 }

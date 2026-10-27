@@ -88,7 +88,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     /// </summary>
     private void DrawStartupCheck(ImGui gui)
     {
-        if (!_startupCheck.CanCompile)
+        if (!_startupCheck.CanPlace)
             gui.Text($"{StartupCheck.UpdateNeededMessage}. Scripts are still checked, but Compile places nothing.", wrap: true);
 
         if (_startupCheck.DisabledBlocks.Count > 0)
