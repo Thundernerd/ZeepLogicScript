@@ -60,6 +60,36 @@ public class NestedTypeFileAnalyzerTests
         Assert.Equal(["Move nested type 'Deeper' to a partial file named 'Outer.Inner.Deeper.cs'"], messages);
     }
 
+    [Fact]
+    public async Task ContainingPartialType_InTheFileOfATypeNestedInIt_IsAllowed()
+    {
+        var source = "partial class Outer { partial class Middle { class Inner { } } }";
+
+        var messages = await AnalyzeAsync("Outer.Middle.Inner.cs", source);
+
+        Assert.Empty(messages);
+    }
+
+    [Fact]
+    public async Task ContainingNonPartialType_InTheFileOfATypeNestedInIt_IsReported()
+    {
+        var source = "partial class Outer { class Middle { class Inner { } } }";
+
+        var messages = await AnalyzeAsync("Outer.Middle.Inner.cs", source);
+
+        Assert.Equal(["Move nested type 'Middle' to a partial file named 'Outer.Middle.cs'"], messages);
+    }
+
+    [Fact]
+    public async Task SiblingOfTheContainingType_InTheFileOfATypeNestedTwoLevels_IsReported()
+    {
+        var source = "partial class Outer { partial class Middle { class Inner { } } class Other { } }";
+
+        var messages = await AnalyzeAsync("Outer.Middle.Inner.cs", source);
+
+        Assert.Equal(["Move nested type 'Other' to a partial file named 'Outer.Other.cs'"], messages);
+    }
+
     [Theory]
     [InlineData("struct Inner { }")]
     [InlineData("interface Inner { }")]

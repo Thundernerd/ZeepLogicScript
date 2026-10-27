@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -48,11 +49,25 @@ public sealed class NestedTypeFileAnalyzer : DiagnosticAnalyzer
 
         var expected = GetQualifiedName(context.Node) + ".cs";
         var actual = Path.GetFileName(context.Node.SyntaxTree.FilePath);
-        if (actual == expected)
+        if (actual == expected || ContainsTypeOwningFile(context.Node, actual))
             return;
 
         var identifier = GetIdentifier(context.Node);
         context.ReportDiagnostic(Diagnostic.Create(_rule, identifier.GetLocation(), identifier.ValueText, expected));
+    }
+
+    /// <summary>
+    /// Whether the type is a partial declaration that only exists in this file to contain the type the file is
+    /// named for: <c>partial class Middle</c> in <c>Outer.Middle.Inner.cs</c>.
+    /// </summary>
+    private static bool ContainsTypeOwningFile(SyntaxNode type, string fileName)
+    {
+        if (type is not TypeDeclarationSyntax declaration || !declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
+            return false;
+
+        return declaration.DescendantNodes()
+            .Where(nested => nested is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax)
+            .Any(nested => GetQualifiedName(nested) + ".cs" == fileName);
     }
 
     /// <summary>
