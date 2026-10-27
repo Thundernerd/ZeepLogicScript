@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Graph;
+using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Layout;
 
@@ -81,6 +82,10 @@ internal static class BlockLayout
         var inputs = new List<BlockNode>[graph.Blocks.Count];
         foreach (var wire in graph.Wires)
         {
+            // A Delay sits in column 0. Every cycle a Script can describe runs into a Delay, so this breaks them all
+            if (wire.To.Type == BlockManifest.Delay)
+                continue;
+
             (inputs[wire.To.Index] ??= []).Add(wire.From);
         }
 

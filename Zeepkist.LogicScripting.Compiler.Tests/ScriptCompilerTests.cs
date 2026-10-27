@@ -23,7 +23,7 @@ public class ScriptCompilerTests
 
         var logic = Assert.Single(result.Blocks[1].Settings);
         Assert.Equal(BlockManifest.LogicOperatorKey, logic.Key);
-        Assert.Equal(BlockManifest.LogicOperatorAnd, logic.IntValue);
+        Assert.Equal(0, logic.IntValue);
 
         Assert.Equal(
             ["0.0 -> 1.0", "0.0 -> 1.1", "1.3 -> 2.0"],
@@ -89,10 +89,11 @@ public class ScriptCompilerTests
     [InlineData("lamp(1)", 1, 1, "'lamp' isn't a Block Function")]
     [InlineData("power_display(1, 1)", 1, 1, "'power_display' takes at most 1 inputs, got 2")]
     [InlineData("x = 1 &", 1, 8, "Expected a value, found the end of the Script")]
-    [InlineData("power_display(1", 1, 16, "Expected ',' or ')', found the end of the Script")]
+    [InlineData("power_display(1", 1, 14, "'(' isn't closed")]
+    [InlineData("power_display(1 2)", 1, 17, "Expected ',' or ')', found '2'")]
     [InlineData("x = 1 1", 1, 7, "Expected the end of the line, found '1'")]
     [InlineData("x = 1$", 1, 6, "Unexpected character '$'")]
-    [InlineData("x = 99999999999999999999", 1, 5, "99999999999999999999 is too large for a Signal")]
+    [InlineData("x = 99999999999999999999", 1, 5, "99999999999999999999 doesn't fit in a Signal")]
     [InlineData("1 & 1", 1, 3, "A value on its own line does nothing; give it a name or pass it to a call")]
     public void Errors_HaveLineAndColumn(string text, int line, int column, string message)
     {
@@ -105,10 +106,27 @@ public class ScriptCompilerTests
     }
 
     [Fact]
+    public void Errors_FromEveryStageAreCollectedTogether()
+    {
+        var result = ScriptCompiler.Compile("a = 1 $ 2\nb = logic(1, 2, op: maybe)\npower_display(c\n", 0);
+
+        Assert.False(result.Succeeded);
+        Assert.Empty(result.Blocks);
+        Assert.Equal(
+            [
+                "1:7: Unexpected character '$'",
+                "1:9: Expected the end of the line, found '2'",
+                "2:21: 'maybe' isn't an option of op; use and, or, nand, nor, xor, xnor",
+                "3:14: '(' isn't closed"
+            ],
+            result.Errors.Select(e => e.ToString()));
+    }
+
+    [Fact]
     public void Errors_AreAllCollectedInOrder()
     {
         var result = ScriptCompiler.Compile("power_display(b)\nx = (\npower_display(a)", 0);
 
-        Assert.Equal(["1:15", "2:6", "3:15"], result.Errors.Select(e => $"{e.Line}:{e.Column}"));
+        Assert.Equal(["1:15", "2:5", "3:15"], result.Errors.Select(e => $"{e.Line}:{e.Column}"));
     }
 }
