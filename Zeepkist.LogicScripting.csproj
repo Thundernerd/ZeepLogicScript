@@ -5,6 +5,10 @@
     <AssemblyName>net.tnrd.zeepkist.logicscripting</AssemblyName>
     <Version>0.1.0</Version>
     <LangVersion>latest</LangVersion>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- The compiler only reports unused usings (IDE0005) when it generates docs; missing docs aren't an error -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
     <Product>Logic Scripting</Product>
     <RootNamespace>TNRD.Zeepkist.LogicScripting</RootNamespace>
         <RestoreAdditionalProjectSources>
