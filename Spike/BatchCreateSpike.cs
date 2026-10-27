@@ -86,8 +86,8 @@ namespace TNRD.ZeepLogicScript.Spike
             RegisterUndo(central, removed, removedBefore, added);
 
             logger.LogInfo(
-                $"[recompile] Block Group {group.ScriptId}: replaced {removed.Count} → {added.Count} blocks, " +
-                $"{(oldOperator == LogicOperatorAnd ? "AND" : "OR")} → {(newOperator == LogicOperatorAnd ? "AND" : "OR")}");
+                $"[recompile] Block Group {group.ScriptId}: replaced {removed.Count} -> {added.Count} blocks, " +
+                $"{(oldOperator == LogicOperatorAnd ? "AND" : "OR")} -> {(newOperator == LogicOperatorAnd ? "AND" : "OR")}");
         }
 
         /// <summary>

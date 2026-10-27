@@ -153,6 +153,7 @@ namespace TNRD.ZeepLogicScript.Spike
             BlockProperties prefab = central.manager.loader.globalBlockList.blocks[json.i];
             AddDefaultPaint(prefab, json);
 
+            // Private: callable because AllowUnsafeBlocks makes Mono skip its access checks for this assembly
             BlockProperties block = central.undoRedo.GenerateNewBlock(json, json.u);
             block.NewBlockCreatedFromEditorForV15JSON();
 
@@ -200,7 +201,7 @@ namespace TNRD.ZeepLogicScript.Spike
             foreach (BlockProperties block in blocks)
             {
                 StaticConnectorTracker.RemoveBlockFromTracker(block.UID);
-                Object.Destroy(block.gameObject);
+                UnityEngine.Object.Destroy(block.gameObject);
             }
 
             return before;

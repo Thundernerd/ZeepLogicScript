@@ -5,6 +5,8 @@
     <AssemblyName>net.tnrd.zeeplogicscript</AssemblyName>
     <Version>0.1.0</Version>
     <LangVersion>latest</LangVersion>
+    <!-- Lets Mono skip access checks, so publicized private game members can be called directly -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Product>ZeepLogicScript</Product>
     <RootNamespace>TNRD.ZeepLogicScript</RootNamespace>
         <RestoreAdditionalProjectSources>

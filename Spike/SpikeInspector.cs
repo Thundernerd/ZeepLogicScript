@@ -69,7 +69,7 @@ namespace TNRD.ZeepLogicScript.Spike
             foreach (SpikeGroup group in groups.Values)
             {
                 logger.LogInfo(
-                    $"[inspect] Group {group.ScriptId}: {group.Members.Count} members, {group.Copies.Count} copies (tag UID ≠ own UID), " +
+                    $"[inspect] Group {group.ScriptId}: {group.Members.Count} members, {group.Copies.Count} copies (tag UID != own UID), " +
                     $"carrier {(group.Carrier != null ? group.Carrier.UID : "MISSING")}");
 
                 foreach (BlockProperties member in group.Members)
