@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>TNRD.Zeepkist.LogicScripting.Analyzers</RootNamespace>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- The compiler only reports unused usings (IDE0005) when it generates docs; missing docs aren't an error -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Release tracking (RS2008) is for analyzers shipped as packages; this one only runs in this repo -->
+    <NoWarn>$(NoWarn);CS1591;RS2008</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Zeepkist.LogicScripting.Analyzers.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 4.8 is the Roslyn in the .NET 8 SDK that CI builds with; an analyzer can't need a newer compiler than the one loading it -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="all" />
+    <AdditionalFiles Include="..\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+
+</Project>
