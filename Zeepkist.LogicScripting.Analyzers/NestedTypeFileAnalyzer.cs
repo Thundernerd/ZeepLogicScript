@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -46,13 +47,32 @@ public sealed class NestedTypeFileAnalyzer : DiagnosticAnalyzer
         if (context.Node.Parent is not TypeDeclarationSyntax)
             return;
 
-        var expected = GetQualifiedName(context.Node) + ".cs";
+        var expected = GetFileName(context.Node);
         var actual = Path.GetFileName(context.Node.SyntaxTree.FilePath);
-        if (actual == expected)
+        if (actual == expected || IsPartialContainerOfFileType(context.Node, actual))
             return;
 
         var identifier = GetIdentifier(context.Node);
         context.ReportDiagnostic(Diagnostic.Create(_rule, identifier.GetLocation(), identifier.ValueText, expected));
+    }
+
+    /// <summary>
+    /// Whether the type is a partial declaration containing the type the file is named for:
+    /// <c>partial class Middle</c> in <c>Outer.Middle.Inner.cs</c>.
+    /// </summary>
+    private static bool IsPartialContainerOfFileType(SyntaxNode type, string fileName)
+    {
+        if (type is not TypeDeclarationSyntax declaration || !declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
+            return false;
+
+        return declaration.DescendantNodes(node => node is TypeDeclarationSyntax)
+            .Where(IsTypeDeclaration)
+            .Any(nested => GetFileName(nested) == fileName);
+    }
+
+    private static string GetFileName(SyntaxNode type)
+    {
+        return GetQualifiedName(type) + ".cs";
     }
 
     /// <summary>
@@ -67,6 +87,11 @@ public sealed class NestedTypeFileAnalyzer : DiagnosticAnalyzer
         }
 
         return name;
+    }
+
+    private static bool IsTypeDeclaration(SyntaxNode node)
+    {
+        return node is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax;
     }
 
     private static SyntaxToken GetIdentifier(SyntaxNode type)
