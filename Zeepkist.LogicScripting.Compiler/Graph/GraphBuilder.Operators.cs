@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -12,16 +13,15 @@ internal sealed partial class GraphBuilder
         if (operand == null)
             return null;
 
-        if (unary.Operator == UnaryOperator.Not)
+        var op = unary.Operator;
+        List<Func<InputFeed>> inputs = [];
+        foreach (var literal in op.LeadingLiterals)
         {
-            var digitizer = BlockManifest.Digitizer;
-            var block = _graph.AddBlock(digitizer, Setting.Int(BlockManifest.DigitizerInvert.Key, 1));
-            Connect(operand.Value, block, digitizer.Inputs[0].Index);
-            return new BlockOutput(block, digitizer.Outputs[0].Index);
+            inputs.Add(() => InputFeed.Of(GetLiteral(literal)));
         }
 
-        // -x is 0 - x
-        return AddOperatorBlock(BinaryOperator.Subtract, () => InputFeed.Of(GetLiteral(0)), operand.Value);
+        inputs.Add(() => operand.Value);
+        return AddOperatorBlock(op.Block, op.Setting, inputs);
     }
 
     private BlockOutput? VisitBinary(BinaryExpression binary)
@@ -31,18 +31,22 @@ internal sealed partial class GraphBuilder
         if (left == null || right == null)
             return null;
 
-        return AddOperatorBlock(binary.Operator, () => left.Value, right.Value);
+        var op = binary.Operator;
+        return AddOperatorBlock(op.Block, op.Setting, [() => left.Value, () => right.Value]);
     }
 
     /// <summary>
-    /// Places the operator's block and wires its operands. <paramref name="left"/> is asked for after the block is
-    /// placed, so a Generator it creates comes after the block.
+    /// Places an operator's block and wires <paramref name="inputs"/> into its first inputs, in order. Each input is
+    /// asked for after the block is placed, so a Generator it creates comes after the block.
     /// </summary>
-    private BlockOutput AddOperatorBlock(BinaryOperator op, Func<InputFeed> left, InputFeed right)
+    private BlockOutput AddOperatorBlock(BlockType type, Setting setting, IReadOnlyList<Func<InputFeed>> inputs)
     {
-        var block = _graph.AddBlock(op.Block, op.Setting);
-        Connect(left(), block, op.Block.Inputs[0].Index);
-        Connect(right, block, op.Block.Inputs[1].Index);
-        return new BlockOutput(block, op.Block.Outputs[0].Index);
+        var block = _graph.AddBlock(type, setting);
+        for (var i = 0; i < inputs.Count; i++)
+        {
+            Connect(inputs[i](), block, type.Inputs[i].Index);
+        }
+
+        return new BlockOutput(block, type.Outputs[0].Index);
     }
 }

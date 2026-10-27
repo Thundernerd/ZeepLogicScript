@@ -5,7 +5,6 @@ internal enum TokenKind
     Integer,
     Name,
     Operator,
-    Bang,
     OpenParen,
     CloseParen,
     Comma,

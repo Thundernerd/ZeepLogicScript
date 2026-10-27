@@ -80,7 +80,7 @@ internal sealed partial class Parser
     private Expression ParseBinary(int minPrecedence)
     {
         var left = ParseUnary();
-        while (Current.Operator is { } op && op.Precedence >= minPrecedence)
+        while (Current.BinaryOperator is { } op && op.Precedence >= minPrecedence)
         {
             var token = Current;
             _index++;
@@ -97,29 +97,20 @@ internal sealed partial class Parser
     private Expression ParseUnary()
     {
         var token = Current;
-        switch (token.Kind)
-        {
-            case TokenKind.Bang:
-                _index++;
-                return new UnaryExpression(token.Position, UnaryOperator.Not, ParseUnary());
+        if (token.UnaryOperator is not { } op)
+            return ParsePostfix();
 
-            case TokenKind.Operator when token.Operator == BinaryOperator.Subtract && IsTouchingInteger(token, Peek(1)):
-                // A minus right before a number is part of the literal, so -5 is one Generator, not 0 - 5
-                _index++;
-                return ParseInteger(Current, token, "-");
+        _index++;
 
-            case TokenKind.Operator when token.Operator == BinaryOperator.Subtract:
-                _index++;
-                return new UnaryExpression(token.Position, UnaryOperator.Negate, ParseUnary());
+        if (op.SignsInteger && IsTouchingInteger(token, Current))
+            return ParseInteger(Current, token, op.Symbol);
 
-            default:
-                return ParsePostfix();
-        }
+        return new UnaryExpression(token.Position, op, ParseUnary());
     }
 
-    private static bool IsTouchingInteger(Token minus, Token next)
+    private static bool IsTouchingInteger(Token sign, Token next)
     {
-        return next.Kind == TokenKind.Integer && next.Position.IsDirectlyAfter(minus.Position);
+        return next.Kind == TokenKind.Integer && next.Position.IsDirectlyAfter(sign.Position);
     }
 
     private Expression ParsePostfix()
@@ -167,8 +158,8 @@ internal sealed partial class Parser
     }
 
     /// <param name="digits">The integer token.</param>
-    /// <param name="start">Where the literal starts: the digits, or the minus before them.</param>
-    /// <param name="sign">"-" or empty.</param>
+    /// <param name="start">Where the literal starts: the digits, or the sign before them.</param>
+    /// <param name="sign">The sign's symbol, or empty.</param>
     private IntegerLiteral ParseInteger(Token digits, Token start, string sign)
     {
         _index++;

@@ -54,24 +54,4 @@ internal sealed class BinaryOperator
     /// The Setting that picks the operation on <see cref="Block"/>.
     /// </summary>
     public Setting Setting { get; }
-
-    /// <summary>
-    /// The operator whose symbol starts at <paramref name="index"/>, preferring the longest, so <c>&lt;=</c> isn't
-    /// read as <c>&lt;</c>.
-    /// </summary>
-    public static BinaryOperator Match(string text, int index)
-    {
-        BinaryOperator match = null;
-        foreach (var op in All)
-        {
-            if (index + op.Symbol.Length <= text.Length
-                && string.CompareOrdinal(text, index, op.Symbol, 0, op.Symbol.Length) == 0
-                && (match == null || op.Symbol.Length > match.Symbol.Length))
-            {
-                match = op;
-            }
-        }
-
-        return match;
-    }
 }

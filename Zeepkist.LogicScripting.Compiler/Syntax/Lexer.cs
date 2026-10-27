@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
@@ -67,10 +68,10 @@ internal static class Lexer
 
                 tokens.Add(new Token(TokenKind.Name, text.Substring(start, index - start), position));
             }
-            else if (BinaryOperator.Match(text, index) is { } op)
+            else if (MatchOperator(text, index, position) is { } op)
             {
-                tokens.Add(new Token(op, position));
-                index += op.Symbol.Length;
+                tokens.Add(op);
+                index += op.Text.Length;
             }
             else
             {
@@ -155,11 +156,52 @@ internal static class Lexer
         return index;
     }
 
+    /// <summary>
+    /// The operator token whose symbol starts at <paramref name="index"/>, preferring the longest, so <c>!=</c> isn't
+    /// read as <c>!</c>. A symbol in both tables, like <c>-</c>, spells both operators.
+    /// </summary>
+    private static Token? MatchOperator(string text, int index, Position position)
+    {
+        var binary = MatchLongest(BinaryOperator.All, op => op.Symbol, text, index);
+        var unary = MatchLongest(UnaryOperator.All, op => op.Symbol, text, index);
+        if (binary != null && unary != null && binary.Symbol.Length != unary.Symbol.Length)
+        {
+            if (binary.Symbol.Length > unary.Symbol.Length)
+                unary = null;
+            else
+                binary = null;
+        }
+
+        if (binary == null && unary == null)
+            return null;
+
+        return new Token(binary, unary, position);
+    }
+
+    private static T MatchLongest<T>(IEnumerable<T> operators, Func<T, string> getSymbol, string text, int index)
+        where T : class
+    {
+        T match = null;
+        var matchLength = 0;
+        foreach (var op in operators)
+        {
+            var symbol = getSymbol(op);
+            if (symbol.Length > matchLength
+                && index + symbol.Length <= text.Length
+                && string.CompareOrdinal(text, index, symbol, 0, symbol.Length) == 0)
+            {
+                match = op;
+                matchLength = symbol.Length;
+            }
+        }
+
+        return match;
+    }
+
     private static TokenKind? GetPunctuation(char c)
     {
         return c switch
         {
-            '!' => TokenKind.Bang,
             '(' => TokenKind.OpenParen,
             ')' => TokenKind.CloseParen,
             ',' => TokenKind.Comma,

@@ -10,10 +10,11 @@ internal readonly struct Token
         IsUnclosed = isUnclosed;
     }
 
-    public Token(BinaryOperator op, Position position)
-        : this(TokenKind.Operator, op.Symbol, position)
+    public Token(BinaryOperator binaryOperator, UnaryOperator unaryOperator, Position position)
+        : this(TokenKind.Operator, binaryOperator?.Symbol ?? unaryOperator.Symbol, position)
     {
-        Operator = op;
+        BinaryOperator = binaryOperator;
+        UnaryOperator = unaryOperator;
     }
 
     public TokenKind Kind { get; }
@@ -26,7 +27,12 @@ internal readonly struct Token
     public bool IsUnclosed { get; }
 
     /// <summary>
-    /// The binary operator an <see cref="TokenKind.Operator"/> token spells; <c>-</c> can also be a unary minus.
+    /// The binary operator an <see cref="TokenKind.Operator"/> token spells, if any.
     /// </summary>
-    public BinaryOperator Operator { get; }
+    public BinaryOperator BinaryOperator { get; }
+
+    /// <summary>
+    /// The unary operator an <see cref="TokenKind.Operator"/> token spells, if any; <c>-</c> is both.
+    /// </summary>
+    public UnaryOperator UnaryOperator { get; }
 }
