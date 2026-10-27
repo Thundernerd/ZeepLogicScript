@@ -7,8 +7,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 /// </summary>
 internal sealed class CallExpression : Expression
 {
-    public CallExpression(int line, int column, string function, List<Expression> arguments, List<NamedArgument> namedArguments)
-        : base(line, column)
+    public CallExpression(Position position, string function, List<Expression> arguments, List<NamedArgument> namedArguments)
+        : base(position)
     {
         Function = function;
         Arguments = arguments;

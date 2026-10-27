@@ -12,7 +12,7 @@ internal sealed partial class Parser
 {
     private readonly List<Token> _tokens;
     private readonly List<Diagnostic> _diagnostics;
-    private int _position;
+    private int _index;
 
     private Parser(List<Token> tokens, List<Diagnostic> diagnostics)
     {
@@ -20,7 +20,7 @@ internal sealed partial class Parser
         _diagnostics = diagnostics;
     }
 
-    private Token Current => _tokens[_position];
+    private Token Current => _tokens[_index];
 
     public static List<Statement> Parse(List<Token> tokens, List<Diagnostic> diagnostics)
     {
@@ -35,7 +35,7 @@ internal sealed partial class Parser
         {
             if (Current.Kind == TokenKind.NewLine)
             {
-                _position++;
+                _index++;
                 continue;
             }
 
@@ -62,8 +62,8 @@ internal sealed partial class Parser
         if (Current.Kind == TokenKind.Name && Peek(1).Kind == TokenKind.Equals)
         {
             var name = Current;
-            _position += 2;
-            return new Definition(name.Line, name.Column, name.Text, ParseExpression());
+            _index += 2;
+            return new Definition(name.Position, name.Text, ParseExpression());
         }
 
         return new ExpressionStatement(ParseExpression());
@@ -83,12 +83,12 @@ internal sealed partial class Parser
         while (TryGetBinaryOperator(Current.Kind, out var op, out var precedence) && precedence >= minPrecedence)
         {
             var token = Current;
-            _position++;
+            _index++;
             if (Current.Kind == TokenKind.NewLine)
                 throw DanglingOperator(Current);
 
             var right = ParseBinary(precedence + 1);
-            left = new BinaryExpression(token.Line, token.Column, op, left, right);
+            left = new BinaryExpression(token.Position, op, left, right);
         }
 
         return left;
@@ -100,17 +100,17 @@ internal sealed partial class Parser
         switch (token.Kind)
         {
             case TokenKind.Bang:
-                _position++;
-                return new UnaryExpression(token.Line, token.Column, UnaryOperator.Not, ParseUnary());
+                _index++;
+                return new UnaryExpression(token.Position, UnaryOperator.Not, ParseUnary());
 
             case TokenKind.Minus when IsTouchingInteger(token, Peek(1)):
                 // A minus right before a number is part of the literal, so -5 is one Generator, not 0 - 5
-                _position++;
+                _index++;
                 return ParseInteger(Current, token, "-");
 
             case TokenKind.Minus:
-                _position++;
-                return new UnaryExpression(token.Line, token.Column, UnaryOperator.Negate, ParseUnary());
+                _index++;
+                return new UnaryExpression(token.Position, UnaryOperator.Negate, ParseUnary());
 
             default:
                 return ParsePostfix();
@@ -119,7 +119,7 @@ internal sealed partial class Parser
 
     private static bool IsTouchingInteger(Token minus, Token next)
     {
-        return next.Kind == TokenKind.Integer && next.Line == minus.Line && next.Column == minus.Column + 1;
+        return next.Kind == TokenKind.Integer && next.Position.IsDirectlyAfter(minus.Position);
     }
 
     private Expression ParsePostfix()
@@ -128,13 +128,13 @@ internal sealed partial class Parser
         while (Current.Kind == TokenKind.Dot)
         {
             var dot = Current;
-            _position++;
+            _index++;
             if (expression is not (NameExpression or CallExpression))
                 throw Error(dot, "Only names and calls have outputs to pick with .");
 
             var output = Current;
             Expect(TokenKind.Name, "an output name");
-            expression = new MemberExpression(output.Line, output.Column, expression, output.Text);
+            expression = new MemberExpression(output.Position, expression, output.Text);
         }
 
         return expression;
@@ -173,11 +173,11 @@ internal sealed partial class Parser
                 return ParseInteger(token, token, string.Empty);
 
             case TokenKind.Name:
-                _position++;
+                _index++;
                 if (Current.Kind == TokenKind.OpenParen)
                     return ParseCall(token);
 
-                return new NameExpression(token.Line, token.Column, token.Text);
+                return new NameExpression(token.Position, token.Text);
 
             case TokenKind.OpenParen:
                 ExpectOpenParen();
@@ -195,12 +195,12 @@ internal sealed partial class Parser
     /// <param name="sign">"-" or empty.</param>
     private IntegerLiteral ParseInteger(Token digits, Token start, string sign)
     {
-        _position++;
+        _index++;
         var text = sign + digits.Text;
         if (!long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var value))
             throw Error(start, $"{text} doesn't fit in a Signal");
 
-        return new IntegerLiteral(start.Line, start.Column, value);
+        return new IntegerLiteral(start.Position, value);
     }
 
     private CallExpression ParseCall(Token function)
@@ -210,8 +210,8 @@ internal sealed partial class Parser
         List<NamedArgument> namedArguments = [];
         if (Current.Kind == TokenKind.CloseParen)
         {
-            _position++;
-            return new CallExpression(function.Line, function.Column, function.Text, arguments, namedArguments);
+            _index++;
+            return new CallExpression(function.Position, function.Text, arguments, namedArguments);
         }
 
         while (true)
@@ -219,10 +219,10 @@ internal sealed partial class Parser
             if (Current.Kind == TokenKind.Name && Peek(1).Kind == TokenKind.Colon)
             {
                 var name = Current;
-                _position += 2;
+                _index += 2;
                 var valueStart = Current;
                 var value = ParseExpression();
-                namedArguments.Add(new NamedArgument(name.Line, name.Column, name.Text, value, valueStart.Line, valueStart.Column));
+                namedArguments.Add(new NamedArgument(name.Position, name.Text, value, valueStart.Position));
             }
             else
             {
@@ -236,12 +236,12 @@ internal sealed partial class Parser
 
             if (Current.Kind == TokenKind.Comma)
             {
-                _position++;
+                _index++;
                 continue;
             }
 
             Expect(TokenKind.CloseParen, "',' or ')'");
-            return new CallExpression(function.Line, function.Column, function.Text, arguments, namedArguments);
+            return new CallExpression(function.Position, function.Text, arguments, namedArguments);
         }
     }
 
@@ -258,19 +258,19 @@ internal sealed partial class Parser
         if (Current.Kind != kind)
             throw Error(Current, $"Expected {expected}, found {Describe(Current)}");
 
-        _position++;
+        _index++;
     }
 
     private Token Peek(int offset)
     {
-        return _tokens[Math.Min(_position + offset, _tokens.Count - 1)];
+        return _tokens[Math.Min(_index + offset, _tokens.Count - 1)];
     }
 
     private void SkipLine()
     {
         while (Current.Kind != TokenKind.NewLine && Current.Kind != TokenKind.End)
         {
-            _position++;
+            _index++;
         }
     }
 
@@ -283,7 +283,7 @@ internal sealed partial class Parser
         if (Current.Kind != TokenKind.NewLine)
             return;
 
-        _position++;
+        _index++;
         if (Current.Kind == TokenKind.Name && Peek(1).Kind == TokenKind.Equals)
             return;
 
@@ -302,13 +302,13 @@ internal sealed partial class Parser
 
     private static SyntaxError Error(Token token, string message)
     {
-        return new SyntaxError(new Diagnostic(token.Line, token.Column, message), false);
+        return new SyntaxError(new Diagnostic(token.Position, message), false);
     }
 
     /// <param name="lineEnd">The line break right after a binary operator.</param>
     private static SyntaxError DanglingOperator(Token lineEnd)
     {
         var message = "Expected a value, found the end of the line; to continue on the next line, put the expression in ( )";
-        return new SyntaxError(new Diagnostic(lineEnd.Line, lineEnd.Column, message), true);
+        return new SyntaxError(new Diagnostic(lineEnd.Position, message), true);
     }
 }

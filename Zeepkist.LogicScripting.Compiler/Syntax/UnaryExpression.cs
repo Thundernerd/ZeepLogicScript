@@ -2,8 +2,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 internal sealed class UnaryExpression : Expression
 {
-    public UnaryExpression(int line, int column, UnaryOperator op, Expression operand)
-        : base(line, column)
+    public UnaryExpression(Position position, UnaryOperator op, Expression operand)
+        : base(position)
     {
         Operator = op;
         Operand = operand;

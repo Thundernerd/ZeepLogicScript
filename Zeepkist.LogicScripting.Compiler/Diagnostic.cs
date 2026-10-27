@@ -1,23 +1,23 @@
 namespace TNRD.Zeepkist.LogicScripting.Compiler;
 
 /// <summary>
-/// A Compile error at a one-based line and column of the Script.
+/// A Compile error at a position in the Script.
 /// </summary>
 public sealed class Diagnostic
 {
-    public Diagnostic(int line, int column, string message)
+    public Diagnostic(Position position, string message)
     {
-        Line = line;
-        Column = column;
+        Position = position;
         Message = message;
     }
 
-    public int Line { get; }
-    public int Column { get; }
+    public Position Position { get; }
+    public int Line => Position.Line;
+    public int Column => Position.Column;
     public string Message { get; }
 
     public override string ToString()
     {
-        return $"{Line}:{Column}: {Message}";
+        return $"{Position}: {Message}";
     }
 }

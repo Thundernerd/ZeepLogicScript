@@ -204,7 +204,7 @@ internal sealed partial class GraphBuilder
             return Fail(name, $"'{name.Name}' can't refer to itself outside delay(...)");
 
         if (_definitions.TryGetValue(name.Name, out var later))
-            return Fail(name, $"'{name.Name}' is defined later, on line {later.Line}; only delay(...) can refer ahead");
+            return Fail(name, $"'{name.Name}' is defined later, on line {later.Position.Line}; only delay(...) can refer ahead");
 
         return Fail(name, BlockManifest.TryGetFunction(name.Name, out _)
             ? $"'{name.Name}' is a Block Function; call it with ( )"
@@ -511,11 +511,11 @@ internal sealed partial class GraphBuilder
 
     private void Error(SyntaxNode node, string message)
     {
-        _diagnostics.Add(new Diagnostic(node.Line, node.Column, message));
+        _diagnostics.Add(new Diagnostic(node.Position, message));
     }
 
     private void ValueError(NamedArgument argument, string message)
     {
-        _diagnostics.Add(new Diagnostic(argument.ValueLine, argument.ValueColumn, message));
+        _diagnostics.Add(new Diagnostic(argument.ValuePosition, message));
     }
 }

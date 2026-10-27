@@ -2,8 +2,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 internal sealed class BinaryExpression : Expression
 {
-    public BinaryExpression(int line, int column, BinaryOperator op, Expression left, Expression right)
-        : base(line, column)
+    public BinaryExpression(Position position, BinaryOperator op, Expression left, Expression right)
+        : base(position)
     {
         Operator = op;
         Left = left;

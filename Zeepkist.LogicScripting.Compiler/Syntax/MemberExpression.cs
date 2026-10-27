@@ -5,8 +5,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 /// </summary>
 internal sealed class MemberExpression : Expression
 {
-    public MemberExpression(int line, int column, Expression target, string output)
-        : base(line, column)
+    public MemberExpression(Position position, Expression target, string output)
+        : base(position)
     {
         Target = target;
         Output = output;
