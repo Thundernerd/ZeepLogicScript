@@ -34,11 +34,11 @@ internal sealed class BinaryOperator
         Multiply, Divide, Modulo
     ];
 
-    private BinaryOperator(string symbol, int precedence, BlockType block, BlockSetting setting, string option)
+    private BinaryOperator(string symbol, int precedence, BlockType type, BlockSetting setting, string option)
     {
         Symbol = symbol;
         Precedence = precedence;
-        Block = new OperatorBlock(block, setting.Choose(option));
+        Block = new OperatorBlock(type, setting.Choose(option));
     }
 
     public string Symbol { get; }
