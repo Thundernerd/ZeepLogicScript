@@ -52,7 +52,7 @@ internal sealed partial class GraphBuilder
             var feed = EvaluateArgument(check, call.Arguments[i]);
             if (i < inputCount)
             {
-                check.Inputs[i] = WiredInput.ByPosition(feed);
+                check.WireByPosition(i, feed);
             }
         }
 
@@ -68,7 +68,9 @@ internal sealed partial class GraphBuilder
     private InputFeed? EvaluateArgument(ArgumentCheck check, Expression expression)
     {
         var feed = EvaluateFeed(expression);
-        check.Failed |= feed == null;
+        if (feed == null)
+            check.MarkFailed();
+
         return feed;
     }
 
@@ -77,7 +79,7 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private void VisitNamedArgument(ArgumentCheck check, NamedArgument argument)
     {
-        if (!check.Give(argument))
+        if (!check.TryGive(argument))
             return;
 
         var input = check.Type.IndexOfInput(argument.Name);
@@ -94,10 +96,6 @@ internal sealed partial class GraphBuilder
             return;
         }
 
-        var setting = GetSettingValue(blockSetting, argument);
-        if (setting == null)
-            check.Failed = true;
-        else
-            check.Settings.Add(blockSetting, setting);
+        check.GiveSetting(blockSetting, GetSettingValue(blockSetting, argument));
     }
 }

@@ -32,7 +32,7 @@ internal sealed partial class GraphBuilder
         public BlockType Type { get; }
         public WiredInput?[] Inputs { get; }
         public Dictionary<BlockSetting, Setting> Settings { get; } = [];
-        public bool Failed { get; set; }
+        public bool Failed { get; private set; }
 
         public void Fail(SyntaxNode node, string message)
         {
@@ -41,15 +41,28 @@ internal sealed partial class GraphBuilder
         }
 
         /// <summary>
-        /// Notes a named argument's name; false, and reported, when the call already gives it.
+        /// Fails without reporting, for a problem already reported elsewhere.
         /// </summary>
-        public bool Give(NamedArgument argument)
+        public void MarkFailed()
+        {
+            Failed = true;
+        }
+
+        /// <summary>
+        /// Adds a named argument's name to the names given; reports it when the call gives it twice.
+        /// </summary>
+        public bool TryGive(NamedArgument argument)
         {
             if (_givenNames.Add(argument.Name))
                 return true;
 
             Fail(argument, $"'{argument.Name}' is given twice");
             return false;
+        }
+
+        public void WireByPosition(int input, InputFeed? feed)
+        {
+            Inputs[input] = WiredInput.ByPosition(feed);
         }
 
         public void WireByName(NamedArgument argument, int input, InputFeed? feed)
@@ -61,6 +74,17 @@ internal sealed partial class GraphBuilder
             }
 
             Inputs[input] = WiredInput.ByName(feed);
+        }
+
+        /// <summary>
+        /// Gives a Setting its value; fails when the value was invalid and already reported.
+        /// </summary>
+        public void GiveSetting(BlockSetting blockSetting, Setting setting)
+        {
+            if (setting == null)
+                MarkFailed();
+            else
+                Settings.Add(blockSetting, setting);
         }
 
         /// <summary>
