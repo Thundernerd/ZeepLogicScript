@@ -49,11 +49,11 @@ A cycle of Wires with no Delay in it. The editor refuses to wire one by hand; at
 _Avoid_: infinite loop, recursion, deadlock (deadlock is the runtime symptom)
 
 **Block Manifest**:
-The mod's per-Logic-Block-type description: block ID, Block Function name, Connector indices, directions and output names, Setting keys with their option names and defaults. Built mostly at runtime from prefabs; names, value meanings and defaults are hand-written.
+The mod's per-Logic-Block-type description: block ID, Block Function name, Connector indices, directions and names, Setting keys with their option names and defaults. Built mostly at runtime from prefabs; names, value meanings and defaults are hand-written.
 _Avoid_: schema, registry, block definitions
 
 **Block Function**:
-The Script function named after a Logic Block type (`logic`, `delay`, `player_input`). Each call places one block; positional arguments are input Wires in Connector order, named arguments are Settings. Operators like `&` and `+` are shorthand for a Block Function call.
+The Script function named after a Logic Block type (`logic`, `delay`, `player_input`). Each call places one block; positional arguments are input Wires in Connector order, and a named argument either wires the input of that name (`logic(a: x)`) or gives a Setting. Operators like `&` and `+` are shorthand for a Block Function call.
 _Avoid_: builtin, node constructor, command
 
 **Setting**:
