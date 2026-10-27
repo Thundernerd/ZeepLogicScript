@@ -7,8 +7,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 internal sealed partial class GraphBuilder
 {
     /// <summary>
-    /// What a Block Function call's arguments come to while they are checked: the input feeds, the Settings,
-    /// and the names given and meant.
+    /// The state built up while checking a Block Function call's arguments: the input feeds, which inputs are
+    /// wired by position, the Settings, and the names given and meant.
     /// </summary>
     private sealed class CallArguments
     {
@@ -33,5 +33,10 @@ internal sealed partial class GraphBuilder
         public HashSet<string> MeantNames { get; } = [];
 
         public bool Failed { get; set; }
+
+        public bool IsGivenOrMeant(string name)
+        {
+            return GivenNames.Contains(name) || MeantNames.Contains(name);
+        }
     }
 }

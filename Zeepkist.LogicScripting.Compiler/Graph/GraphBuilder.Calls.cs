@@ -45,20 +45,21 @@ internal sealed partial class GraphBuilder
     private void VisitPositionalArguments(CallArguments arguments)
     {
         var call = arguments.Call;
+        var inputCount = arguments.Type.Inputs.Count;
         for (var i = 0; i < call.Arguments.Count; i++)
         {
             var output = EvaluateFeed(call.Arguments[i]);
             arguments.Failed |= output == null;
-            if (i < arguments.Inputs.Length)
+            if (i < inputCount)
             {
                 arguments.Inputs[i] = output;
                 arguments.WiredByPosition[i] = true;
             }
         }
 
-        if (call.Arguments.Count > arguments.Type.Inputs.Count)
+        if (call.Arguments.Count > inputCount)
         {
-            Error(call, $"'{call.Function}' takes at most {arguments.Type.Inputs.Count} inputs, got {call.Arguments.Count}");
+            Error(call, $"'{call.Function}' takes at most {inputCount} inputs, got {call.Arguments.Count}");
             arguments.Failed = true;
         }
     }
@@ -114,15 +115,15 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private void ReportUnknownName(CallArguments arguments, NamedArgument argument)
     {
-        var function = arguments.Call.Function;
+        var call = arguments.Call;
         var closest = arguments.Type.FindClosestName(argument.Name);
         if (closest == null)
         {
-            Error(argument, $"'{function}' has no input or Setting '{argument.Name}'");
+            Error(argument, $"'{call.Function}' has no input or Setting '{argument.Name}'");
         }
         else
         {
-            Error(argument, $"'{function}' has no input or Setting '{argument.Name}'; did you mean {closest}?");
+            Error(argument, $"'{call.Function}' has no input or Setting '{argument.Name}'; did you mean {closest}?");
             arguments.MeantNames.Add(closest);
         }
 

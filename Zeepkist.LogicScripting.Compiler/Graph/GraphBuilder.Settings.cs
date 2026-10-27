@@ -63,9 +63,7 @@ internal sealed partial class GraphBuilder
         var hasAll = true;
         foreach (var blockSetting in arguments.Type.Settings)
         {
-            if (blockSetting.IsRequired
-                && !arguments.GivenNames.Contains(blockSetting.Name)
-                && !arguments.MeantNames.Contains(blockSetting.Name))
+            if (blockSetting.IsRequired && !arguments.IsGivenOrMeant(blockSetting.Name))
             {
                 Error(call, $"'{call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
                 hasAll = false;
