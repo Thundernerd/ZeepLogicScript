@@ -10,9 +10,9 @@ internal sealed partial class GraphBuilder
     /// The state built up while checking a Block Function call's arguments: the wired inputs, the Settings,
     /// and the names given and meant.
     /// </summary>
-    private sealed class CallArguments
+    private sealed class ArgumentCheck
     {
-        public CallArguments(CallExpression call, BlockType type)
+        public ArgumentCheck(CallExpression call, BlockType type)
         {
             Call = call;
             Type = type;
