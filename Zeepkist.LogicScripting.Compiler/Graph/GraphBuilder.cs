@@ -344,6 +344,7 @@ internal sealed class GraphBuilder
 
         Dictionary<BlockSetting, Setting> settings = [];
         HashSet<string> givenNames = [];
+        HashSet<string> meantNames = [];
         foreach (var argument in call.NamedArguments)
         {
             if (!givenNames.Add(argument.Name))
@@ -371,7 +372,17 @@ internal sealed class GraphBuilder
             var blockSetting = type.FindSetting(argument.Name);
             if (blockSetting == null)
             {
-                Error(argument, $"'{call.Function}' has no input or Setting '{argument.Name}'");
+                var closest = type.FindClosestName(argument.Name);
+                if (closest == null)
+                {
+                    Error(argument, $"'{call.Function}' has no input or Setting '{argument.Name}'");
+                }
+                else
+                {
+                    Error(argument, $"'{call.Function}' has no input or Setting '{argument.Name}'; did you mean {closest}?");
+                    meantNames.Add(closest);
+                }
+
                 failed = true;
                 continue;
             }
@@ -388,7 +399,7 @@ internal sealed class GraphBuilder
 
         foreach (var blockSetting in type.Settings)
         {
-            if (blockSetting.IsRequired && !givenNames.Contains(blockSetting.Name))
+            if (blockSetting.IsRequired && !givenNames.Contains(blockSetting.Name) && !meantNames.Contains(blockSetting.Name))
             {
                 Error(call, $"'{call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
                 failed = true;
