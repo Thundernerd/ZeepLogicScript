@@ -58,8 +58,7 @@ internal sealed partial class GraphBuilder
 
         if (call.Arguments.Count > inputCount)
         {
-            Error(call, $"'{call.Function}' takes at most {inputCount} inputs, got {call.Arguments.Count}");
-            check.Failed = true;
+            Fail(check, call, $"'{call.Function}' takes at most {inputCount} inputs, got {call.Arguments.Count}");
         }
     }
 
@@ -73,6 +72,12 @@ internal sealed partial class GraphBuilder
         return feed;
     }
 
+    private void Fail(ArgumentCheck check, SyntaxNode node, string message)
+    {
+        Error(node, message);
+        check.Failed = true;
+    }
+
     /// <summary>
     /// A named argument wires an input or gives a Setting.
     /// </summary>
@@ -80,8 +85,7 @@ internal sealed partial class GraphBuilder
     {
         if (!check.GivenNames.Add(argument.Name))
         {
-            Error(argument, $"'{argument.Name}' is given twice");
-            check.Failed = true;
+            Fail(check, argument, $"'{argument.Name}' is given twice");
             return;
         }
 
@@ -111,8 +115,7 @@ internal sealed partial class GraphBuilder
         var feed = EvaluateArgument(check, argument.Value);
         if (check.Inputs[input]?.IsByPosition == true)
         {
-            Error(argument, $"Input '{argument.Name}' is already wired by position");
-            check.Failed = true;
+            Fail(check, argument, $"Input '{argument.Name}' is already wired by position");
             return;
         }
 
@@ -125,17 +128,14 @@ internal sealed partial class GraphBuilder
     private void ReportUnknownName(ArgumentCheck check, NamedArgument argument)
     {
         var call = check.Call;
+        var message = $"'{call.Function}' has no input or Setting '{argument.Name}'";
         var closest = check.Type.FindClosestName(argument.Name);
-        if (closest == null)
+        if (closest != null)
         {
-            Error(argument, $"'{call.Function}' has no input or Setting '{argument.Name}'");
-        }
-        else
-        {
-            Error(argument, $"'{call.Function}' has no input or Setting '{argument.Name}'; did you mean {closest}?");
+            message += $"; did you mean {closest}?";
             check.MeantNames.Add(closest);
         }
 
-        check.Failed = true;
+        Fail(check, argument, message);
     }
 }
