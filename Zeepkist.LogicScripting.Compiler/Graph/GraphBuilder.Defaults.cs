@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -6,30 +5,29 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 
 internal sealed partial class GraphBuilder
 {
-    /// <summary>
-    /// The only Setting a <c>default</c> line can give.
-    /// </summary>
-    private static readonly BlockSetting _defaultable = BlockSetting.Hide;
-
-    private readonly HashSet<string> _givenDefaults = [];
+    private bool _hasDefaultHide;
     private Setting _defaultHide;
 
+    /// <summary>
+    /// A <c>default</c> line; <c>hide:</c> is the only Setting it can give.
+    /// </summary>
     private void VisitDefault(DefaultStatement statement)
     {
         var argument = statement.Setting;
-        if (argument.Name != _defaultable.Name)
+        if (argument.Name != BlockSetting.Hide.Name)
         {
-            Error(argument, $"Only {_defaultable.Name}: has a default");
+            Error(argument, $"Only {BlockSetting.Hide.Name}: has a default");
             return;
         }
 
-        if (!_givenDefaults.Add(argument.Name))
+        if (_hasDefaultHide)
         {
             Error(statement, $"default {argument.Name}: is given twice");
             return;
         }
 
-        _defaultHide = GetSettingValue(_defaultable, argument);
+        _hasDefaultHide = true;
+        _defaultHide = GetSettingValue(BlockSetting.Hide, argument);
     }
 
     /// <summary>

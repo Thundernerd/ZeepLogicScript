@@ -92,7 +92,7 @@ internal sealed partial class GraphBuilder
             return;
         }
 
-        if (argument.Name == BlockType.StyleName && check.Type.Styles.Count > 1)
+        if (argument.Name == BlockType.StyleName && check.Type.HasStyles)
         {
             check.ChooseStyle(GetStyle(check.Type, argument));
             return;

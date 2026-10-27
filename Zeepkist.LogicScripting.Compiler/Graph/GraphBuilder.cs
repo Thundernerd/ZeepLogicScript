@@ -141,7 +141,7 @@ internal sealed partial class GraphBuilder
         var type = block.Type;
         var mode = type.Modes == null
             ? string.Empty
-            : $" in {type.Modes.Setting.Name} {type.Modes.Setting.Options[type.GetModeIndex(block.Settings)]}";
+            : $" in {type.Modes.Setting.Name} {type.GetModeName(block.Settings)}";
         return Fail(member, $"'{type.Function}' has no output '{member.Output}'{mode}; use {string.Join(", ", names)}");
     }
 
@@ -178,8 +178,7 @@ internal sealed partial class GraphBuilder
     {
         if (_disabledBlockIds.Contains(style.BlockId))
         {
-            var name = type.Styles.Count > 1 ? $"'{type.Function}' style {style.Name}" : $"'{type.Function}'";
-            Error(origin, $"{name} doesn't match this game version and is turned off");
+            Error(origin, $"'{type.Describe(style)}' doesn't match this game version and is turned off");
         }
 
         return _graph.AddBlock(type, style, settings);

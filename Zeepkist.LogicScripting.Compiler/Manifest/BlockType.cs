@@ -57,6 +57,11 @@ public sealed class BlockType
     public BlockStyle DefaultStyle => Styles[0];
 
     /// <summary>
+    /// Whether <c>style:</c> picks between several blocks.
+    /// </summary>
+    public bool HasStyles => Styles.Count > 1;
+
+    /// <summary>
     /// Input Connectors in the order positional arguments fill them.
     /// </summary>
     public IReadOnlyList<BlockConnector> Inputs { get; }
@@ -102,6 +107,14 @@ public sealed class BlockType
     }
 
     /// <summary>
+    /// The option word of the mode a block with the given Settings is in.
+    /// </summary>
+    public string GetModeName(IReadOnlyList<Setting> settings)
+    {
+        return Modes.Setting.Options[GetModeIndex(settings)];
+    }
+
+    /// <summary>
     /// The mode a block with the given Settings is in; 0, the fresh block's mode, when the Settings leave it out.
     /// </summary>
     public int GetModeIndex(IReadOnlyList<Setting> settings)
@@ -113,6 +126,14 @@ public sealed class BlockType
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// The Block Function name, with the style's name where the type has several.
+    /// </summary>
+    public string Describe(BlockStyle style)
+    {
+        return HasStyles ? $"{Function} style {style.Name}" : Function;
     }
 
     public BlockStyle FindStyle(string name)
@@ -185,7 +206,7 @@ public sealed class BlockType
         if (!IsPlacedOnly)
             names = names.Append(BlockSetting.Hide.Name);
 
-        if (Styles.Count > 1)
+        if (HasStyles)
             names = names.Append(StyleName);
 
         return names;

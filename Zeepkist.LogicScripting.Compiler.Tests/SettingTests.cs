@@ -130,8 +130,8 @@ public class SettingTests
     }
 
     [Theory]
-    [InlineData("power_display(1)", new[] { 2415 }, 1, 1, "'power_display' style normal doesn't match this game version and is turned off")]
-    [InlineData("power_display(1, style: compact)", new[] { 2513 }, 1, 1, "'power_display' style compact doesn't match this game version and is turned off")]
+    [InlineData("power_display(1)", new[] { 2415 }, 1, 1, "'power_display style normal' doesn't match this game version and is turned off")]
+    [InlineData("power_display(1, style: compact)", new[] { 2513 }, 1, 1, "'power_display style compact' doesn't match this game version and is turned off")]
     [InlineData("x = 1 & 2", new[] { 2420 }, 1, 7, "'logic' doesn't match this game version and is turned off")]
     [InlineData("x = !1", new[] { 2418 }, 1, 5, "'digitizer' doesn't match this game version and is turned off")]
     [InlineData("x = 1 & 1", new[] { 2414 }, 1, 5, "'generator' doesn't match this game version and is turned off")]

@@ -25,6 +25,16 @@ public static class BlockManifest
         LogicOperatorKey,
         "and", "or", "nand", "nor", "xor", "xnor");
 
+    /// <summary>
+    /// <c>player:</c> on blocks that read one player's car.
+    /// </summary>
+    public static readonly BlockSetting OnePlayer = BlockSetting.Player("xpr", hasEveryone: false);
+
+    /// <summary>
+    /// <c>player:</c> on blocks that act on everyone, or one player.
+    /// </summary>
+    public static readonly BlockSetting PlayerOrEveryone = BlockSetting.Player("xpr", hasEveryone: true);
+
     public static readonly BlockSetting DigitizerInvert = BlockSetting.Bool("invert", "xt1");
 
     public static readonly BlockSetting SimpleTelemetryMode = BlockSetting.Option(
@@ -187,14 +197,14 @@ public static class BlockManifest
         2,
         [],
         Numbered(0, "arms_up", "brake", "left", "right", "analog_left", "analog_right", "horn"),
-        BlockSetting.Player("xpr", hasEveryone: false));
+        OnePlayer);
 
     public static readonly BlockType SimpleTelemetry = new(
         "simple_telemetry",
         [new BlockStyle(null, 2440, 3)],
         [],
         Numbered(0, "speed", "yaw", "up", "state"),
-        [BlockSetting.Player("xpr", hasEveryone: false), SimpleTelemetryMode],
+        [OnePlayer, SimpleTelemetryMode],
         new BlockModes(
             SimpleTelemetryMode,
             Numbered(0, "speed", "yaw", "up", "state"),
@@ -207,7 +217,7 @@ public static class BlockManifest
         3,
         [],
         Numbered(0, "all", "any", "lf", "rf", "lr", "rr"),
-        BlockSetting.Player("xpr", hasEveryone: false),
+        OnePlayer,
         BlockSetting.Option("mode", "xbs", "grounded", "slipping", "surface", "physics_material"));
 
     public static readonly BlockType Passthrough = new(
@@ -241,7 +251,7 @@ public static class BlockManifest
         1,
         [new BlockConnector("trigger", 0)],
         [],
-        BlockSetting.Player("xpr", hasEveryone: true));
+        PlayerOrEveryone);
 
     public static readonly BlockType Parking = new(
         "parking",
@@ -249,7 +259,7 @@ public static class BlockManifest
         1,
         [new BlockConnector("x", 0)],
         [],
-        BlockSetting.Player("xpr", hasEveryone: true));
+        PlayerOrEveryone);
 
     public static readonly BlockType StateChanger = new(
         "state_changer",
@@ -257,7 +267,7 @@ public static class BlockManifest
         1,
         Numbered(0, "trigger", "state"),
         [],
-        BlockSetting.Player("xpr", hasEveryone: true));
+        PlayerOrEveryone);
 
     public static readonly BlockType ForceGiver = new(
         "force_giver",
@@ -265,7 +275,7 @@ public static class BlockManifest
         3,
         Numbered(0, "enable", "x", "y", "z"),
         [],
-        BlockSetting.Player("xpr", hasEveryone: true),
+        PlayerOrEveryone,
         BlockSetting.Option("force_mode", "xfm", "acceleration", "force", "impulse", "velocity_change"),
         BlockSetting.Option("space", "xco", "local", "global", "follow_velocity", "local_rotation", "global_rotation"),
         BlockSetting.Option("particles", "xpt", "none", "booster", "slowster", "feather", "flying", "fan"));
@@ -277,7 +287,7 @@ public static class BlockManifest
         1,
         Numbered(0, "apply", "reset"),
         [],
-        BlockSetting.Player("xpr", hasEveryone: true));
+        PlayerOrEveryone);
 
     public static readonly BlockType Trigger = PlacedOnly(
         "trigger",
@@ -335,8 +345,8 @@ public static class BlockManifest
         Trigger, DistanceSensor, Lamp, Cannon, DynamicMover, DynamicRotator, AdvancedMover
     ];
 
-    private static readonly Dictionary<string, BlockType> _functions = CreateFunctions();
-    private static readonly Dictionary<string, BlockType> _placedOnly = CreatePlacedOnly();
+    private static readonly Dictionary<string, BlockType> _functions = ByFunction(isPlacedOnly: false);
+    private static readonly Dictionary<string, BlockType> _placedOnly = ByFunction(isPlacedOnly: true);
 
     /// <summary>
     /// Short names for Block Functions.
@@ -365,28 +375,16 @@ public static class BlockManifest
         return _placedOnly.TryGetValue(name, out type);
     }
 
-    private static Dictionary<string, BlockType> CreateFunctions()
+    private static Dictionary<string, BlockType> ByFunction(bool isPlacedOnly)
     {
-        Dictionary<string, BlockType> functions = [];
+        Dictionary<string, BlockType> types = [];
         foreach (var type in All)
         {
-            if (!type.IsPlacedOnly)
-                functions.Add(type.Function, type);
+            if (type.IsPlacedOnly == isPlacedOnly)
+                types.Add(type.Function, type);
         }
 
-        return functions;
-    }
-
-    private static Dictionary<string, BlockType> CreatePlacedOnly()
-    {
-        Dictionary<string, BlockType> placedOnly = [];
-        foreach (var type in All)
-        {
-            if (type.IsPlacedOnly)
-                placedOnly.Add(type.Function, type);
-        }
-
-        return placedOnly;
+        return types;
     }
 
     private static BlockType PlacedOnly(
