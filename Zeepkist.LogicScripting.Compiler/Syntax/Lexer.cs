@@ -67,10 +67,10 @@ internal static class Lexer
 
                 tokens.Add(new Token(TokenKind.Name, text.Substring(start, index - start), position));
             }
-            else if (BinaryOperator.Match(text, index) is { } op)
+            else if (MatchOperator(text, index, position) is { } op)
             {
-                tokens.Add(new Token(op, position));
-                index += op.Symbol.Length;
+                tokens.Add(op);
+                index += op.Text.Length;
             }
             else
             {
@@ -155,11 +155,33 @@ internal static class Lexer
         return index;
     }
 
+    /// <summary>
+    /// The operator token whose symbol starts at <paramref name="index"/>, preferring the longest, so <c>!=</c> isn't
+    /// read as <c>!</c>. A symbol in both tables, like <c>-</c>, spells both operators.
+    /// </summary>
+    private static Token? MatchOperator(string text, int index, Position position)
+    {
+        var binary = BinaryOperator.Match(text, index);
+        var unary = UnaryOperator.Match(text, index);
+        if (binary != null && unary != null && binary.Symbol.Length != unary.Symbol.Length)
+        {
+            if (binary.Symbol.Length > unary.Symbol.Length)
+                unary = null;
+            else
+                binary = null;
+        }
+
+        var symbol = binary?.Symbol ?? unary?.Symbol;
+        if (symbol == null)
+            return null;
+
+        return new Token(symbol, binary, unary, position);
+    }
+
     private static TokenKind? GetPunctuation(char c)
     {
         return c switch
         {
-            '!' => TokenKind.Bang,
             '(' => TokenKind.OpenParen,
             ')' => TokenKind.CloseParen,
             ',' => TokenKind.Comma,
