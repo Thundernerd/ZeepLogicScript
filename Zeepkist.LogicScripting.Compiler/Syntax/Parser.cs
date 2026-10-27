@@ -102,16 +102,15 @@ internal sealed partial class Parser
 
         _index++;
 
-        // A minus right before a number is part of the literal, so -5 is one Generator, not 0 - 5
-        if (op == UnaryOperator.Negate && IsTouchingInteger(token, Current))
+        if (op.SignsInteger && IsTouchingInteger(token, Current))
             return ParseInteger(Current, token, op.Symbol);
 
         return new UnaryExpression(token.Position, op, ParseUnary());
     }
 
-    private static bool IsTouchingInteger(Token minus, Token next)
+    private static bool IsTouchingInteger(Token sign, Token next)
     {
-        return next.Kind == TokenKind.Integer && next.Position.IsDirectlyAfter(minus.Position);
+        return next.Kind == TokenKind.Integer && next.Position.IsDirectlyAfter(sign.Position);
     }
 
     private Expression ParsePostfix()
@@ -159,8 +158,8 @@ internal sealed partial class Parser
     }
 
     /// <param name="digits">The integer token.</param>
-    /// <param name="start">Where the literal starts: the digits, or the minus before them.</param>
-    /// <param name="sign">"-" or empty.</param>
+    /// <param name="start">Where the literal starts: the digits, or the sign before them.</param>
+    /// <param name="sign">The sign's symbol, or empty.</param>
     private IntegerLiteral ParseInteger(Token digits, Token start, string sign)
     {
         _index++;

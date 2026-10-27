@@ -4,27 +4,42 @@ using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 /// <summary>
-/// A unary operator: its symbol and the block it becomes. Adding an operator to <see cref="All"/> is all the lexer,
-/// parser and graph builder need.
+/// A unary operator: its symbol and the Block Function call it's shorthand for. Adding an operator to
+/// <see cref="All"/> is all the lexer, parser and graph builder need.
 /// </summary>
 internal sealed class UnaryOperator
 {
-    public static readonly UnaryOperator Not = new("!", BlockManifest.Digitizer, Setting.Int(BlockManifest.DigitizerInvert.Key, 1));
+    public static readonly UnaryOperator Not = new(
+        "!",
+        signsInteger: false,
+        BlockManifest.Digitizer,
+        Setting.Int(BlockManifest.DigitizerInvert.Key, 1));
 
-    // -x is 0 - x
-    public static readonly UnaryOperator Negate = new("-", BinaryOperator.Subtract.Block, BinaryOperator.Subtract.Setting, 0);
+    // -x is 0 - x, but -5 is the literal itself
+    public static readonly UnaryOperator Negate = new(
+        "-",
+        signsInteger: true,
+        BinaryOperator.Subtract.Block,
+        BinaryOperator.Subtract.Setting,
+        0);
 
     public static readonly IReadOnlyList<UnaryOperator> All = [Not, Negate];
 
-    private UnaryOperator(string symbol, BlockType block, Setting setting, params long[] leadingLiterals)
+    private UnaryOperator(string symbol, bool signsInteger, BlockType block, Setting setting, params long[] leadingLiterals)
     {
         Symbol = symbol;
+        SignsInteger = signsInteger;
         Block = block;
         Setting = setting;
         LeadingLiterals = leadingLiterals;
     }
 
     public string Symbol { get; }
+
+    /// <summary>
+    /// Whether the symbol right before a number is part of the literal, so <c>-5</c> is one Generator, not 0 - 5.
+    /// </summary>
+    public bool SignsInteger { get; }
 
     /// <summary>
     /// The block type the operator places; its first inputs take <see cref="LeadingLiterals"/>, and the input after
@@ -41,23 +56,4 @@ internal sealed class UnaryOperator
     /// The literals fed into <see cref="Block"/>'s first inputs, in order, before the operand.
     /// </summary>
     public IReadOnlyList<long> LeadingLiterals { get; }
-
-    /// <summary>
-    /// The operator whose symbol starts at <paramref name="index"/>, preferring the longest.
-    /// </summary>
-    public static UnaryOperator Match(string text, int index)
-    {
-        UnaryOperator match = null;
-        foreach (var op in All)
-        {
-            if (index + op.Symbol.Length <= text.Length
-                && string.CompareOrdinal(text, index, op.Symbol, 0, op.Symbol.Length) == 0
-                && (match == null || op.Symbol.Length > match.Symbol.Length))
-            {
-                match = op;
-            }
-        }
-
-        return match;
-    }
 }

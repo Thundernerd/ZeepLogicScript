@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
@@ -161,8 +162,8 @@ internal static class Lexer
     /// </summary>
     private static Token? MatchOperator(string text, int index, Position position)
     {
-        var binary = BinaryOperator.Match(text, index);
-        var unary = UnaryOperator.Match(text, index);
+        var binary = MatchLongest(BinaryOperator.All, op => op.Symbol, text, index);
+        var unary = MatchLongest(UnaryOperator.All, op => op.Symbol, text, index);
         if (binary != null && unary != null && binary.Symbol.Length != unary.Symbol.Length)
         {
             if (binary.Symbol.Length > unary.Symbol.Length)
@@ -171,11 +172,30 @@ internal static class Lexer
                 binary = null;
         }
 
-        var symbol = binary?.Symbol ?? unary?.Symbol;
-        if (symbol == null)
+        if (binary == null && unary == null)
             return null;
 
-        return new Token(symbol, binary, unary, position);
+        return new Token(binary, unary, position);
+    }
+
+    private static T MatchLongest<T>(IEnumerable<T> operators, Func<T, string> getSymbol, string text, int index)
+        where T : class
+    {
+        T match = null;
+        var matchLength = 0;
+        foreach (var op in operators)
+        {
+            var symbol = getSymbol(op);
+            if (symbol.Length > matchLength
+                && index + symbol.Length <= text.Length
+                && string.CompareOrdinal(text, index, symbol, 0, symbol.Length) == 0)
+            {
+                match = op;
+                matchLength = symbol.Length;
+            }
+        }
+
+        return match;
     }
 
     private static TokenKind? GetPunctuation(char c)

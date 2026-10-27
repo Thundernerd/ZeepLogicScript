@@ -10,8 +10,8 @@ internal readonly struct Token
         IsUnclosed = isUnclosed;
     }
 
-    public Token(string symbol, BinaryOperator binaryOperator, UnaryOperator unaryOperator, Position position)
-        : this(TokenKind.Operator, symbol, position)
+    public Token(BinaryOperator binaryOperator, UnaryOperator unaryOperator, Position position)
+        : this(TokenKind.Operator, binaryOperator?.Symbol ?? unaryOperator.Symbol, position)
     {
         BinaryOperator = binaryOperator;
         UnaryOperator = unaryOperator;
