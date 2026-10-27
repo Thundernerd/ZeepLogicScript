@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Globalization;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
@@ -58,12 +57,13 @@ internal sealed partial class GraphBuilder
     /// Reports each required Setting the call leaves out. One a misspelt name was probably meant as has
     /// already been reported.
     /// </summary>
-    private bool HasRequiredSettings(CallExpression call, BlockType type, HashSet<string> givenNames, HashSet<string> meantNames)
+    private bool HasRequiredSettings(CallArguments arguments)
     {
+        var call = arguments.Call;
         var hasAll = true;
-        foreach (var blockSetting in type.Settings)
+        foreach (var blockSetting in arguments.Type.Settings)
         {
-            if (blockSetting.IsRequired && !givenNames.Contains(blockSetting.Name) && !meantNames.Contains(blockSetting.Name))
+            if (blockSetting.IsRequired && !arguments.IsGivenOrMeant(blockSetting.Name))
             {
                 Error(call, $"'{call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
                 hasAll = false;
