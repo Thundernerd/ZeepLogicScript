@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zeepkist.LogicScripting", "Zeepkist.LogicScripting.csproj", "{3EB1CD0F-D503-4A07-8602-27BA0E3EF89D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zeepkist.LogicScripting", "Zeepkist.LogicScripting\Zeepkist.LogicScripting.csproj", "{3EB1CD0F-D503-4A07-8602-27BA0E3EF89D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zeepkist.LogicScripting.Compiler", "Zeepkist.LogicScripting.Compiler\Zeepkist.LogicScripting.Compiler.csproj", "{6E129DC4-F458-454C-B02C-923FC63FCE8F}"
 EndProject

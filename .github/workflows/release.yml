@@ -40,21 +40,23 @@ jobs:
       - name: Detect csproj
         id: csproj
         uses: ./.github/actions/detect-csproj
+        with:
+          directory: Zeepkist.LogicScripting
 
       - name: Set CSProj Version
         uses: KageKirin/set-csproj-version@d450aed0cc1a1e9d04c47d017a59c05287202007 # v1.0.0
         with:
-          file: ${{ steps.csproj.outputs.csproj_name }}.csproj
+          file: ${{ steps.csproj.outputs.csproj_path }}
           version: ${{ env.VERSION }}
 
       - name: Publish
-        run: dotnet publish ${{ steps.csproj.outputs.csproj_name }}.csproj -c Debug --artifacts-path "C:\out"
+        run: dotnet publish ${{ steps.csproj.outputs.csproj_path }} -c Debug --artifacts-path "C:\out"
 
       - name: Get AssemblyName
         id: asm
         uses: ./.github/actions/get-assembly-name
         with:
-          csproj: ${{ steps.csproj.outputs.csproj_name }}
+          csproj: ${{ steps.csproj.outputs.csproj_path }}
 
       - name: Remove msstore source
         run: winget source remove msstore

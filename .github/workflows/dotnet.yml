@@ -22,10 +22,10 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Restore dependencies
-      run: dotnet restore Zeepkist.LogicScripting.csproj
+      run: dotnet restore Zeepkist.LogicScripting/Zeepkist.LogicScripting.csproj
     - name: Build
-      run: dotnet build Zeepkist.LogicScripting.csproj --no-restore --configuration Release
+      run: dotnet build Zeepkist.LogicScripting/Zeepkist.LogicScripting.csproj --no-restore --configuration Release
     - name: Test
       run: dotnet test Zeepkist.LogicScripting.Compiler.Tests/Zeepkist.LogicScripting.Compiler.Tests.csproj --configuration Release
     - name: Audit dependencies
-      run: dotnet list Zeepkist.LogicScripting.csproj package --vulnerable --include-transitive
+      run: dotnet list Zeepkist.LogicScripting/Zeepkist.LogicScripting.csproj package --vulnerable --include-transitive

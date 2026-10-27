@@ -1,10 +1,19 @@
 name: "Detect .csproj Name"
-description: "Finds the first *.csproj in the working directory and outputs its base name."
+description: "Finds the first *.csproj in a directory and outputs its base name and path."
+
+inputs:
+  directory:
+    description: "Directory to search, relative to the working directory"
+    required: false
+    default: "."
 
 outputs:
   csproj_name:
     description: "Base name of the first *.csproj found"
     value: ${{ steps.csproj.outputs.csproj_name }}
+  csproj_path:
+    description: "Path of the first *.csproj found, relative to the working directory"
+    value: ${{ steps.csproj.outputs.csproj_path }}
 
 runs:
   using: "composite"
@@ -13,6 +22,8 @@ runs:
       id: csproj
       shell: pwsh
       run: |
-        $item = Get-ChildItem -Filter *.csproj | Select-Object -First 1
-        if (-not $item) { Write-Error "No .csproj found"; exit 1 }
+        $dir = "${{ inputs.directory }}"
+        $item = Get-ChildItem -Path $dir -Filter *.csproj | Select-Object -First 1
+        if (-not $item) { Write-Error "No .csproj found in $dir"; exit 1 }
         "csproj_name=$($item.BaseName)" >> $env:GITHUB_OUTPUT
+        "csproj_path=$(Join-Path $dir $item.Name)" >> $env:GITHUB_OUTPUT
