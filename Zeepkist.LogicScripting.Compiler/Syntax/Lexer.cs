@@ -16,10 +16,15 @@ internal static class Lexer
         var lineStart = 0;
         var index = 0;
 
+        Position CurrentPosition()
+        {
+            return new Position(line, index - lineStart + 1);
+        }
+
         while (index < text.Length)
         {
             var c = text[index];
-            var position = new Position(line, index - lineStart + 1);
+            var position = CurrentPosition();
 
             if (c == '\n')
             {
@@ -79,7 +84,7 @@ internal static class Lexer
             }
         }
 
-        tokens.Add(new Token(TokenKind.End, string.Empty, new Position(line, index - lineStart + 1)));
+        tokens.Add(new Token(TokenKind.End, string.Empty, CurrentPosition()));
         return JoinBracketedLines(tokens);
     }
 
