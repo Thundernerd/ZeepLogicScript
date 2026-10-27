@@ -12,8 +12,6 @@ public sealed class Diagnostic
     }
 
     public Position Position { get; }
-    public int Line => Position.Line;
-    public int Column => Position.Column;
     public string Message { get; }
 
     public override string ToString()
