@@ -12,7 +12,7 @@ internal sealed partial class Parser
 {
     private readonly List<Token> _tokens;
     private readonly List<Diagnostic> _diagnostics;
-    private int _position;
+    private int _index;
 
     private Parser(List<Token> tokens, List<Diagnostic> diagnostics)
     {
@@ -20,7 +20,7 @@ internal sealed partial class Parser
         _diagnostics = diagnostics;
     }
 
-    private Token Current => _tokens[_position];
+    private Token Current => _tokens[_index];
 
     public static List<Statement> Parse(List<Token> tokens, List<Diagnostic> diagnostics)
     {
@@ -35,7 +35,7 @@ internal sealed partial class Parser
         {
             if (Current.Kind == TokenKind.NewLine)
             {
-                _position++;
+                _index++;
                 continue;
             }
 
@@ -62,7 +62,7 @@ internal sealed partial class Parser
         if (Current.Kind == TokenKind.Name && Peek(1).Kind == TokenKind.Equals)
         {
             var name = Current;
-            _position += 2;
+            _index += 2;
             return new Definition(name.Position, name.Text, ParseExpression());
         }
 
@@ -83,7 +83,7 @@ internal sealed partial class Parser
         while (TryGetBinaryOperator(Current.Kind, out var op, out var precedence) && precedence >= minPrecedence)
         {
             var token = Current;
-            _position++;
+            _index++;
             if (Current.Kind == TokenKind.NewLine)
                 throw DanglingOperator(Current);
 
@@ -100,16 +100,16 @@ internal sealed partial class Parser
         switch (token.Kind)
         {
             case TokenKind.Bang:
-                _position++;
+                _index++;
                 return new UnaryExpression(token.Position, UnaryOperator.Not, ParseUnary());
 
             case TokenKind.Minus when IsTouchingInteger(token, Peek(1)):
                 // A minus right before a number is part of the literal, so -5 is one Generator, not 0 - 5
-                _position++;
+                _index++;
                 return ParseInteger(Current, token, "-");
 
             case TokenKind.Minus:
-                _position++;
+                _index++;
                 return new UnaryExpression(token.Position, UnaryOperator.Negate, ParseUnary());
 
             default:
@@ -130,7 +130,7 @@ internal sealed partial class Parser
         while (Current.Kind == TokenKind.Dot)
         {
             var dot = Current;
-            _position++;
+            _index++;
             if (expression is not (NameExpression or CallExpression))
                 throw Error(dot, "Only names and calls have outputs to pick with .");
 
@@ -175,7 +175,7 @@ internal sealed partial class Parser
                 return ParseInteger(token, token, string.Empty);
 
             case TokenKind.Name:
-                _position++;
+                _index++;
                 if (Current.Kind == TokenKind.OpenParen)
                     return ParseCall(token);
 
@@ -197,7 +197,7 @@ internal sealed partial class Parser
     /// <param name="sign">"-" or empty.</param>
     private IntegerLiteral ParseInteger(Token digits, Token start, string sign)
     {
-        _position++;
+        _index++;
         var text = sign + digits.Text;
         if (!long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var value))
             throw Error(start, $"{text} doesn't fit in a Signal");
@@ -212,7 +212,7 @@ internal sealed partial class Parser
         List<NamedArgument> namedArguments = [];
         if (Current.Kind == TokenKind.CloseParen)
         {
-            _position++;
+            _index++;
             return new CallExpression(function.Position, function.Text, arguments, namedArguments);
         }
 
@@ -221,7 +221,7 @@ internal sealed partial class Parser
             if (Current.Kind == TokenKind.Name && Peek(1).Kind == TokenKind.Colon)
             {
                 var name = Current;
-                _position += 2;
+                _index += 2;
                 var valueStart = Current;
                 var value = ParseExpression();
                 namedArguments.Add(new NamedArgument(name.Position, name.Text, value, valueStart.Position));
@@ -238,7 +238,7 @@ internal sealed partial class Parser
 
             if (Current.Kind == TokenKind.Comma)
             {
-                _position++;
+                _index++;
                 continue;
             }
 
@@ -260,19 +260,19 @@ internal sealed partial class Parser
         if (Current.Kind != kind)
             throw Error(Current, $"Expected {expected}, found {Describe(Current)}");
 
-        _position++;
+        _index++;
     }
 
     private Token Peek(int offset)
     {
-        return _tokens[Math.Min(_position + offset, _tokens.Count - 1)];
+        return _tokens[Math.Min(_index + offset, _tokens.Count - 1)];
     }
 
     private void SkipLine()
     {
         while (Current.Kind != TokenKind.NewLine && Current.Kind != TokenKind.End)
         {
-            _position++;
+            _index++;
         }
     }
 
@@ -285,7 +285,7 @@ internal sealed partial class Parser
         if (Current.Kind != TokenKind.NewLine)
             return;
 
-        _position++;
+        _index++;
         if (Current.Kind == TokenKind.Name && Peek(1).Kind == TokenKind.Equals)
             return;
 
