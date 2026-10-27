@@ -1,11 +1,11 @@
-# ZeepLogicScript
+# Zeepkist.LogicScripting
 
-Domain language for the ZeepLogicScript BepInEx mod: write logic as text in the Zeepkist level editor and compile it into v18 logic blocks.
+Domain language for the Logic Scripting BepInEx mod: write logic as text in the Zeepkist level editor and compile it into v18 logic blocks.
 
 ## Language
 
 **Script**:
-The text a player writes in the ZeepLogicScript window: a list of definitions that describe wiring, read top to bottom. It has no loops, functions or conditionals of its own; those come only from Logic Blocks at runtime. One Script compiles into one Block Group.
+The text a player writes in the Logic Scripting window: a list of definitions that describe wiring, read top to bottom. It has no loops, functions or conditionals of its own; those come only from Logic Blocks at runtime. One Script compiles into one Block Group.
 _Avoid_: program, code file, macro
 
 **Compile**:
@@ -17,7 +17,7 @@ A game block from the v18 "Logic v2" set (block IDs 2413+), e.g. Generator, Trig
 _Avoid_: node, gate (unless it is the Logic gate block), chip
 
 **Ball Logic**:
-The older v16 physics-based logic (balls rolling into gate triggers, block IDs 1727–1745, 2281–2291). Not a ZeepLogicScript target.
+The older v16 physics-based logic (balls rolling into gate triggers, block IDs 1727–1745, 2281–2291). Not a Logic Scripting target.
 _Avoid_: v1 logic, legacy logic block
 
 **Connector**:

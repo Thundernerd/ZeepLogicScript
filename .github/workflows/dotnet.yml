@@ -22,8 +22,8 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Restore dependencies
-      run: dotnet restore ZeepLogicScript.csproj
+      run: dotnet restore Zeepkist.LogicScripting.csproj
     - name: Build
-      run: dotnet build ZeepLogicScript.csproj --no-restore --configuration Release
+      run: dotnet build Zeepkist.LogicScripting.csproj --no-restore --configuration Release
     - name: Audit dependencies
-      run: dotnet list ZeepLogicScript.csproj package --vulnerable --include-transitive
+      run: dotnet list Zeepkist.LogicScripting.csproj package --vulnerable --include-transitive

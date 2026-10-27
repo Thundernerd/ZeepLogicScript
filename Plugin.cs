@@ -1,7 +1,7 @@
 using BepInEx;
 using HarmonyLib;
 
-namespace TNRD.ZeepLogicScript
+namespace TNRD.Zeepkist.LogicScripting
 {
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
     [BepInDependency("ZeepSDK", "2.7.5")]

@@ -2,11 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
-    <AssemblyName>net.tnrd.zeeplogicscript</AssemblyName>
+    <AssemblyName>net.tnrd.zeepkist.logicscripting</AssemblyName>
     <Version>0.1.0</Version>
     <LangVersion>latest</LangVersion>
-    <Product>ZeepLogicScript</Product>
-    <RootNamespace>TNRD.ZeepLogicScript</RootNamespace>
+    <Product>Logic Scripting</Product>
+    <RootNamespace>TNRD.Zeepkist.LogicScripting</RootNamespace>
         <RestoreAdditionalProjectSources>
             https://api.nuget.org/v3/index.json;
             https://nuget.bepinex.dev/v3/index.json;
