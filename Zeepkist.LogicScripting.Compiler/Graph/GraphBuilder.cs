@@ -34,7 +34,7 @@ internal sealed class GraphBuilder
         foreach (var statement in statements)
         {
             if (statement is Definition definition
-                && !BlockManifest.TryGetFunction(definition.Name, out _)
+                && !IsReserved(definition.Name)
                 && !builder._definitions.ContainsKey(definition.Name))
                 builder._definitions.Add(definition.Name, definition);
         }
@@ -74,6 +74,13 @@ internal sealed class GraphBuilder
             return;
         }
 
+        if (IsReserved(definition.Name))
+        {
+            Error(definition, $"'{definition.Name}' is a reserved word and can't be used as a name");
+            Evaluate(definition.Value);
+            return;
+        }
+
         if (_definitions[definition.Name] != definition)
         {
             Error(definition, $"'{definition.Name}' is already defined");
@@ -89,6 +96,14 @@ internal sealed class GraphBuilder
             _failedNames.Add(definition.Name);
         else
             _names.Add(definition.Name, value.Value);
+    }
+
+    /// <summary>
+    /// Block Functions, and the words Settings use for true and false.
+    /// </summary>
+    private static bool IsReserved(string name)
+    {
+        return name is "true" or "false" || BlockManifest.TryGetFunction(name, out _);
     }
 
     /// <summary>
@@ -373,7 +388,7 @@ internal sealed class GraphBuilder
 
         foreach (var blockSetting in type.Settings)
         {
-            if (blockSetting.IsRequired && !settings.ContainsKey(blockSetting))
+            if (blockSetting.IsRequired && !givenNames.Contains(blockSetting.Name))
             {
                 Error(call, $"'{call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
                 failed = true;
@@ -408,11 +423,19 @@ internal sealed class GraphBuilder
         switch (setting.Type)
         {
             case SettingType.Number:
-                if (argument.Value is IntegerLiteral literal)
-                    return Setting.Text(setting.Key, literal.Value.ToString(CultureInfo.InvariantCulture));
+                if (argument.Value is not IntegerLiteral literal)
+                {
+                    ValueError(argument, $"{setting.Name} takes a whole number, like {setting.Name}: 5");
+                    return null;
+                }
 
-                ValueError(argument, $"{setting.Name} takes a whole number, like {setting.Name}: 5");
-                return null;
+                if (literal.Value < setting.Minimum)
+                {
+                    ValueError(argument, $"{setting.Name} must be at least {setting.Minimum}");
+                    return null;
+                }
+
+                return Setting.Text(setting.Key, literal.Value.ToString(CultureInfo.InvariantCulture));
 
             case SettingType.Bool:
                 if (argument.Value is NameExpression { Name: "true" or "false" } word)

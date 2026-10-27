@@ -47,7 +47,8 @@ public static class BlockManifest
         1,
         [new BlockConnector("x", 0)],
         [new BlockConnector("out", 1)],
-        BlockSetting.Number("ticks", "ldl", isRequired: true));
+        // 0 ticks, the untouched value, throws every tick in play mode
+        BlockSetting.Number("ticks", "ldl", isRequired: true, minimum: 1));
 
     public static readonly BlockType Demultiplexer = new(
         "demultiplexer",

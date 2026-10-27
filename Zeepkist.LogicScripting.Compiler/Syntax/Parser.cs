@@ -49,6 +49,8 @@ internal sealed class Parser
             {
                 _diagnostics.Add(error.Diagnostic);
                 SkipLine();
+                if (error.ContinuesOnNextLine)
+                    SkipContinuationLine();
             }
         }
 
@@ -82,6 +84,9 @@ internal sealed class Parser
         {
             var token = Current;
             _position++;
+            if (Current.Kind == TokenKind.NewLine)
+                throw DanglingOperator(Current);
+
             var right = ParseBinary(precedence + 1);
             left = new BinaryExpression(token.Line, token.Column, op, left, right);
         }
@@ -269,6 +274,22 @@ internal sealed class Parser
         }
     }
 
+    /// <summary>
+    /// Skips the line after a statement that broke off mid-expression, since it most likely holds the rest of that
+    /// expression and would only add a second error. A line that starts a definition is kept.
+    /// </summary>
+    private void SkipContinuationLine()
+    {
+        if (Current.Kind != TokenKind.NewLine)
+            return;
+
+        _position++;
+        if (Current.Kind == TokenKind.Name && Peek(1).Kind == TokenKind.Equals)
+            return;
+
+        SkipLine();
+    }
+
     private static string Describe(Token token)
     {
         return token.Kind switch
@@ -281,17 +302,30 @@ internal sealed class Parser
 
     private static SyntaxError Error(Token token, string message)
     {
-        return new SyntaxError(new Diagnostic(token.Line, token.Column, message));
+        return new SyntaxError(new Diagnostic(token.Line, token.Column, message), false);
+    }
+
+    /// <param name="lineEnd">The line break right after a binary operator.</param>
+    private static SyntaxError DanglingOperator(Token lineEnd)
+    {
+        var message = "Expected a value, found the end of the line; to continue on the next line, put the expression in ( )";
+        return new SyntaxError(new Diagnostic(lineEnd.Line, lineEnd.Column, message), true);
     }
 
     private sealed class SyntaxError : Exception
     {
-        public SyntaxError(Diagnostic diagnostic)
+        public SyntaxError(Diagnostic diagnostic, bool continuesOnNextLine)
             : base(diagnostic.Message)
         {
             Diagnostic = diagnostic;
+            ContinuesOnNextLine = continuesOnNextLine;
         }
 
         public Diagnostic Diagnostic { get; }
+
+        /// <summary>
+        /// Whether the statement broke off mid-expression at a line break, so the next line likely continues it.
+        /// </summary>
+        public bool ContinuesOnNextLine { get; }
     }
 }

@@ -56,7 +56,18 @@ public class LexicalTests
     {
         var result = ScriptCompiler.Compile("x = 1 &\n2", 0);
 
-        Assert.Equal("1:8: Expected a value, found the end of the line", result.Errors[0].ToString());
+        var error = Assert.Single(result.Errors);
+        Assert.Equal(
+            "1:8: Expected a value, found the end of the line; to continue on the next line, put the expression in ( )",
+            error.ToString());
+    }
+
+    [Fact]
+    public void DanglingOperator_StillChecksTheLinesAfterTheContinuation()
+    {
+        var result = ScriptCompiler.Compile("x = 1 &\n2\ny = nope", 0);
+
+        Assert.Equal(["1:8", "3:5"], result.Errors.Select(e => $"{e.Line}:{e.Column}"));
     }
 
     [Theory]

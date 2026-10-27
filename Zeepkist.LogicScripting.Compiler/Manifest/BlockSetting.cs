@@ -29,13 +29,14 @@ public enum SettingType
 /// </summary>
 public sealed class BlockSetting
 {
-    private BlockSetting(string name, string key, SettingType type, IReadOnlyList<string> options, bool isRequired)
+    private BlockSetting(string name, string key, SettingType type, IReadOnlyList<string> options, bool isRequired, long minimum)
     {
         Name = name;
         Key = key;
         Type = type;
         Options = options;
         IsRequired = isRequired;
+        Minimum = minimum;
     }
 
     public string Name { get; }
@@ -52,19 +53,24 @@ public sealed class BlockSetting
     /// </summary>
     public bool IsRequired { get; }
 
-    public static BlockSetting Number(string name, string key, bool isRequired = false)
+    /// <summary>
+    /// The lowest number a <see cref="SettingType.Number"/> Setting accepts, for values known to break the level.
+    /// </summary>
+    public long Minimum { get; }
+
+    public static BlockSetting Number(string name, string key, bool isRequired = false, long minimum = long.MinValue)
     {
-        return new BlockSetting(name, key, SettingType.Number, [], isRequired);
+        return new BlockSetting(name, key, SettingType.Number, [], isRequired, minimum);
     }
 
     public static BlockSetting Bool(string name, string key)
     {
-        return new BlockSetting(name, key, SettingType.Bool, [], false);
+        return new BlockSetting(name, key, SettingType.Bool, [], false, 0);
     }
 
     public static BlockSetting Option(string name, string key, params string[] options)
     {
-        return new BlockSetting(name, key, SettingType.Option, options, false);
+        return new BlockSetting(name, key, SettingType.Option, options, false, 0);
     }
 
     /// <summary>
