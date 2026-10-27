@@ -4,6 +4,12 @@
 
 `.editorconfig` is the source of truth for layout, `var`, and naming, and the build reports violations as warnings. Run `dotnet format` before committing; the build should finish with zero warnings.
 
+## Files
+
+- One top-level type per file: class, struct, record, interface, enum, or delegate. Name the file after the type (`BlockGraph.cs`).
+- Nested types belong to their containing type and stay in its file.
+- A large type may be split with `partial` across files named `<Type>.<Part>.cs` (e.g. `GraphBuilder.Settings.cs`).
+
 ## Harmony patches
 
 - One patch class per patched method, in `Patches/`, named `<Type>_<Method>` (e.g. `LEV_SaveLoad_SaveFile`).
