@@ -35,8 +35,9 @@ internal sealed partial class GraphBuilder
         var block = _graph.AddBlock(type, type.OrderSettings(arguments.Settings));
         for (var i = 0; i < arguments.Inputs.Length; i++)
         {
-            if (arguments.Inputs[i] != null)
-                Connect(arguments.Inputs[i].Value, block, type.Inputs[i].Index);
+            var feed = arguments.Inputs[i]?.Feed;
+            if (feed != null)
+                Connect(feed.Value, block, type.Inputs[i].Index);
         }
 
         return block;
@@ -52,8 +53,7 @@ internal sealed partial class GraphBuilder
             arguments.Failed |= output == null;
             if (i < inputCount)
             {
-                arguments.Inputs[i] = output;
-                arguments.WiredByPosition[i] = true;
+                arguments.Inputs[i] = WiredInput.ByPosition(output);
             }
         }
 
@@ -101,13 +101,14 @@ internal sealed partial class GraphBuilder
     {
         var output = EvaluateFeed(argument.Value);
         arguments.Failed |= output == null;
-        if (arguments.WiredByPosition[input])
+        if (arguments.Inputs[input]?.IsByPosition == true)
         {
             Error(argument, $"Input '{argument.Name}' is already wired by position");
             arguments.Failed = true;
+            return;
         }
 
-        arguments.Inputs[input] = output;
+        arguments.Inputs[input] = WiredInput.ByName(output);
     }
 
     /// <summary>

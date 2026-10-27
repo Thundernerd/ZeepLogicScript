@@ -7,8 +7,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 internal sealed partial class GraphBuilder
 {
     /// <summary>
-    /// The state built up while checking a Block Function call's arguments: the input feeds, which inputs are
-    /// wired by position, the Settings, and the names given and meant.
+    /// The state built up while checking a Block Function call's arguments: the wired inputs, the Settings,
+    /// and the names given and meant.
     /// </summary>
     private sealed class CallArguments
     {
@@ -16,14 +16,12 @@ internal sealed partial class GraphBuilder
         {
             Call = call;
             Type = type;
-            Inputs = new InputFeed?[type.Inputs.Count];
-            WiredByPosition = new bool[type.Inputs.Count];
+            Inputs = new WiredInput?[type.Inputs.Count];
         }
 
         public CallExpression Call { get; }
         public BlockType Type { get; }
-        public InputFeed?[] Inputs { get; }
-        public bool[] WiredByPosition { get; }
+        public WiredInput?[] Inputs { get; }
         public Dictionary<BlockSetting, Setting> Settings { get; } = [];
         public HashSet<string> GivenNames { get; } = [];
 
