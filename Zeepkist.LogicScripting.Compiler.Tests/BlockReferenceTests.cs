@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using Xunit;
@@ -20,8 +21,8 @@ public class BlockReferenceTests
         var logic = Find("logic");
 
         Assert.Equal("a, b, op_in", logic.Inputs);
-        Assert.Equal("out", logic.Outputs);
-        Assert.Equal("op: and, or, nand, nor, xor, xnor; hide: true, false", logic.Settings);
+        Assert.Equal([(null, "out")], Rows(logic.Outputs));
+        Assert.Equal([("op", "and, or, nand, nor, xor, xnor"), ("hide", "true, false")], Rows(logic.Settings));
     }
 
     [Fact]
@@ -30,7 +31,7 @@ public class BlockReferenceTests
         var ticker = Find("ticker");
 
         Assert.Equal("–", ticker.Inputs);
-        Assert.Equal("–", Find("toggler").Outputs);
+        Assert.Equal([(null, "–")], Rows(Find("toggler").Outputs));
     }
 
     [Fact]
@@ -44,20 +45,20 @@ public class BlockReferenceTests
     [Fact]
     public void Entry_MarksRequiredSettings_AndShowsLimits()
     {
-        Assert.StartsWith("ticks: number, at least 1 (required)", Find("delay").Settings);
+        Assert.Equal(("ticks", "number, at least 1 (required)"), Rows(Find("delay").Settings)[0]);
     }
 
     [Fact]
     public void Entry_ShowsStyles()
     {
-        Assert.Contains("style: normal, compact", Find("power_display").Settings);
+        Assert.Contains(("style", "normal, compact"), Rows(Find("power_display").Settings));
     }
 
     [Fact]
     public void Entry_ShowsPlayersAndTargets()
     {
-        Assert.StartsWith("player: all, 1, 2, 3, 4", Find("death").Settings);
-        Assert.StartsWith("targets: 1–8 placed blocks", Find("toggler").Settings);
+        Assert.Equal(("player", "all, 1, 2, 3, 4"), Rows(Find("death").Settings)[0]);
+        Assert.Equal(("targets", "1–8 placed blocks"), Rows(Find("toggler").Settings)[0]);
     }
 
     [Fact]
@@ -66,8 +67,8 @@ public class BlockReferenceTests
         var telemetry = Find("simple_telemetry");
 
         Assert.Equal(
-            "basic: speed, yaw, up, state; local_velocity: yaw, x, y, z; global_velocity: x, y, z, heading",
-            telemetry.Outputs);
+            [("basic", "speed, yaw, up, state"), ("local_velocity", "yaw, x, y, z"), ("global_velocity", "x, y, z, heading")],
+            Rows(telemetry.Outputs));
     }
 
     [Fact]
@@ -76,7 +77,7 @@ public class BlockReferenceTests
         var lamp = Find("lamp");
 
         Assert.True(lamp.IsPlacedOnly);
-        Assert.DoesNotContain("hide", lamp.Settings);
+        Assert.DoesNotContain(lamp.Settings, r => r.Name == "hide");
     }
 
     [Theory]
@@ -87,10 +88,17 @@ public class BlockReferenceTests
     [InlineData("xnor", "logic", true)]
     [InlineData("heading", "simple_telemetry", true)]
     [InlineData("op_in", "math", true)]
+    [InlineData("ticks", "delay", true)]
+    [InlineData("local_velocity", "simple_telemetry", true)]
     [InlineData("xnor", "math", false)]
     public void Matches_LooksAtNameAliasesConnectorsAndSettings(string filter, string function, bool expected)
     {
         Assert.Equal(expected, Find(function).Matches(filter));
+    }
+
+    private static List<(string, string)> Rows(IReadOnlyList<BlockReferenceRow> rows)
+    {
+        return rows.Select(r => (r.Name, r.Value)).ToList();
     }
 
     private static BlockReferenceEntry Find(string function)
