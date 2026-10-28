@@ -51,6 +51,11 @@ internal static partial class BlockBatch
 
             LoadConnectors(added, label);
             Connect(central, added, changed, wires, label);
+
+            // TEMPORARY test build for #57, never merge: fail any batch that wired into a block already in the level
+            if (changed.Count > 0)
+                throw new InvalidOperationException("Test build for #57: forced failure after wiring");
+
             RegisterUndo(central, removed, added, changed, label);
             return added;
         }
