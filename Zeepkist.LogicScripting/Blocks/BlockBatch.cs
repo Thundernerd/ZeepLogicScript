@@ -68,7 +68,7 @@ internal static partial class BlockBatch
 
     /// <summary>
     /// Paint is stored per renderer material slot as n["p{index}"]; a missing key loads as material 0.
-    /// Mirrors Properties_RoadPainter.SavePaintProperties, which only runs from the CreateBlock step GenerateNewBlock skips.
+    /// Writes the default paint that Properties_RoadPainter.SavePaintProperties would, which GenerateNewBlock leaves out.
     /// </summary>
     private static void AddDefaultPaint(BlockProperties prefab, BlockPropertyJSON json)
     {
@@ -91,8 +91,8 @@ internal static partial class BlockBatch
     }
 
     /// <summary>
-    /// Second pass, like the level loader: LoadProperties_v15 skips Connector scripts, and a Wire only resolves once
-    /// the block at its other end is tracked.
+    /// Second pass: LoadProperties_v15 leaves the Connector scripts out, and a Wire only resolves once the block at its
+    /// other end exists.
     /// </summary>
     private static void LoadConnectors(List<BlockProperties> blocks, string label)
     {
@@ -112,7 +112,7 @@ internal static partial class BlockBatch
     }
 
     /// <summary>
-    /// Wires both ends, as the connector tool does; the output end is the drawing leader. Each existing block's JSON
+    /// Wires both ends; the output end is the drawing leader. Each existing block's JSON
     /// is noted in <paramref name="changed"/> before its first Wire, for undo and for rolling back.
     /// </summary>
     private static void Connect(
@@ -181,7 +181,8 @@ internal static partial class BlockBatch
 
     /// <summary>
     /// Puts each changed block's Settings and Wires back as they were, then reloads and redraws every block wired to
-    /// one of them, the same steps undo takes. Call after removing the added blocks, so nothing redraws a Wire to them.
+    /// one of them, so they show the restored Wires. Call after removing the added blocks, so nothing redraws a Wire to
+    /// them.
     /// </summary>
     private static void Restore(LEV_LevelEditorCentral central, List<ChangedBlock> changed, string label)
     {
