@@ -80,13 +80,16 @@ internal static class ScriptCompile
     }
 
     /// <summary>
-    /// Same rule as the game's own new-block placement: 80 units ahead on the flattened view direction,
-    /// snapped to 16 (8 vertically), y >= 0.
+    /// Same point as the game's own new-block placement: the view direction times 80, flattened, at the editor's
+    /// new-block height (40 below the camera when the camera is lower), snapped to 16 (8 vertically), y >= 0.
+    /// The new-block height is only read, never changed.
     /// </summary>
     private static Vector3 GetPlacementPoint(LEV_LevelEditorCentral central)
     {
-        var forward = Vector3.Scale(central.cam.cameraTransform.forward, new Vector3(1, 0, 1)).normalized;
-        var point = central.cam.transform.position + forward * 80;
+        var camera = central.cam.transform.position;
+        var point = camera + Vector3.Scale(central.cam.cameraTransform.forward * 80, new Vector3(1, 0, 1));
+        var height = central.gizmos.newBlockHeight;
+        point.y = camera.y < height ? camera.y - 40 : height;
         return new Vector3(
             Mathf.Round(point.x / 16) * 16,
             Mathf.Max(0, Mathf.Round(point.y / 8) * 8),
