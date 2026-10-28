@@ -82,17 +82,21 @@ public class BlockGroupPlacementTests
         Assert.Equal((-16f, -32f), BlockGroupPlacement.GetOrigin([dateTimer], [Compiled(0, 0, 0)], 0));
     }
 
-    [Fact]
-    public void AGroupWithWideBlocks_RecompilesWithoutThemWhereItWas()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void AGroupWithWideBlocks_RecompilesWithoutThemWhereItWas(int quarterTurns)
     {
-        // The Player Input stands on the corner's -X edge in the first Compile and is gone in the second
-        var first = Blocks(ScriptCompiler.Compile("player_input()\n" + Script, 0));
-        var second = Blocks(ScriptCompiler.Compile(Script, 0));
-        var origin = BlockGroupPlacement.GetOrigin(first.Select(b => InLevel(b, 0, 0)).ToList(), second, 0);
+        // The wide blocks stand on the corner's edges in the first Compile and are gone in the second
+        var first = Blocks(ScriptCompiler.Compile("player_input()\ndate_timer()\nwheel_telemetry()\n" + Script, quarterTurns));
+        var second = Blocks(ScriptCompiler.Compile(Script, quarterTurns));
+        var oldBlocks = first.Select(b => InLevel(b, 0, 0)).ToList();
+        var origin = BlockGroupPlacement.GetOrigin(oldBlocks, second, quarterTurns);
 
-        Assert.Equal(
-            (first.Min(b => b.Cell.X + b.Style.MinX) * GridCell.Size, first.Min(b => b.Cell.Z) * GridCell.Size),
-            (origin.X + (second.Min(b => b.Cell.X + b.Style.MinX) * GridCell.Size), origin.Z + (second.Min(b => b.Cell.Z) * GridCell.Size)));
+        var newBlocks = second.Select(b => InLevel(b, origin.X, origin.Z)).ToList();
+        Assert.Equal(GetFootprintCorner(oldBlocks, quarterTurns), GetFootprintCorner(newBlocks, quarterTurns));
     }
 
     [Fact]
@@ -130,6 +134,24 @@ public class BlockGroupPlacementTests
             (block.Cell.Z * GridCell.Size) + originZ,
             block.Yaw,
             block.Style);
+    }
+
+    /// <summary>
+    /// The lowest X and Z of every cell the blocks cover, in the group's axes.
+    /// </summary>
+    private static (int X, int Z) GetFootprintCorner(IEnumerable<GroupBlock> blocks, int quarterTurns)
+    {
+        var cells = (
+            from block in blocks
+            from x in Enumerable.Range(block.Style.MinX, block.Style.Width)
+            from z in Enumerable.Range(0, block.Style.Length)
+            let offset = BlockLayout.Rotate(x, z, (int)(block.Yaw / 90))
+            select BlockLayout.Rotate(
+                (int)(block.X / GridCell.Size) + offset.X,
+                (int)(block.Z / GridCell.Size) + offset.Z,
+                -quarterTurns)).ToList();
+
+        return (cells.Min(c => c.X), cells.Min(c => c.Z));
     }
 
     private static GroupBlock OneCell(float x, float z, float yaw = 0)
