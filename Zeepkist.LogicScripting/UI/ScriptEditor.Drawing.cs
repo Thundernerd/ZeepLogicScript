@@ -21,10 +21,10 @@ internal sealed partial class ScriptEditor
     private void DrawText(ImGui gui, ImRect textRect, ImRect textBounds, SyntaxPalette palette)
     {
         var (firstLine, lastLine) = GetVisibleLines(textRect, textBounds, _layout.LinesCount);
-        var runs = GetRuns();
-        for (var i = FindFirstRunOnLine(runs, firstLine); i < runs.Count && runs[i].Line <= lastLine; i++)
+        UpdateRuns();
+        for (var i = FindFirstRunOnLine(_runs, firstLine); i < _runs.Count && _runs[i].Line <= lastLine; i++)
         {
-            var run = runs[i];
+            var run = _runs[i];
             var position = ImTextEdit.LineOffsetToViewPosition(run.Line, run.Offset, Text, textRect, gui.TextDrawer, in _layout);
             gui.TextDrawer.FillLayout(run.Text, 0, 0, 0, 0, _layout.Size, false, ImTextOverflow.Overflow, ref _runLayout);
             gui.Canvas.Text(run.Text, palette.Get(run.Kind), position, in _runLayout);
@@ -74,8 +74,7 @@ internal sealed partial class ScriptEditor
 
     private float GetGutterWidth(ImGui gui, float textSize)
     {
-        // Brings _lineCount up to date with the text
-        GetRuns();
+        UpdateRuns();
         var digits = Math.Max(2, _lineCount.ToString().Length);
         return (digits * gui.TextDrawer.GetCharacterAdvance('0', textSize)) + (gui.Style.Layout.InnerSpacing * 2);
     }
@@ -88,10 +87,10 @@ internal sealed partial class ScriptEditor
         return (first, last);
     }
 
-    private List<TextRun> GetRuns()
+    private void UpdateRuns()
     {
         if (ReferenceEquals(_runsText, Text))
-            return _runs;
+            return;
 
         _runs.Clear();
         _runsText = Text;
@@ -107,7 +106,6 @@ internal sealed partial class ScriptEditor
 
         AddRuns(index, Text.Length, null, ref line, ref lineStart);
         _lineCount = line + 1;
-        return _runs;
     }
 
     private void AddRuns(int start, int end, HighlightKind? kind, ref int line, ref int lineStart)
