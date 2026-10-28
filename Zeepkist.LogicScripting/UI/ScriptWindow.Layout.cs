@@ -174,21 +174,21 @@ internal sealed partial class ScriptWindow
         {
             var dragged = ResizeHandle.Draw(gui, gui.GetControlId("scripts edge"), scriptsEdge, ImAxis.Horizontal);
             if (dragged != 0)
-                _state.ScriptsWidth = scriptsWidth + dragged;
+                _state.ScriptsWidth = Mathf.Max(MinScriptsWidth, scriptsWidth + dragged);
         }
 
         if (!levelCollapsed)
         {
             var dragged = ResizeHandle.Draw(gui, gui.GetControlId("level edge"), levelEdge, ImAxis.Horizontal);
             if (dragged != 0)
-                _state.LevelWidth = levelWidth - dragged;
+                _state.LevelWidth = Mathf.Max(minLevelWidth, levelWidth - dragged);
         }
 
         return hovered;
     }
 
     /// <summary>
-    /// The size a panel was given, or its default when it was never resized.
+    /// A drag never stores a zero size, which would read as never resized.
     /// </summary>
     private static float GetSizeOrDefault(float size, float defaultSize)
     {
@@ -278,12 +278,13 @@ internal sealed partial class ScriptWindow
         var available = gui.Layout.GetAvailableHeight() - (spacing * 2);
         var minFieldHeight = gui.GetRowsHeightWithSpacing(MinFieldRows);
         var headerHeight = GetSideHeaderHeight(gui);
+        var minErrorsHeight = gui.GetRowsHeightWithSpacing(MinErrorRows);
         var errorsHeight = headerHeight;
         if (!_state.ErrorsHidden)
         {
             errorsHeight += ClampSize(
                 GetSizeOrDefault(_state.ErrorsHeight, gui.GetRowsHeightWithSpacing(DefaultErrorRows)),
-                gui.GetRowsHeightWithSpacing(MinErrorRows),
+                minErrorsHeight,
                 available - headerHeight - minFieldHeight);
         }
 
@@ -317,7 +318,7 @@ internal sealed partial class ScriptWindow
         var edge = new ImRect(errors.X, errors.Top + (spacing / 2), errors.W, 0);
         var dragged = ResizeHandle.Draw(gui, gui.GetControlId("errors edge"), edge, ImAxis.Vertical);
         if (dragged != 0)
-            _state.ErrorsHeight = body.H + dragged;
+            _state.ErrorsHeight = Mathf.Max(minErrorsHeight, body.H + dragged);
     }
 
     /// <summary>
