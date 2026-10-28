@@ -9,6 +9,11 @@ internal sealed class PanelState
     public bool Collapsed { get; set; }
     public float Size { get; set; }
 
+    public void ToggleCollapsed()
+    {
+        Collapsed = !Collapsed;
+    }
+
     public PanelState Copy()
     {
         return (PanelState)MemberwiseClone();

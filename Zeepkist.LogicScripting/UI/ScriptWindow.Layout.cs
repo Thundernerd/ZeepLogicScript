@@ -160,7 +160,7 @@ internal sealed partial class ScriptWindow
         // must not change the ids, and so the focus and state, of the controls drawn after it
         gui.PushId("scripts");
         if (DrawSideHeader(gui, scripts, "Scripts", scriptsCollapsed, buttonOnRight: true, canToggle: scriptsFits))
-            _state.Scripts.Collapsed = !_state.Scripts.Collapsed;
+            _state.Scripts.ToggleCollapsed();
 
         if (!scriptsCollapsed)
         {
@@ -176,7 +176,7 @@ internal sealed partial class ScriptWindow
 
         gui.PushId("level");
         if (DrawSideHeader(gui, level, "Level", levelCollapsed, buttonOnRight: false, canToggle: levelFits))
-            _state.Level.Collapsed = !_state.Level.Collapsed;
+            _state.Level.ToggleCollapsed();
 
         var hovered = levelCollapsed ? null : DrawLevelTabs(gui, GetSideBody(gui, level));
         gui.PopId();
@@ -307,7 +307,7 @@ internal sealed partial class ScriptWindow
         gui.Box(errors, in gui.Style.List.Box);
         var header = errors.TakeTop(headerHeight, out var body);
         if (DrawErrorsHeader(gui, header))
-            _state.Errors.Collapsed = !_state.Errors.Collapsed;
+            _state.Errors.ToggleCollapsed();
 
         // A window too short for the editor's minimum leaves no room under the header
         if (_state.Errors.Collapsed || body.H <= 0)
