@@ -40,7 +40,7 @@ public static class ScriptCompiler
         }
 
         var cells = BlockLayout.Arrange(graph, quarterTurns);
-        var yaw = (((quarterTurns % 4) + 4) % 4) * 90;
+        var yaw = QuarterTurns.Normalize(quarterTurns) * 90;
 
         List<CompiledBlock> blocks = [];
         foreach (var block in graph.Blocks)

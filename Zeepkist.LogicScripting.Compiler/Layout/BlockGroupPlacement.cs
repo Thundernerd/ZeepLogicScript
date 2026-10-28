@@ -19,7 +19,7 @@ public static class BlockGroupPlacement
         var counts = new int[4];
         foreach (var yaw in yaws)
         {
-            counts[Normalize((int)Math.Round(yaw / 90))]++;
+            counts[QuarterTurns.FromDegrees(yaw)]++;
         }
 
         var majority = 0;
@@ -47,31 +47,12 @@ public static class BlockGroupPlacement
         if (oldPositions.Count == 0)
             throw new ArgumentException("The old group has no blocks", nameof(oldPositions));
 
-        var undo = 4 - Normalize(quarterTurns);
-        var oldInGroup = oldPositions.Select(p => Rotate(p.X, p.Z, undo)).ToList();
-        var newInGroup = cells.Select(c => Rotate(c.X * GridCell.Size, c.Z * GridCell.Size, undo)).ToList();
+        var undo = -quarterTurns;
+        var oldInGroup = oldPositions.Select(p => QuarterTurns.Rotate(p.X, p.Z, undo)).ToList();
+        var newInGroup = cells.Select(c => QuarterTurns.Rotate(c.X * GridCell.Size, c.Z * GridCell.Size, undo)).ToList();
 
         var originX = oldInGroup.Min(p => p.X) - (newInGroup.Count == 0 ? 0 : newInGroup.Min(p => p.X));
         var originZ = oldInGroup.Min(p => p.Z) - (newInGroup.Count == 0 ? 0 : newInGroup.Min(p => p.Z));
-        return Rotate(originX, originZ, quarterTurns);
-    }
-
-    /// <summary>
-    /// Rotates a point about the Y axis the way a block's yaw does: +Z turns towards +X.
-    /// </summary>
-    private static (float X, float Z) Rotate(float x, float z, int quarterTurns)
-    {
-        return Normalize(quarterTurns) switch
-        {
-            1 => (z, -x),
-            2 => (-x, -z),
-            3 => (-z, x),
-            _ => (x, z)
-        };
-    }
-
-    private static int Normalize(int quarterTurns)
-    {
-        return ((quarterTurns % 4) + 4) % 4;
+        return QuarterTurns.Rotate(originX, originZ, quarterTurns);
     }
 }

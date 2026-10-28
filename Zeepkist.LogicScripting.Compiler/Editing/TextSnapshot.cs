@@ -36,7 +36,7 @@ public readonly struct TextSnapshot : IEquatable<TextSnapshot>
     {
         unchecked
         {
-            return (((Text?.GetHashCode() ?? 0) * 397) ^ Caret) * 397 ^ Selection;
+            return ((Text.GetHashCode() * 397) ^ Caret) * 397 ^ Selection;
         }
     }
 
