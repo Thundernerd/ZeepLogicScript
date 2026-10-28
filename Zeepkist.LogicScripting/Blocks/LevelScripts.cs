@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 
 namespace TNRD.Zeepkist.LogicScripting.Blocks;
@@ -12,11 +13,11 @@ internal static class LevelScripts
     /// Goes through all the level's blocks, so call it after a change, not per frame.
     /// </summary>
     /// <returns>Every Script whose text the level holds, and every Script with blocks in the level.</returns>
-    public static (List<StoredScript> Stored, HashSet<string> GroupIds) Find(LEV_LevelEditorCentral central)
+    public static (List<StoredScript> Stored, HashSet<ScriptId> GroupIds) Find(LEV_LevelEditorCentral central)
     {
         List<StoredScript> stored = [];
-        HashSet<string> groupIds = [];
-        HashSet<string> storedIds = [];
+        HashSet<ScriptId> groupIds = [];
+        HashSet<ScriptId> storedIds = [];
         foreach (var block in central.undoRedo.allBlocksDictionary.Values)
         {
             var scriptId = block == null ? null : BlockGroups.GetScriptId(block);
@@ -42,7 +43,7 @@ internal static class LevelScripts
         properties.SetIntDictionaryValue(ScriptCarrier.LanguageVersionKey, script.LanguageVersion);
     }
 
-    private static StoredScript Read(PropertyDictionariesJSON properties, string scriptId)
+    private static StoredScript Read(PropertyDictionariesJSON properties, ScriptId scriptId)
     {
         if (properties?.t == null || !properties.t.TryGetValue(ScriptCarrier.TextKey, out var text))
             return null;

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -17,7 +16,7 @@ public sealed class ScriptList
     /// Returns why <paramref name="name"/> can't name a new Script, or the Script with <paramref name="renamedId"/>,
     /// or null when it can. Trim it first.
     /// </summary>
-    public string GetNameError(string name, string renamedId = null)
+    public string GetNameError(string name, ScriptId renamedId = null)
     {
         return ScriptName.GetError(name, _entries.Where(e => e.Id != renamedId).Select(e => e.Name));
     }
@@ -27,12 +26,12 @@ public sealed class ScriptList
     /// </summary>
     public ScriptEntry Add(string name)
     {
-        var entry = new ScriptEntry(Guid.NewGuid().ToString(), name, string.Empty);
+        var entry = new ScriptEntry(ScriptId.New(), name, string.Empty);
         _entries.Add(entry);
         return entry;
     }
 
-    public ScriptEntry Find(string id)
+    public ScriptEntry Find(ScriptId id)
     {
         return _entries.FirstOrDefault(e => e.Id == id);
     }
@@ -43,7 +42,7 @@ public sealed class ScriptList
     /// </summary>
     /// <param name="stored">Every Script whose text the level holds.</param>
     /// <param name="groupIds">The Scripts that have blocks in the level.</param>
-    public void Update(IReadOnlyList<StoredScript> stored, IReadOnlyCollection<string> groupIds)
+    public void Update(IReadOnlyList<StoredScript> stored, IReadOnlyCollection<ScriptId> groupIds)
     {
         foreach (var script in stored)
         {

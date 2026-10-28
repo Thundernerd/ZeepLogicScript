@@ -11,7 +11,7 @@ internal static class PlacedBlocks
     /// The Block Group of the Script being compiled is left out of the block's Wires: a recompile replaces it, Wires
     /// and all.
     /// </summary>
-    public static PlacedBlock Find(LEV_LevelEditorCentral central, string uid, string scriptId)
+    public static PlacedBlock Find(LEV_LevelEditorCentral central, string uid, ScriptId scriptId)
     {
         var block = LevelBlocks.Find(central, uid);
         if (block == null)
@@ -42,7 +42,7 @@ internal static class PlacedBlocks
     /// Stops at Delays, which pass a Signal on only in the next Tick, and at the compiling Script's own Block Group,
     /// which the Compile replaces.
     /// </summary>
-    private static HashSet<string> GetDownstream(LEV_LevelEditorCentral central, BlockProperties start, BlockType startType, string scriptId)
+    private static HashSet<string> GetDownstream(LEV_LevelEditorCentral central, BlockProperties start, BlockType startType, ScriptId scriptId)
     {
         HashSet<string> reached = [];
         Stack<(BlockProperties Block, BlockType Type)> open = new([(start, startType)]);

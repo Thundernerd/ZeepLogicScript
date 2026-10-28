@@ -12,7 +12,7 @@ internal static class BlockGroups
     /// <summary>
     /// The Script whose Block Group the block is in, or null when it's in none.
     /// </summary>
-    public static string GetScriptId(BlockProperties block)
+    public static ScriptId GetScriptId(BlockProperties block)
     {
         var tag = block.customBlockEditProperties?.GetStringDictionaryValue(BlockGroupTag.Key);
         return BlockGroupTag.GetScriptId(tag, block.UID);
@@ -23,7 +23,7 @@ internal static class BlockGroups
         return GetScriptId(block) != null;
     }
 
-    public static bool IsInGroup(LEV_LevelEditorCentral central, string uid, string scriptId)
+    public static bool IsInGroup(LEV_LevelEditorCentral central, string uid, ScriptId scriptId)
     {
         var block = LevelBlocks.Find(central, uid);
         return block != null && GetScriptId(block) == scriptId;
@@ -32,7 +32,7 @@ internal static class BlockGroups
     /// <summary>
     /// Goes through all the level's blocks, so call it on a Compile, not per frame.
     /// </summary>
-    public static List<BlockProperties> Find(LEV_LevelEditorCentral central, string scriptId)
+    public static List<BlockProperties> Find(LEV_LevelEditorCentral central, ScriptId scriptId)
     {
         List<BlockProperties> blocks = [];
         foreach (var block in central.undoRedo.allBlocksDictionary.Values)

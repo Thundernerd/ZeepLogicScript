@@ -46,7 +46,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private readonly ScriptList _scripts = new();
 
     // One each, so every Script keeps its own caret and undo
-    private readonly Dictionary<string, ScriptEditor> _editors = [];
+    private readonly Dictionary<ScriptId, ScriptEditor> _editors = [];
     private readonly NamePrompt _namePrompt = new();
 
     private ScriptEntry _current;

@@ -5,14 +5,14 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 /// </summary>
 public sealed class ScriptEntry
 {
-    internal ScriptEntry(string id, string name, string text)
+    internal ScriptEntry(ScriptId id, string name, string text)
     {
         Id = id;
         Name = name;
         Text = text;
     }
 
-    public string Id { get; }
+    public ScriptId Id { get; }
     /// <summary>
     /// Check a new name with <see cref="ScriptList.GetNameError"/> first.
     /// </summary>

@@ -5,7 +5,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 /// </summary>
 public sealed class StoredScript
 {
-    public StoredScript(string id, string name, string text, int languageVersion)
+    public StoredScript(ScriptId id, string name, string text, int languageVersion)
     {
         Id = id;
         Name = name;
@@ -13,7 +13,7 @@ public sealed class StoredScript
         LanguageVersion = languageVersion;
     }
 
-    public string Id { get; }
+    public ScriptId Id { get; }
     public string Name { get; }
     public string Text { get; }
     public int LanguageVersion { get; }

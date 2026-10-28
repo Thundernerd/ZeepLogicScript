@@ -87,13 +87,13 @@ internal static class ScriptCompile
     /// <summary>
     /// Compiles without placing anything, for the Placed blocks panel; null outside the editor.
     /// </summary>
-    public static CompileResult Check(string text, string scriptId, StartupCheck check)
+    public static CompileResult Check(string text, ScriptId scriptId, StartupCheck check)
     {
         var central = ComponentCache.Get<LEV_LevelEditorCentral>();
         return central == null ? null : Check(central, text, scriptId, check, 0);
     }
 
-    private static CompileResult Check(LEV_LevelEditorCentral central, string text, string scriptId, StartupCheck check, int quarterTurns)
+    private static CompileResult Check(LEV_LevelEditorCentral central, string text, ScriptId scriptId, StartupCheck check, int quarterTurns)
     {
         check.RunOnce();
         return ScriptCompiler.Compile(text, quarterTurns, check.DisabledBlockIds, uid => PlacedBlocks.Find(central, uid, scriptId));

@@ -5,6 +5,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Tests;
 
 public class ScriptListTests
 {
+    private static readonly ScriptId _id = new("id");
+
     [Fact]
     public void ANewScript_IsNeverCompiled()
     {
@@ -30,10 +32,10 @@ public class ScriptListTests
     {
         var list = new ScriptList();
 
-        list.Update([new StoredScript("id", "doors", "x = 1", 1)], ["id"]);
+        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], [_id]);
 
         var entry = Assert.Single(list.Entries);
-        Assert.Equal("id", entry.Id);
+        Assert.Equal(_id, entry.Id);
         Assert.Equal("doors", entry.Name);
         Assert.Equal("x = 1", entry.Text);
         Assert.Equal(ScriptMark.None, entry.Mark);
@@ -43,7 +45,7 @@ public class ScriptListTests
     public void ChangedText_IsNotCompiled()
     {
         var list = new ScriptList();
-        list.Update([new StoredScript("id", "doors", "x = 1", 1)], ["id"]);
+        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], [_id]);
 
         list.Entries[0].Text = "x = 2";
 
@@ -54,7 +56,7 @@ public class ScriptListTests
     public void ARename_IsNotCompiled()
     {
         var list = new ScriptList();
-        list.Update([new StoredScript("id", "doors", "x = 1", 1)], ["id"]);
+        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], [_id]);
 
         list.Entries[0].Name = "lamps";
 
@@ -65,9 +67,9 @@ public class ScriptListTests
     public void ANewerLevelText_KeepsTheWindowsText()
     {
         var list = new ScriptList();
-        list.Update([new StoredScript("id", "doors", "x = 1", 1)], ["id"]);
+        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], [_id]);
 
-        list.Update([new StoredScript("id", "doors", "x = 0", 1)], ["id"]);
+        list.Update([new StoredScript(_id, "doors", "x = 0", 1)], [_id]);
 
         Assert.Equal("x = 1", list.Entries[0].Text);
         Assert.Equal(ScriptMark.NotCompiled, list.Entries[0].Mark);
@@ -77,9 +79,9 @@ public class ScriptListTests
     public void AGroupWithoutText_IsCarrierMissing()
     {
         var list = new ScriptList();
-        list.Update([new StoredScript("id", "doors", "x = 1", 1)], ["id"]);
+        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], [_id]);
 
-        list.Update([], ["id"]);
+        list.Update([], [_id]);
 
         Assert.Equal(ScriptMark.CarrierMissing, list.Entries[0].Mark);
     }
@@ -88,7 +90,7 @@ public class ScriptListTests
     public void AScriptGoneFromTheLevel_StaysInTheWindow()
     {
         var list = new ScriptList();
-        list.Update([new StoredScript("id", "doors", "x = 1", 1)], ["id"]);
+        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], [_id]);
 
         list.Update([], []);
 
@@ -102,7 +104,7 @@ public class ScriptListTests
     {
         var list = new ScriptList();
 
-        list.Update([], ["orphan"]);
+        list.Update([], [new ScriptId("orphan")]);
 
         Assert.Empty(list.Entries);
     }
