@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Layout;
 
@@ -17,8 +18,9 @@ public static class BlockGroupPlacement
     /// <param name="blocks">The group's blocks; at least one.</param>
     public static int GetMajorityQuarterTurns(IReadOnlyCollection<GroupBlock> blocks)
     {
+        var notReshaped = blocks.Where(b => !b.IsReshaped).ToList();
         var counts = new int[4];
-        foreach (var block in WithoutReshaped(blocks))
+        foreach (var block in notReshaped.Count > 0 ? notReshaped : blocks)
         {
             counts[QuarterTurns.FromDegrees(block.Yaw)]++;
         }
@@ -36,7 +38,9 @@ public static class BlockGroupPlacement
     /// <summary>
     /// The world position for the new group's cell (0, 0), so its start corner lands on the old group's. Both corners
     /// are taken from the blocks' footprints, in the group's rotation, so a block that reaches past its pivot doesn't
-    /// shift the group when it moves on or off the corner's edge. Reshaped old blocks don't count unless all of them are.
+    /// shift the group when it moves on or off the corner's edge. Each old block is measured as Compile placed it, in the
+    /// group's yaw and unscaled, since the recompile puts it back that way; turning, tilting or scaling a block by hand
+    /// doesn't shift the group.
     /// </summary>
     /// <param name="oldBlocks">The old group's blocks; at least one.</param>
     /// <param name="newBlocks">The new group's blocks, laid out with <paramref name="quarterTurns"/>.</param>
@@ -49,10 +53,9 @@ public static class BlockGroupPlacement
         if (oldBlocks.Count == 0)
             throw new ArgumentException("The old group has no blocks", nameof(oldBlocks));
 
-        var oldCorners = WithoutReshaped(oldBlocks).Select(b => GetStartCorner(b, quarterTurns)).ToList();
+        var oldCorners = oldBlocks.Select(b => GetStartCorner(b.X, b.Z, b.Style, quarterTurns)).ToList();
         var newCorners = newBlocks
-            .Select(b => new GroupBlock(b.Cell.X * GridCell.Size, b.Cell.Z * GridCell.Size, b.Yaw, b.Style))
-            .Select(b => GetStartCorner(b, quarterTurns))
+            .Select(b => GetStartCorner(b.Cell.X * GridCell.Size, b.Cell.Z * GridCell.Size, b.Style, quarterTurns))
             .ToList();
 
         var originX = oldCorners.Min(c => c.X) - (newCorners.Count == 0 ? 0 : newCorners.Min(c => c.X));
@@ -60,25 +63,13 @@ public static class BlockGroupPlacement
         return QuarterTurns.Rotate(originX, originZ, quarterTurns);
     }
 
-    private static IReadOnlyCollection<GroupBlock> WithoutReshaped(IReadOnlyCollection<GroupBlock> blocks)
-    {
-        var notReshaped = blocks.Where(b => !b.IsReshaped).ToList();
-        return notReshaped.Count > 0 ? notReshaped : blocks;
-    }
-
     /// <summary>
-    /// The lowest X and Z of a block's footprint, in the axes of a group turned by <paramref name="quarterTurns"/>.
+    /// The lowest X and Z of the footprint of a block at world (<paramref name="x"/>, <paramref name="z"/>) in the
+    /// group's yaw, in the axes of a group turned by <paramref name="quarterTurns"/>.
     /// </summary>
-    private static (float X, float Z) GetStartCorner(GroupBlock block, int quarterTurns)
+    private static (float X, float Z) GetStartCorner(float x, float z, BlockStyle style, int quarterTurns)
     {
-        var minX = block.Style.MinX * GridCell.Size;
-        var maxX = block.Style.MaxX * GridCell.Size;
-        var maxZ = (block.Style.Length - 1) * GridCell.Size;
-
-        var turns = QuarterTurns.FromDegrees(block.Yaw) - quarterTurns;
-        var first = QuarterTurns.Rotate(minX, 0, turns);
-        var last = QuarterTurns.Rotate(maxX, maxZ, turns);
-        var pivot = QuarterTurns.Rotate(block.X, block.Z, -quarterTurns);
-        return (pivot.X + Math.Min(first.X, last.X), pivot.Z + Math.Min(first.Z, last.Z));
+        var pivot = QuarterTurns.Rotate(x, z, -quarterTurns);
+        return (pivot.X + (style.MinX * GridCell.Size), pivot.Z);
     }
 }

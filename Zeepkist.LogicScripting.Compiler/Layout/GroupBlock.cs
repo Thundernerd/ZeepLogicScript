@@ -3,7 +3,7 @@ using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Layout;
 
 /// <summary>
-/// A Block Group block as it stands in the level, for <see cref="BlockGroupPlacement.GetOrigin"/>.
+/// A Block Group block as it stands in the level, for <see cref="BlockGroupPlacement"/>.
 /// </summary>
 public readonly struct GroupBlock
 {
@@ -13,7 +13,7 @@ public readonly struct GroupBlock
 
     /// <param name="x">World X of the block's pivot.</param>
     /// <param name="z">World Z of the block's pivot.</param>
-    /// <param name="yaw">Rotation about Y in degrees; the footprint is turned by the nearest quarter turn.</param>
+    /// <param name="yaw">Rotation about Y in degrees, for the group's yaw.</param>
     /// <param name="style">The block's footprint; null for a block the Block Manifest doesn't know, taken as one cell.</param>
     /// <param name="isReshaped">See <see cref="IsReshaped"/>.</param>
     public GroupBlock(float x, float z, float yaw, BlockStyle style, bool isReshaped = false)
@@ -31,8 +31,8 @@ public readonly struct GroupBlock
     public BlockStyle Style => _style ?? _oneCell;
 
     /// <summary>
-    /// Whether the player scaled or tilted the block by hand. A scaled block covers more or less than its footprint and a
-    /// tilted one's yaw is no quarter turn, so the group's corner and yaw leave it out.
+    /// Whether the player scaled or tilted the block by hand; the group's yaw leaves it out, since a tilted block's yaw
+    /// is no quarter turn.
     /// </summary>
     public bool IsReshaped { get; }
 }

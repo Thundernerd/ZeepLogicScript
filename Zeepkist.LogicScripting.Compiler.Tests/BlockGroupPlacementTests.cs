@@ -74,12 +74,33 @@ public class BlockGroupPlacementTests
     }
 
     [Fact]
-    public void ABlockTurnedOnItsOwn_UsesItsOwnFootprint()
+    public void ABlockTurnedOnItsOwn_IsMeasuredInTheGroupsYaw()
     {
-        // A Date Timer reaches a cell toward +X and two along +Z; turned 180° that is -X and -Z
+        // A Date Timer turned 180° by hand would reach toward -X and -Z, but the recompile turns it back
         var dateTimer = new GroupBlock(0, 0, 180, BlockManifest.DateTimer.DefaultStyle);
 
-        Assert.Equal((-16f, -32f), BlockGroupPlacement.GetOrigin([dateTimer], [Compiled(0, 0, 0)], 0));
+        Assert.Equal((0f, 0f), BlockGroupPlacement.GetOrigin([dateTimer], [Compiled(0, 0, 0)], 0));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void AGroupWithAHandEditedBlock_RecompilesWhereItWas(int quarterTurns)
+    {
+        // Each block in turn, the corner's among them, turned and tilted by hand
+        var blocks = Blocks(ScriptCompiler.Compile("player_input()\ndate_timer()\n" + Script, quarterTurns));
+        var moved = blocks.Select(b => InLevel(b, 104, -40)).ToList();
+
+        for (var edited = 0; edited < moved.Count; edited++)
+        {
+            var block = moved[edited];
+            var oldBlocks = moved.ToList();
+            oldBlocks[edited] = new GroupBlock(block.X, block.Z, block.Yaw + 127, block.Style, isReshaped: true);
+
+            Assert.Equal((104f, -40f), BlockGroupPlacement.GetOrigin(oldBlocks, blocks, quarterTurns));
+        }
     }
 
     [Theory]
@@ -119,23 +140,6 @@ public class BlockGroupPlacementTests
     public void TheYaw_IsTheMajorityRoundedToQuarterTurns(float[] yaws, int expected)
     {
         Assert.Equal(expected, BlockGroupPlacement.GetMajorityQuarterTurns(yaws.Select(y => OneCell(0, 0, y)).ToList()));
-    }
-
-    [Fact]
-    public void AReshapedBlock_IsLeftOutOfTheCorner()
-    {
-        // Scaled up by hand, the block's real extent says nothing about where Compile put the corner
-        var origin = BlockGroupPlacement.GetOrigin([OneCell(16, 32), Reshaped(-200, -300)], [], 0);
-
-        Assert.Equal((16f, 32f), origin);
-    }
-
-    [Fact]
-    public void AnAllReshapedGroup_TakesTheCornerFromAllBlocks()
-    {
-        var origin = BlockGroupPlacement.GetOrigin([Reshaped(16, 32), Reshaped(48, 0)], [], 0);
-
-        Assert.Equal((16f, 0f), origin);
     }
 
     [Fact]
