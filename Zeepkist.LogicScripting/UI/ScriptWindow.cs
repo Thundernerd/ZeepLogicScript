@@ -346,7 +346,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         _check = ScriptCompile.Check(text, _startupCheck);
         _checkedText = text;
         _nextCheckTime = Time.unscaledTime + CheckInterval;
-        _editor.SetErrors(_check == null ? [] : _check.Errors.Select(e => ScriptText.GetErrorSpan(text, e.Position)).ToList());
+        _editor.SetErrors(_check == null ? [] : ScriptText.GetErrorSpans(text, _check.Errors.Select(e => e.Position)));
     }
 
     private static bool IsAnyMouseButtonDown()

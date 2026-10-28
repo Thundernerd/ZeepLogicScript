@@ -1,3 +1,4 @@
+using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 using Xunit;
 
@@ -25,8 +26,16 @@ public class ScriptTextTests
     [InlineData(1, 15, 14, 0)] // the end of the line: nothing to underline
     public void ErrorSpan_CoversTheTokenAtTheError(int line, int column, int start, int length)
     {
-        var span = ScriptText.GetErrorSpan("x = logic(\"U\")\n", new Position(line, column));
+        var spans = ScriptText.GetErrorSpans("x = logic(\"U\")\n", [new Position(line, column)]);
 
-        Assert.Equal((start, length), (span.Start, span.Length));
+        Assert.Equal([(start, length)], spans.Select(s => (s.Start, s.Length)));
+    }
+
+    [Fact]
+    public void ErrorSpans_KeepTheErrorsOrder()
+    {
+        var spans = ScriptText.GetErrorSpans("ab = cd\nef", [new Position(2, 1), new Position(1, 6)]);
+
+        Assert.Equal([(8, 2), (5, 2)], spans.Select(s => (s.Start, s.Length)));
     }
 }

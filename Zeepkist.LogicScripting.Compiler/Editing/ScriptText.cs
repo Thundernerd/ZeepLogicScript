@@ -19,21 +19,38 @@ public static class ScriptText
     }
 
     /// <summary>
-    /// What to underline for an error: the token that starts where the error is, or else the one character there.
-    /// At the end of a line it's empty.
+    /// What to underline for each error: the token that starts where the error is, or else the one character there.
+    /// At the end of a line it's empty. The text is lexed once for all of them.
     /// </summary>
-    public static TextSpan GetErrorSpan(string text, Position position)
+    public static List<TextSpan> GetErrorSpans(string text, IEnumerable<Position> positions)
     {
         text ??= string.Empty;
-        var index = GetIndex(text, position);
-        foreach (var span in ScriptHighlighter.Highlight(text))
+        var lineStarts = GetLineStarts(text);
+        var tokens = ScriptHighlighter.Highlight(text);
+        List<TextSpan> spans = [];
+        foreach (var position in positions)
         {
-            if (span.Start == index && span.Kind != HighlightKind.Comment)
-                return new TextSpan(span.Start, span.Length);
-
-            if (span.Start > index)
-                break;
+            spans.Add(GetErrorSpan(text, tokens, GetIndex(lineStarts, text.Length, position)));
         }
+
+        return spans;
+    }
+
+    private static TextSpan GetErrorSpan(string text, IReadOnlyList<HighlightSpan> tokens, int index)
+    {
+        var low = 0;
+        var high = tokens.Count;
+        while (low < high)
+        {
+            var middle = (low + high) / 2;
+            if (tokens[middle].Start < index)
+                low = middle + 1;
+            else
+                high = middle;
+        }
+
+        if (low < tokens.Count && tokens[low].Start == index && tokens[low].Kind != HighlightKind.Comment)
+            return new TextSpan(index, tokens[low].Length);
 
         var length = index < text.Length && text[index] != '\n' ? 1 : 0;
         return new TextSpan(index, length);
