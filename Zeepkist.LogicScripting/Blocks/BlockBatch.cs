@@ -153,8 +153,8 @@ internal static partial class BlockBatch
     }
 
     /// <summary>
-    /// Added blocks are before = null / after = JSON, as the gizmo's paste does; changed blocks are JSON / JSON, as
-    /// the gizmo's delete records the blocks wired to deleted ones. Taken after wiring, so redo restores the Wires.
+    /// Added blocks are recorded as before = null / after = JSON and changed blocks as JSON / JSON, the shapes the
+    /// editor's own undo steps use. Taken after wiring, so redo restores the Wires.
     /// </summary>
     private static void RegisterUndo(LEV_LevelEditorCentral central, List<BlockProperties> added, List<ChangedBlock> changed, string label)
     {
