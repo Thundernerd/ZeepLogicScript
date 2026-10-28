@@ -50,14 +50,12 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
 
     // One each, so every Script keeps its own caret and undo
     private readonly Dictionary<ScriptId, ScriptEditor> _editors = [];
-    private readonly NamePrompt _namePrompt = new();
-    private readonly DeletePrompt _deletePrompt = new();
+    private readonly ScriptListPanel _scriptListPanel;
     private readonly OrphanedGroupsPanel _orphanedGroupsPanel;
 
     private ScriptEntry _current;
     private ScriptEditor _editor;
     private int? _readLevelChanges;
-    private string _listMessage = string.Empty;
     private string _result = string.Empty;
     private string _insertMessage = string.Empty;
     private CompileResult _check;
@@ -77,6 +75,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         _startupCheck = startupCheck;
         _drafts = drafts;
         _draftSaver = new DraftSaver(drafts, _scripts);
+        _scriptListPanel = new ScriptListPanel(logger, _scripts, _draftSaver, OnScriptDeleted);
         _orphanedGroupsPanel = new OrphanedGroupsPanel(logger);
     }
 
@@ -91,7 +90,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             return;
         }
 
-        if (!_fieldFocused && !_namePrompt.Focused && Input.GetKeyDown(ToggleKey))
+        if (!_fieldFocused && !_scriptListPanel.NameFocused && Input.GetKeyDown(ToggleKey))
             _open = !_open;
 
         if (!_open)
@@ -101,7 +100,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         }
 
         // Imui never sees clicks that land in the level, so a field would keep focus and keep taking keys
-        if (!_mouseOver && (_fieldFocused || _namePrompt.Focused) && IsAnyMouseButtonDown())
+        if (!_mouseOver && (_fieldFocused || _scriptListPanel.NameFocused) && IsAnyMouseButtonDown())
             gui.ResetActiveControl();
 
         BlockProperties hovered = null;
@@ -121,7 +120,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         }
 
         gui.EndWindow();
-        SetKeyboardBlocked(_fieldFocused || _namePrompt.Focused);
+        SetKeyboardBlocked(_fieldFocused || _scriptListPanel.NameFocused);
         _highlight.Set(ComponentCache.Get<LEV_LevelEditorCentral>(), _open ? hovered : null);
     }
 
@@ -133,7 +132,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         _highlight.Set(ComponentCache.Get<LEV_LevelEditorCentral>(), null);
         _mouseOver = false;
         _fieldFocused = false;
-        _namePrompt.Focused = false;
+        _scriptListPanel.ReleaseFocus();
         SetMouseBlocked(false);
         SetKeyboardBlocked(false);
     }
@@ -155,10 +154,8 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         SaveDrafts();
         _scripts.Clear();
         _editors.Clear();
-        _namePrompt.Close();
-        _deletePrompt.Close();
+        _scriptListPanel.Clear();
         _orphanedGroupsPanel.ClearMessage();
-        _listMessage = string.Empty;
         _readLevelChanges = null;
         Select(null);
     }
@@ -186,71 +183,9 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private void DrawScriptList(ImGui gui)
     {
         gui.Text("Scripts");
-        ScriptEntry clicked = null;
-        foreach (var entry in _scripts.Entries)
-        {
-            gui.AddSpacingIfLayoutFrameNotEmpty();
-            var rect = gui.AddSingleRowRect(default);
-            ref readonly var style = ref entry == _current ? ref gui.Style.List.ItemSelected : ref gui.Style.List.ItemNormal;
-            var (glyph, tooltip) = GetMarkText(entry.Mark);
-            if (gui.Button(gui.GetNextControlId(), glyph == null ? entry.Name : $"{glyph} {entry.Name}", rect, in style, out _))
-                clicked = entry;
-
-            if (tooltip != null)
-                gui.TooltipAtLastControl(tooltip);
-
-            if (gui.BeginContextMenu(rect))
-            {
-                if (gui.Menu("Rename"))
-                    _namePrompt.OpenRename(entry);
-
-                if (gui.Menu("Select group"))
-                    SelectGroup(entry);
-
-                if (gui.Menu("Delete"))
-                {
-                    _namePrompt.Close();
-                    _deletePrompt.Open(entry);
-                }
-
-                gui.EndContextMenu();
-            }
-        }
-
-        if (_scripts.Entries.Count == 0)
-            gui.Text("None yet in this level", wrap: true);
-
-        if (gui.Button("New Script"))
-        {
-            _deletePrompt.Close();
-            _namePrompt.OpenNew();
-        }
-
-        if (clicked != null && clicked != _current)
-            Select(clicked);
-
-        var named = _namePrompt.Draw(gui, _scripts);
-        if (named != null)
-        {
-            _listMessage = string.Empty;
-            if (_namePrompt.Renamed == null)
-                Select(_scripts.Add(named));
-            else
-                _namePrompt.Renamed.Name = named;
-
-            _namePrompt.Close();
-            _draftSaver.Request();
-        }
-
-        var deleteChoice = _deletePrompt.Draw(gui);
-        if (deleteChoice != DeleteChoice.None)
-        {
-            DeleteScript(_deletePrompt.Deleted, deleteChoice);
-            _deletePrompt.Close();
-        }
-
-        if (_listMessage.Length > 0)
-            gui.Text(_listMessage, wrap: true);
+        var selected = _scriptListPanel.Draw(gui, _current);
+        if (selected != null)
+            Select(selected);
 
         // Restored after drawing, which goes through the list that restoring changes
         var orphan = _orphanedGroupsPanel.Draw(gui, _scripts.OrphanedGroups);
@@ -263,77 +198,11 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         }
     }
 
-    /// <summary>
-    /// Removes the Script's blocks or untags them as one undo step, then drops the Script from the window. Its Draft
-    /// stays, so undo brings the Script back with the text typed since its last Compile.
-    /// </summary>
-    private void DeleteScript(ScriptEntry entry, DeleteChoice choice)
+    private void OnScriptDeleted(ScriptEntry entry)
     {
-        var central = LevelEdit.GetCentral(out var blocker);
-        if (central == null)
-        {
-            _listMessage = blocker;
-            return;
-        }
-
-        var edited = LevelEdit.TryEditGroup(
-            _logger,
-            $"Deleting Script \"{entry.Name}\"",
-            () => choice == DeleteChoice.KeepBlocks
-                ? BlockGroupEdits.Untag(central, entry.Id)
-                : BlockGroupEdits.Delete(central, entry.Id));
-
-        if (edited is not { } count)
-        {
-            _listMessage = "Delete failed; level unchanged";
-            return;
-        }
-
-        _scripts.Remove(entry.Id);
         _editors.Remove(entry.Id);
         if (entry == _current)
             Select(_scripts.Entries.Count > 0 ? _scripts.Entries[0] : null);
-
-        if (count == 0)
-            _listMessage = $"Deleted \"{entry.Name}\"";
-        else if (choice == DeleteChoice.KeepBlocks)
-            _listMessage = $"Deleted \"{entry.Name}\" and kept its {count} blocks as plain Logic Blocks";
-        else
-            _listMessage = $"Deleted \"{entry.Name}\" and its {count} blocks";
-    }
-
-    /// <summary>
-    /// The font has no ⚠ or ◌, so the carrier-missing and never-compiled marks use ! and ○.
-    /// </summary>
-    private static (string Glyph, string Tooltip) GetMarkText(ScriptMark mark)
-    {
-        return mark switch
-        {
-            ScriptMark.NotCompiled => ("●", "Not compiled: the level holds another name or text"),
-            ScriptMark.CarrierMissing => ("!", "The level has this Script's blocks but not its text; Compile to store it again"),
-            ScriptMark.NeverCompiled => ("○", "Never compiled: the level doesn't hold this Script"),
-            _ => (null, null)
-        };
-    }
-
-    private void SelectGroup(ScriptEntry entry)
-    {
-        var central = LevelEdit.GetCentral(out var blocker);
-        if (central == null)
-        {
-            _listMessage = blocker;
-            return;
-        }
-
-        var group = BlockGroups.Find(central, entry.Id);
-        if (group.Count == 0)
-        {
-            _listMessage = $"\"{entry.Name}\" has no blocks in the level";
-            return;
-        }
-
-        BlockGroups.Select(central, group);
-        _listMessage = $"Selected {group.Count} blocks of \"{entry.Name}\"";
     }
 
     /// <summary>
