@@ -7,45 +7,68 @@ using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Layout;
 
 /// <summary>
-/// Naive layout: a block's column is its longest Wire path from a Source Block, rows follow Script line order,
-/// with one empty cell between columns and rows. Signals flow along the group's +Z, which the yaw turns to
-/// point right as seen from the camera. The footprint is centred on cell (0, 0).
+/// Layered layout: a block's column is its longest Wire path from a Source Block, and a few barycenter passes order
+/// the blocks within each column, ties by Script line order. One empty cell separates columns and rows, and each
+/// column is centred across the group. Signals flow along the group's +Z, which the yaw turns to point right as seen
+/// from the camera. The footprint is centred on cell (0, 0).
 /// </summary>
 internal static class BlockLayout
 {
-    private const int RowPitch = 2;
+    private const int BarycenterPasses = 4;
+    private const int Gap = 1;
 
     public static GridCell[] Arrange(BlockGraph graph, int quarterTurns)
     {
+        if (graph.Blocks.Count == 0)
+            return [];
+
         var columns = GetColumns(graph);
-        var columnCount = graph.Blocks.Count == 0 ? 0 : columns.Max() + 1;
+        var columnCount = columns.Max() + 1;
 
-        var columnStarts = new int[columnCount];
-        var rows = new int[graph.Blocks.Count];
-        var rowCounts = new int[columnCount];
-        var lengths = new int[columnCount];
-        foreach (var block in graph.Blocks)
-        {
-            var column = columns[block.Index];
-            rows[block.Index] = rowCounts[column]++;
-            lengths[column] = Math.Max(lengths[column], block.Style.Length);
-        }
-
-        var depth = 0;
+        var columnBlocks = new List<BlockNode>[columnCount];
         for (var column = 0; column < columnCount; column++)
         {
-            columnStarts[column] = depth;
-            depth += lengths[column] + 1;
+            columnBlocks[column] = [];
         }
 
-        var width = columnCount == 0 ? 0 : (rowCounts.Max() - 1) * RowPitch + 1;
-        var centreX = (width - 1) / 2;
-        var centreZ = (depth - 2) / 2;
+        foreach (var block in graph.Blocks)
+        {
+            columnBlocks[columns[block.Index]].Add(block);
+        }
 
+        var columnStarts = new int[columnCount];
+        var columnSpans = new int[columnCount];
+        var nextStart = 0;
+        for (var column = 0; column < columnCount; column++)
+        {
+            columnStarts[column] = nextStart;
+            nextStart += columnBlocks[column].Max(b => b.Style.Length) + Gap;
+            columnSpans[column] = columnBlocks[column].Sum(b => b.Style.Width + Gap) - Gap;
+        }
+
+        var depth = nextStart - Gap;
+
+        var width = columnSpans.Max();
+        var columnXStarts = new int[columnCount];
+        for (var column = 0; column < columnCount; column++)
+        {
+            columnXStarts[column] = (width - columnSpans[column]) / 2;
+        }
+
+        var xStarts = new int[graph.Blocks.Count];
+        for (var column = 0; column < columnCount; column++)
+        {
+            Stack(columnBlocks[column], columnXStarts[column], xStarts);
+        }
+
+        Order(graph, columns, columnBlocks, columnXStarts, xStarts);
+
+        var centreX = (width - 1) / 2;
+        var centreZ = (depth - 1) / 2;
         var cells = new GridCell[graph.Blocks.Count];
         foreach (var block in graph.Blocks)
         {
-            var x = rows[block.Index] * RowPitch - centreX;
+            var x = xStarts[block.Index] - block.Style.MinX - centreX;
             var z = columnStarts[columns[block.Index]] - centreZ;
             cells[block.Index] = Rotate(x, z, quarterTurns);
         }
@@ -116,5 +139,60 @@ internal static class BlockLayout
         }
 
         return columns;
+    }
+
+    /// <summary>
+    /// Sweeps the columns alternately forwards and backwards, sorting each by the mean centre of the blocks it is wired
+    /// to in the columns already swept. A block with no such Wires keeps its place as its key.
+    /// </summary>
+    private static void Order(
+        BlockGraph graph,
+        int[] columns,
+        List<BlockNode>[] columnBlocks,
+        int[] columnXStarts,
+        int[] xStarts)
+    {
+        var neighbours = new List<BlockNode>[graph.Blocks.Count];
+        foreach (var wire in graph.Wires)
+        {
+            (neighbours[wire.From.Index] ??= []).Add(wire.To);
+            (neighbours[wire.To.Index] ??= []).Add(wire.From);
+        }
+
+        double GetCentre(BlockNode block)
+        {
+            return xStarts[block.Index] + (block.Style.Width - 1) / 2.0;
+        }
+
+        double GetKey(BlockNode block, bool isForward)
+        {
+            var column = columns[block.Index];
+            var swept = neighbours[block.Index]?
+                .Where(n => isForward ? columns[n.Index] < column : columns[n.Index] > column)
+                .ToList();
+
+            return swept is { Count: > 0 } ? swept.Average(GetCentre) : GetCentre(block);
+        }
+
+        for (var pass = 0; pass < BarycenterPasses; pass++)
+        {
+            var isForward = pass % 2 == 0;
+            for (var offset = 1; offset < columnBlocks.Length; offset++)
+            {
+                var column = isForward ? offset : columnBlocks.Length - 1 - offset;
+                columnBlocks[column] = [.. columnBlocks[column].OrderBy(b => GetKey(b, isForward)).ThenBy(b => b.Index)];
+                Stack(columnBlocks[column], columnXStarts[column], xStarts);
+            }
+        }
+    }
+
+    private static void Stack(List<BlockNode> blocks, int xStart, int[] xStarts)
+    {
+        var start = xStart;
+        foreach (var block in blocks)
+        {
+            xStarts[block.Index] = start;
+            start += block.Style.Width + Gap;
+        }
     }
 }
