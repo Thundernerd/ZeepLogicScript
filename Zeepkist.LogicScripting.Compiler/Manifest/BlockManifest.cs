@@ -109,8 +109,9 @@ public static class BlockManifest
         1,
         [new BlockConnector("x", 0)],
         [new BlockConnector("out", 1)],
-        // 0 ticks, the untouched value, throws every tick in play mode
-        BlockSetting.Number("ticks", "ldl", isRequired: true, minimum: 1));
+        // 0 ticks, the untouched value, throws every tick in play mode; the block reads ticks as an int, and one
+        // too big for it reads as 0
+        BlockSetting.Number("ticks", "ldl", isRequired: true, minimum: 1, maximum: int.MaxValue));
 
     public static readonly BlockType Pulser = new(
         "pulser",
@@ -172,8 +173,9 @@ public static class BlockManifest
         2,
         Numbered(0, "increment", "decrement", "reset"),
         [new BlockConnector("out", 3)],
-        BlockSetting.Number("max_reset", "ld1"),
-        BlockSetting.Number("min_reset", "ld2"));
+        // The block clamps both on load; 0 turns a reset off
+        BlockSetting.Number("max_reset", "ld1", minimum: 0, maximum: int.MaxValue),
+        BlockSetting.Number("min_reset", "ld2", minimum: -long.MaxValue, maximum: 0));
 
     public static readonly BlockType ToggleLatch = new(
         "toggle_latch",

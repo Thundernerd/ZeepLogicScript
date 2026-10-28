@@ -13,7 +13,14 @@ public sealed class BlockSetting
     /// </summary>
     public static readonly BlockSetting Hide = Bool("hide", "lbhd");
 
-    private BlockSetting(string name, string key, SettingType type, IReadOnlyList<string> options, bool isRequired, long minimum)
+    private BlockSetting(
+        string name,
+        string key,
+        SettingType type,
+        IReadOnlyList<string> options,
+        bool isRequired,
+        long minimum = long.MinValue,
+        long maximum = long.MaxValue)
     {
         Name = name;
         Key = key;
@@ -21,6 +28,7 @@ public sealed class BlockSetting
         Options = options;
         IsRequired = isRequired;
         Minimum = minimum;
+        Maximum = maximum;
     }
 
     public string Name { get; }
@@ -39,23 +47,34 @@ public sealed class BlockSetting
     public bool IsRequired { get; }
 
     /// <summary>
-    /// The lowest number a <see cref="SettingType.Number"/> Setting accepts, for values known to break the level.
+    /// The lowest number a <see cref="SettingType.Number"/> Setting accepts, for values known to break the level or
+    /// that the block wouldn't keep.
     /// </summary>
     public long Minimum { get; }
 
-    public static BlockSetting Number(string name, string key, bool isRequired = false, long minimum = long.MinValue)
+    /// <summary>
+    /// The highest number a <see cref="SettingType.Number"/> Setting accepts, for values the block wouldn't keep.
+    /// </summary>
+    public long Maximum { get; }
+
+    public static BlockSetting Number(
+        string name,
+        string key,
+        bool isRequired = false,
+        long minimum = long.MinValue,
+        long maximum = long.MaxValue)
     {
-        return new BlockSetting(name, key, SettingType.Number, [], isRequired, minimum);
+        return new BlockSetting(name, key, SettingType.Number, [], isRequired, minimum, maximum);
     }
 
     public static BlockSetting Bool(string name, string key)
     {
-        return new BlockSetting(name, key, SettingType.Bool, [], false, 0);
+        return new BlockSetting(name, key, SettingType.Bool, [], false);
     }
 
     public static BlockSetting Option(string name, string key, params string[] options)
     {
-        return new BlockSetting(name, key, SettingType.Option, options, false, 0);
+        return new BlockSetting(name, key, SettingType.Option, options, false);
     }
 
     /// <summary>
@@ -65,7 +84,7 @@ public sealed class BlockSetting
     public static BlockSetting Player(string key, bool hasEveryone)
     {
         string[] options = hasEveryone ? ["all", "1", "2", "3", "4"] : ["1", "2", "3", "4"];
-        return new BlockSetting("player", key, SettingType.Player, options, false, 0);
+        return new BlockSetting("player", key, SettingType.Player, options, false);
     }
 
     /// <summary>
@@ -73,7 +92,7 @@ public sealed class BlockSetting
     /// </summary>
     public static BlockSetting Targets(string name, string keyPrefix)
     {
-        return new BlockSetting(name, keyPrefix, SettingType.Targets, [], true, 0);
+        return new BlockSetting(name, keyPrefix, SettingType.Targets, [], true);
     }
 
     /// <summary>
