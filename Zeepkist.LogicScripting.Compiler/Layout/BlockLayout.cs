@@ -15,6 +15,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Layout;
 internal static class BlockLayout
 {
     private const int BarycenterPasses = 4;
+    private const int Gap = 1;
 
     public static GridCell[] Arrange(BlockGraph graph, int quarterTurns)
     {
@@ -24,50 +25,50 @@ internal static class BlockLayout
         var columns = GetColumns(graph);
         var columnCount = columns.Max() + 1;
 
-        var order = new List<BlockNode>[columnCount];
+        var columnBlocks = new List<BlockNode>[columnCount];
         for (var column = 0; column < columnCount; column++)
         {
-            order[column] = [];
+            columnBlocks[column] = [];
         }
 
         foreach (var block in graph.Blocks)
         {
-            order[columns[block.Index]].Add(block);
+            columnBlocks[columns[block.Index]].Add(block);
         }
 
         var columnStarts = new int[columnCount];
-        var columnWidths = new int[columnCount];
+        var columnSpans = new int[columnCount];
         var nextStart = 0;
         for (var column = 0; column < columnCount; column++)
         {
             columnStarts[column] = nextStart;
-            nextStart += order[column].Max(b => b.Style.Length) + 1;
-            columnWidths[column] = order[column].Sum(b => b.Style.Width + 1) - 1;
+            nextStart += columnBlocks[column].Max(b => b.Style.Length) + Gap;
+            columnSpans[column] = columnBlocks[column].Sum(b => b.Style.Width + Gap) - Gap;
         }
 
-        var depth = nextStart - 1;
+        var depth = nextStart - Gap;
 
-        var width = columnWidths.Max();
-        var rowStarts = new int[columnCount];
+        var width = columnSpans.Max();
+        var columnXStarts = new int[columnCount];
         for (var column = 0; column < columnCount; column++)
         {
-            rowStarts[column] = (width - columnWidths[column]) / 2;
+            columnXStarts[column] = (width - columnSpans[column]) / 2;
         }
 
-        var starts = new int[graph.Blocks.Count];
+        var xStarts = new int[graph.Blocks.Count];
         for (var column = 0; column < columnCount; column++)
         {
-            Stack(order[column], rowStarts[column], starts);
+            Stack(columnBlocks[column], columnXStarts[column], xStarts);
         }
 
-        Order(graph, columns, order, rowStarts, starts);
+        Order(graph, columns, columnBlocks, columnXStarts, xStarts);
 
         var centreX = (width - 1) / 2;
         var centreZ = (depth - 1) / 2;
         var cells = new GridCell[graph.Blocks.Count];
         foreach (var block in graph.Blocks)
         {
-            var x = starts[block.Index] - block.Style.MinX - centreX;
+            var x = xStarts[block.Index] - block.Style.MinX - centreX;
             var z = columnStarts[columns[block.Index]] - centreZ;
             cells[block.Index] = Rotate(x, z, quarterTurns);
         }
@@ -147,9 +148,9 @@ internal static class BlockLayout
     private static void Order(
         BlockGraph graph,
         int[] columns,
-        List<BlockNode>[] order,
-        int[] rowStarts,
-        int[] starts)
+        List<BlockNode>[] columnBlocks,
+        int[] columnXStarts,
+        int[] xStarts)
     {
         var neighbours = new List<BlockNode>[graph.Blocks.Count];
         foreach (var wire in graph.Wires)
@@ -160,7 +161,7 @@ internal static class BlockLayout
 
         double GetCentre(BlockNode block)
         {
-            return starts[block.Index] + (block.Style.Width - 1) / 2.0;
+            return xStarts[block.Index] + (block.Style.Width - 1) / 2.0;
         }
 
         double GetKey(BlockNode block, bool isForward)
@@ -176,25 +177,22 @@ internal static class BlockLayout
         for (var pass = 0; pass < BarycenterPasses; pass++)
         {
             var isForward = pass % 2 == 0;
-            for (var step = 1; step < order.Length; step++)
+            for (var offset = 1; offset < columnBlocks.Length; offset++)
             {
-                var column = isForward ? step : order.Length - 1 - step;
-                order[column] = [.. order[column].OrderBy(b => GetKey(b, isForward)).ThenBy(b => b.Index)];
-                Stack(order[column], rowStarts[column], starts);
+                var column = isForward ? offset : columnBlocks.Length - 1 - offset;
+                columnBlocks[column] = [.. columnBlocks[column].OrderBy(b => GetKey(b, isForward)).ThenBy(b => b.Index)];
+                Stack(columnBlocks[column], columnXStarts[column], xStarts);
             }
         }
     }
 
-    /// <summary>
-    /// Sets each block's first cell along X, one empty cell apart, in order.
-    /// </summary>
-    private static void Stack(List<BlockNode> blocks, int rowStart, int[] starts)
+    private static void Stack(List<BlockNode> blocks, int xStart, int[] xStarts)
     {
-        var start = rowStart;
+        var start = xStart;
         foreach (var block in blocks)
         {
-            starts[block.Index] = start;
-            start += block.Style.Width + 1;
+            xStarts[block.Index] = start;
+            start += block.Style.Width + Gap;
         }
     }
 }

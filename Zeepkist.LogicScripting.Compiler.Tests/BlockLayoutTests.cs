@@ -45,8 +45,8 @@ public class BlockLayoutTests
         // Line order would put b, fed by the second ticker, level with the first one: their Wires would cross
         var result = ScriptCompiler.Compile("x = ticker()\ny = ticker()\nb = digitizer(y)\na = digitizer(x)", 0);
 
-        var rows = result.Blocks.Select(b => b.Cell.X).ToArray();
-        Assert.Equal((rows[0], rows[1]), (rows[3], rows[2]));
+        var xs = result.Blocks.Select(b => b.Cell.X).ToArray();
+        Assert.Equal((xs[0], xs[1]), (xs[3], xs[2]));
     }
 
     [Fact]
