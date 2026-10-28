@@ -304,13 +304,21 @@ internal sealed partial class ScriptWindow
             _showReference = true;
 
         gui.Box(content, in gui.Style.Tabs.ContainerBox);
-        BlockProperties hovered = null;
-        WindowRegion.Begin(gui, content);
         if (_showReference)
         {
-            _referencePanel.Draw(gui);
+            var spacing = gui.Style.Layout.Spacing;
+            var filter = content.WithPadding(spacing).TakeTop(gui.GetRowHeight(), out _);
+            content.TakeTop(gui.GetRowHeight() + spacing, out var entries);
+            _referencePanel.DrawFilter(gui, filter);
+            WindowRegion.Begin(gui, entries);
+            _referencePanel.DrawEntries(gui);
+            WindowRegion.End(gui);
+            return null;
         }
-        else if (_current == null)
+
+        BlockProperties hovered = null;
+        WindowRegion.Begin(gui, content);
+        if (_current == null)
         {
             gui.Text("No Script selected", wrap: true);
         }

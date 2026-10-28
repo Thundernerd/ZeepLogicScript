@@ -20,18 +20,20 @@ internal sealed class ReferencePanel
         FilterFocused = false;
     }
 
-    public void Draw(ImGui gui)
+    /// <summary>
+    /// Kept out of the scrolling entries, so dragging to scroll can't take the click, and named, so its id doesn't
+    /// depend on what was drawn before it.
+    /// </summary>
+    public void DrawFilter(ImGui gui, ImRect rect)
     {
-        gui.AddSpacingIfLayoutFrameNotEmpty();
-        var rect = gui.AddSingleRowRect(default);
-        var id = gui.GetNextControlId();
+        var id = gui.GetControlId("reference-filter");
         ref var state = ref gui.Storage.Get<ImTextEditState>(id);
-        gui.TextEdit(id, ref _filter, ref state, rect, false);
+        gui.TextEdit(id, ref _filter, ref state, rect, false, hint: "Filter: name, input, output, option");
         FilterFocused = FieldFocus.Update(gui, id);
+    }
 
-        if (_filter.Length == 0)
-            gui.TooltipAtLastControl("Filter by name, input, output or option");
-
+    public void DrawEntries(ImGui gui)
+    {
         var shown = 0;
         foreach (var entry in BlockReference.Entries)
         {
