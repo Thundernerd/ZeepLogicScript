@@ -13,9 +13,6 @@ public sealed class BlockModes
         Outputs = outputs;
     }
 
-    /// <summary>
-    /// The <see cref="SettingType.Option"/> Setting that picks the mode.
-    /// </summary>
     public BlockSetting Setting { get; }
 
     /// <summary>

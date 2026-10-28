@@ -13,9 +13,6 @@ internal sealed class BlockGraph
     /// </summary>
     public List<BlockNode> Blocks { get; } = [];
 
-    /// <summary>
-    /// Wires between <see cref="Blocks"/>.
-    /// </summary>
     public List<GraphWire> Wires { get; } = [];
 
     /// <summary>

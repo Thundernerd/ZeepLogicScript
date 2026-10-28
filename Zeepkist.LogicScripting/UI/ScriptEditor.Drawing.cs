@@ -18,16 +18,13 @@ internal sealed partial class ScriptEditor
     private string _runsText;
     private int _lineCount = 1;
 
-    /// <summary>
-    /// Draws the visible lines, a run of one colour at a time.
-    /// </summary>
     private void DrawText(ImGui gui, ImRect textRect, ImRect textBounds, SyntaxPalette palette)
     {
         var (firstLine, lastLine) = GetVisibleLines(textRect, textBounds, _layout.LinesCount);
-        var runs = GetRuns();
-        for (var i = FindFirstRunOnLine(runs, firstLine); i < runs.Count && runs[i].Line <= lastLine; i++)
+        UpdateRuns();
+        for (var i = FindFirstRunOnLine(_runs, firstLine); i < _runs.Count && _runs[i].Line <= lastLine; i++)
         {
-            var run = runs[i];
+            var run = _runs[i];
             var position = ImTextEdit.LineOffsetToViewPosition(run.Line, run.Offset, Text, textRect, gui.TextDrawer, in _layout);
             gui.TextDrawer.FillLayout(run.Text, 0, 0, 0, 0, _layout.Size, false, ImTextOverflow.Overflow, ref _runLayout);
             gui.Canvas.Text(run.Text, palette.Get(run.Kind), position, in _runLayout);
@@ -35,7 +32,7 @@ internal sealed partial class ScriptEditor
     }
 
     /// <summary>
-    /// A line under each error; one with nothing to underline (at the end of a line) gets a short one.
+    /// An error with nothing to underline (at the end of a line) still gets a short underline.
     /// </summary>
     private void DrawErrors(ImGui gui, ImRect textRect, SyntaxPalette palette)
     {
@@ -55,7 +52,7 @@ internal sealed partial class ScriptEditor
     }
 
     /// <summary>
-    /// Line numbers, right-aligned in a column left of the text, scrolled with it vertically but not horizontally.
+    /// The line numbers scroll with the text vertically but not horizontally.
     /// </summary>
     private void DrawGutter(ImGui gui, ImRect rect, float gutterWidth, ImRect textRect, ImRect textBounds, SyntaxPalette palette)
     {
@@ -75,12 +72,9 @@ internal sealed partial class ScriptEditor
         gui.Canvas.PopClipRect();
     }
 
-    /// <summary>
-    /// Wide enough for the current text's last line number, and never less than two digits.
-    /// </summary>
     private float GetGutterWidth(ImGui gui, float textSize)
     {
-        GetRuns();
+        UpdateRuns();
         var digits = Math.Max(2, _lineCount.ToString().Length);
         return (digits * gui.TextDrawer.GetCharacterAdvance('0', textSize)) + (gui.Style.Layout.InnerSpacing * 2);
     }
@@ -93,14 +87,10 @@ internal sealed partial class ScriptEditor
         return (first, last);
     }
 
-    /// <summary>
-    /// The text split into runs of one colour at line breaks and at the lexer's spans, leaving out runs of only
-    /// whitespace. Worked out again only when the text changed.
-    /// </summary>
-    private List<TextRun> GetRuns()
+    private void UpdateRuns()
     {
         if (ReferenceEquals(_runsText, Text))
-            return _runs;
+            return;
 
         _runs.Clear();
         _runsText = Text;
@@ -116,7 +106,6 @@ internal sealed partial class ScriptEditor
 
         AddRuns(index, Text.Length, null, ref line, ref lineStart);
         _lineCount = line + 1;
-        return _runs;
     }
 
     private void AddRuns(int start, int end, HighlightKind? kind, ref int line, ref int lineStart)

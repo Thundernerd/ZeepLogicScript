@@ -59,7 +59,7 @@ internal sealed partial class Parser
 
     private Statement ParseStatement()
     {
-        if (Current.Kind == TokenKind.Name && Peek(1).Kind == TokenKind.Equals)
+        if (IsDefinitionStart())
         {
             var name = Current;
             _index += 2;
@@ -247,9 +247,11 @@ internal sealed partial class Parser
         }
     }
 
-    /// <summary>
-    /// Whether the tokens from <paramref name="offset"/> on start <c>name:</c>.
-    /// </summary>
+    private bool IsDefinitionStart()
+    {
+        return Current.Kind == TokenKind.Name && Peek(1).Kind == TokenKind.Equals;
+    }
+
     private bool IsNamedArgument(int offset)
     {
         return Peek(offset).Kind == TokenKind.Name && Peek(offset + 1).Kind == TokenKind.Colon;
@@ -303,7 +305,7 @@ internal sealed partial class Parser
             return;
 
         _index++;
-        if (Current.Kind == TokenKind.Name && Peek(1).Kind == TokenKind.Equals)
+        if (IsDefinitionStart())
             return;
 
         SkipLine();

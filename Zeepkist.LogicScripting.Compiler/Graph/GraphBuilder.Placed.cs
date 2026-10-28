@@ -7,26 +7,19 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 
 internal sealed partial class GraphBuilder
 {
-    /// <summary>
-    /// <c>placed("UID")</c>: a Placed Block Reference.
-    /// </summary>
     private const string PlacedFunction = "placed";
 
     private readonly Dictionary<string, BlockNode> _placedNodes = [];
 
-    /// <summary>
-    /// The line that wired each input of a placed block, by block and input Connector.
-    /// </summary>
-    private readonly Dictionary<(BlockNode Block, int Connector), int> _placedInputs = [];
+    private readonly Dictionary<(BlockNode Block, int Connector), int> _placedInputLines = [];
 
     /// <summary>
-    /// Wires into placed blocks and the argument that wired each; the only Wires that can close a Dependency Loop.
+    /// The only Wires that can close a Dependency Loop.
     /// </summary>
     private readonly List<(GraphWire Wire, SyntaxNode Origin)> _wiresIntoPlaced = [];
 
     /// <summary>
-    /// The block a <c>placed("UID")</c> refers to, or null after reporting why it refers to none. Several references
-    /// to one UID share one block.
+    /// Null after reporting why the reference reaches no block. Several references to one UID share one block.
     /// </summary>
     private Resolved? VisitPlaced(CallExpression call)
     {
@@ -60,9 +53,6 @@ internal sealed partial class GraphBuilder
         return block.Outputs.Count == 1 ? Resolved.Of(new BlockOutput(block, block.Outputs[0].Index)) : Resolved.Of(block);
     }
 
-    /// <summary>
-    /// Whether a call is to a name defined with <c>placed(...)</c>, which wires into that block's inputs.
-    /// </summary>
     private bool IsReferenceCall(CallExpression call)
     {
         return _names.TryGetValue(call.Function, out var value) && value.Block.IsPlaced;
@@ -125,11 +115,9 @@ internal sealed partial class GraphBuilder
         return type.FindSetting(name) != null || name == BlockSetting.Hide.Name || name == BlockType.StyleName;
     }
 
-    /// <param name="call">The call that wires the input.</param>
-    /// <param name="isByPosition">Whether the call wires it by position rather than by name.</param>
-    /// <param name="input">The input's position in the block type's inputs.</param>
-    /// <param name="from">The output to wire from.</param>
-    /// <param name="block">The placed block.</param>
+    /// <summary>
+    /// <paramref name="input"/> is the input's position in the block type's inputs, not its Connector index.
+    /// </summary>
     private void WireIntoPlaced(CallExpression call, bool isByPosition, int input, BlockOutput from, BlockNode block)
     {
         var connector = block.Type.Inputs[input];
@@ -143,13 +131,13 @@ internal sealed partial class GraphBuilder
             return;
         }
 
-        if (_placedInputs.TryGetValue((block, connector.Index), out var line))
+        if (_placedInputLines.TryGetValue((block, connector.Index), out var line))
         {
             Error(origin, $"Input '{connector.Name}' of '{call.Function}' is already wired on line {line}");
             return;
         }
 
-        _placedInputs.Add((block, connector.Index), call.Position.Line);
+        _placedInputLines.Add((block, connector.Index), call.Position.Line);
         _wiresIntoPlaced.Add((_graph.AddWire(from, block, connector.Index), origin));
     }
 

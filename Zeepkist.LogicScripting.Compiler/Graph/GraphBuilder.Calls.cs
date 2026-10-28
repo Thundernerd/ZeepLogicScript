@@ -93,9 +93,6 @@ internal sealed partial class GraphBuilder
         }
     }
 
-    /// <summary>
-    /// What feeds an argument; the check fails when nothing can.
-    /// </summary>
     private InputFeed? EvaluateArgument(ArgumentCheck check, Expression expression)
     {
         var feed = EvaluateFeed(expression);
@@ -105,9 +102,6 @@ internal sealed partial class GraphBuilder
         return feed;
     }
 
-    /// <summary>
-    /// A named argument wires an input or gives a Setting.
-    /// </summary>
     private void VisitNamedArgument(ArgumentCheck check, NamedArgument argument)
     {
         if (!check.TryGive(argument))
@@ -137,7 +131,7 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// The style a <c>style:</c> argument names, or null after reporting why it names none.
+    /// Null after reporting why the argument names no style.
     /// </summary>
     private BlockStyle GetStyle(BlockType type, NamedArgument argument)
     {

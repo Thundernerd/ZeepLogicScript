@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
-/// <summary>
-/// The editor's colours for each <see cref="HighlightKind"/>, the error underline and the line numbers, picked to read
-/// on the theme's light or dark field background.
-/// </summary>
 internal readonly struct SyntaxPalette
 {
     private static readonly Dictionary<HighlightKind, Color32> _dark = new()
@@ -53,7 +49,7 @@ internal readonly struct SyntaxPalette
     }
 
     /// <summary>
-    /// The colour for a kind; names, punctuation and text the lexer gave no kind keep the theme's text colour.
+    /// Names, punctuation and text the lexer gave no kind keep the theme's text colour.
     /// </summary>
     public Color32 Get(HighlightKind? kind)
     {

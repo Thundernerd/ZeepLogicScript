@@ -43,9 +43,6 @@ public sealed class CompileResult
 
     public bool Succeeded => Errors.Count == 0;
 
-    /// <summary>
-    /// How many blocks already in the level <see cref="PlacedWires"/> wire into or out of.
-    /// </summary>
     public int WiredPlacedBlockCount => PlacedWires
         .SelectMany(w => new[] { w.From, w.To })
         .Where(end => end.IsPlaced)

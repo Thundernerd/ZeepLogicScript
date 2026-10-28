@@ -17,9 +17,6 @@ public sealed class CompiledBlock
 
     public BlockType Type { get; }
 
-    /// <summary>
-    /// Which of the type's blocks to place.
-    /// </summary>
     public BlockStyle Style { get; }
 
     public IReadOnlyList<Setting> Settings { get; }

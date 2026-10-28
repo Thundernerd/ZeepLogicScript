@@ -8,10 +8,6 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 
 internal sealed partial class GraphBuilder
 {
-    /// <summary>
-    /// The state built up while checking a Block Function call's arguments: the wired inputs, the Settings,
-    /// and the names given and meant. Reports the problems it finds with the names.
-    /// </summary>
     private sealed class ArgumentCheck
     {
         private readonly Action<SyntaxNode, string> _error;
@@ -34,21 +30,16 @@ internal sealed partial class GraphBuilder
         public CallExpression Call { get; }
         public BlockType Type { get; }
         public WiredInput?[] Inputs { get; }
+
         /// <summary>
         /// The stored Settings per Setting given; several for a Toggler's targets.
         /// </summary>
         public Dictionary<BlockSetting, IReadOnlyList<Setting>> Settings { get; } = [];
 
-        /// <summary>
-        /// The style the call picked, or the type's default.
-        /// </summary>
         public BlockStyle Style { get; private set; }
 
         public bool Failed { get; private set; }
 
-        /// <summary>
-        /// Reports a problem with the call and fails.
-        /// </summary>
         public void ReportAndFail(SyntaxNode node, string message)
         {
             _error(node, message);
@@ -56,16 +47,13 @@ internal sealed partial class GraphBuilder
         }
 
         /// <summary>
-        /// Fails without reporting, for a problem already reported elsewhere.
+        /// For a problem already reported elsewhere.
         /// </summary>
         public void MarkFailed()
         {
             Failed = true;
         }
 
-        /// <summary>
-        /// Adds a named argument's name to the names given; reports it when the call gives it twice.
-        /// </summary>
         public bool TryGive(NamedArgument argument)
         {
             if (_givenNames.Add(argument.Name))
@@ -92,8 +80,7 @@ internal sealed partial class GraphBuilder
         }
 
         /// <summary>
-        /// Gives a Setting its values, one per key it's stored under; fails when the value was invalid and already
-        /// reported.
+        /// Null <paramref name="settings"/> means the value was invalid and already reported.
         /// </summary>
         public void GiveSettings(BlockSetting blockSetting, IReadOnlyList<Setting> settings)
         {
@@ -104,7 +91,7 @@ internal sealed partial class GraphBuilder
         }
 
         /// <summary>
-        /// Picks the block the call places; fails when the style was invalid and already reported.
+        /// A null <paramref name="style"/> was invalid and already reported.
         /// </summary>
         public void ChooseStyle(BlockStyle style)
         {
@@ -114,9 +101,6 @@ internal sealed partial class GraphBuilder
                 Style = style;
         }
 
-        /// <summary>
-        /// Reports a name that is neither an input nor a Setting, with the closest one it was probably meant as.
-        /// </summary>
         public void ReportUnknownName(NamedArgument argument)
         {
             var message = $"'{Call.Function}' has no input or Setting '{argument.Name}'";
@@ -131,8 +115,7 @@ internal sealed partial class GraphBuilder
         }
 
         /// <summary>
-        /// Reports each required Setting the call leaves out. One a misspelt name was probably meant as has
-        /// already been reported.
+        /// Skips a required Setting that a misspelt name was probably meant as; that name was already reported.
         /// </summary>
         public void CheckRequiredSettings()
         {

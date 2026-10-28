@@ -44,8 +44,5 @@ internal sealed class UnaryOperator
     /// </summary>
     public OperatorBlock Block { get; }
 
-    /// <summary>
-    /// The literals fed into <see cref="Block"/>'s first inputs, in order, before the operand.
-    /// </summary>
     public IReadOnlyList<long> LeadingLiterals { get; }
 }

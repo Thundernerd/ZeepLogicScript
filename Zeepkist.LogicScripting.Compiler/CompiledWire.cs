@@ -1,8 +1,5 @@
 namespace TNRD.Zeepkist.LogicScripting.Compiler;
 
-/// <summary>
-/// A Wire from an output Connector to an input Connector.
-/// </summary>
 public sealed class CompiledWire
 {
     public CompiledWire(WireEnd from, int fromConnector, WireEnd to, int toConnector)

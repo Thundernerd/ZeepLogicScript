@@ -9,8 +9,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 internal sealed partial class GraphBuilder
 {
     /// <summary>
-    /// The values a named argument gives a Setting, written out in the call itself: a number, true / false, an option
-    /// word, or for Targets one per block (see <see cref="GetTargets"/>). Null after reporting why the value is wrong.
+    /// One per stored key, so several for a Toggler's targets. Null after reporting why the value is wrong.
     /// </summary>
     private IReadOnlyList<Setting> GetSettingValues(BlockSetting setting, NamedArgument argument)
     {
@@ -83,8 +82,7 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// A Toggler's targets: one Placed Block Reference, or a list of 1 to 8 different ones. Null after reporting why
-    /// the value is wrong.
+    /// Null after reporting why the value is wrong.
     /// </summary>
     private IReadOnlyList<Setting> GetTargets(BlockSetting setting, NamedArgument argument)
     {

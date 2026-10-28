@@ -13,9 +13,6 @@ public sealed class BlockSetting
     /// </summary>
     public static readonly BlockSetting Hide = Bool("hide", "lbhd");
 
-    /// <summary>
-    /// The most blocks a <see cref="SettingType.Targets"/> Setting holds.
-    /// </summary>
     public const int MaxTargets = 8;
 
     private BlockSetting(
@@ -100,9 +97,6 @@ public sealed class BlockSetting
         return new BlockSetting(name, keyPrefix, SettingType.Targets, [], true);
     }
 
-    /// <summary>
-    /// The stored Setting for one of <see cref="Options"/>.
-    /// </summary>
     public Setting Choose(string option)
     {
         var index = IndexOf(option);

@@ -9,9 +9,6 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 /// </summary>
 public sealed partial class EditHistory
 {
-    /// <summary>
-    /// How many steps undo can go back.
-    /// </summary>
     public const int MaxSteps = 500;
 
     /// <summary>
@@ -58,10 +55,10 @@ public sealed partial class EditHistory
             && !IsLineBreakTyped(kind, before, after)
             && last.Kind == kind
             && last.After.Equals(before)
-            && time - last.Time <= GroupSeconds)
+            && time - last.LastChanged <= GroupSeconds)
         {
             last.After = after;
-            last.Time = time;
+            last.LastChanged = time;
             return;
         }
 

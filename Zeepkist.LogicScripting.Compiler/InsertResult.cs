@@ -23,9 +23,6 @@ public sealed class InsertResult
 
     public int InsertedCount { get; }
 
-    /// <summary>
-    /// Blocks the Script already refers to.
-    /// </summary>
     public int AlreadyReferencedCount { get; }
 
     /// <summary>

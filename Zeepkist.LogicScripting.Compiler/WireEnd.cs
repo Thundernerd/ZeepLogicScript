@@ -43,9 +43,6 @@ public sealed class WireEnd
         return new WireEnd(0, uid ?? throw new ArgumentNullException(nameof(uid)));
     }
 
-    /// <summary>
-    /// The UID of a placed block, or the index of a block the Compile places.
-    /// </summary>
     public override string ToString()
     {
         return IsPlaced ? _uid : _block.ToString(CultureInfo.InvariantCulture);
