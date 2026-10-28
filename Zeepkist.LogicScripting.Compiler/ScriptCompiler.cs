@@ -51,19 +51,19 @@ public static class ScriptCompiler
         List<CompiledWire> wires = [];
         foreach (var wire in graph.Wires)
         {
-            wires.Add(Convert(wire));
+            wires.Add(ToCompiledWire(wire));
         }
 
         List<CompiledWire> placedWires = [];
         foreach (var wire in graph.PlacedWires)
         {
-            placedWires.Add(Convert(wire));
+            placedWires.Add(ToCompiledWire(wire));
         }
 
         return new CompileResult([], blocks, wires, placedWires, references);
     }
 
-    private static CompiledWire Convert(GraphWire wire)
+    private static CompiledWire ToCompiledWire(GraphWire wire)
     {
         return new CompiledWire(GetEnd(wire.From), wire.FromConnector, GetEnd(wire.To), wire.ToConnector);
     }
