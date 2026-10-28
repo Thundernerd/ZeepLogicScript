@@ -5,6 +5,7 @@ name: Build
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
@@ -31,3 +32,12 @@ jobs:
       run: dotnet test Zeepkist.LogicScripting.Analyzers.Tests/Zeepkist.LogicScripting.Analyzers.Tests.csproj --configuration Release
     - name: Audit dependencies
       run: dotnet list Zeepkist.LogicScripting/Zeepkist.LogicScripting.csproj package --vulnerable --include-transitive
+    - name: Upload build
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: Zeepkist.LogicScripting
+        path: |
+          Zeepkist.LogicScripting/bin/Release/net472/*.dll
+          Zeepkist.LogicScripting/bin/Release/net472/*.pdb
+        if-no-files-found: error
+        retention-days: 14
