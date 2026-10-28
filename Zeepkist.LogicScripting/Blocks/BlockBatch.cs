@@ -45,7 +45,7 @@ internal static partial class BlockBatch
         catch
         {
             Remove(central, added);
-            Restore(changed, label);
+            Restore(central, changed, label);
             throw;
         }
     }
@@ -180,24 +180,38 @@ internal static partial class BlockBatch
     }
 
     /// <summary>
-    /// Puts each changed block's Settings and Wires back as they were, the way undo reloads a block's Connectors.
-    /// Call after removing the added blocks, so nothing redraws a Wire to them.
+    /// Puts each changed block's Settings and Wires back as they were, then reloads and redraws every block wired to
+    /// one of them, the same steps undo takes. Call after removing the added blocks, so nothing redraws a Wire to them.
     /// </summary>
-    private static void Restore(List<ChangedBlock> changed, string label)
+    private static void Restore(LEV_LevelEditorCentral central, List<ChangedBlock> changed, string label)
     {
+        HashSet<string> reloaded = [];
+        HashSet<string> affected = [];
         foreach (var change in changed)
         {
             change.Block.customBlockEditProperties = LEV_UndoRedo.GetJSONblock(change.Before).d?.Clone() ?? new PropertyDictionariesJSON();
+            reloaded.Add(change.Block.UID);
             foreach (var blockEdit in change.Block.GetAllBlockEditV18sFromThisBlock())
             {
-                if (blockEdit.HasConnectors())
-                    blockEdit.GetBlockEditV18ConnectionBase().LoadProperties();
+                if (!blockEdit.HasConnectors())
+                    continue;
+
+                var connections = blockEdit.GetBlockEditV18ConnectionBase();
+                connections.LoadProperties();
+                affected.UnionWith(connections.GetAllConnectedUIDsOnEntireBlockEdit_ButAlsoYourOwnBlockUID());
             }
         }
 
-        foreach (var change in changed)
+        foreach (var uid in affected)
         {
-            RedrawWires(change.Block, label);
+            var block = LevelBlocks.Find(central, uid);
+            if (block == null)
+                continue;
+
+            if (!reloaded.Contains(uid))
+                block.LoadOnlyPropertyScripts();
+
+            RedrawWires(block, label);
         }
     }
 
