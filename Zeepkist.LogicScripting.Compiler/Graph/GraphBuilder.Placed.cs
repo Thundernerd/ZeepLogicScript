@@ -68,9 +68,14 @@ internal sealed partial class GraphBuilder
         var type = block.Type;
         if (type.Inputs.Count == 0)
         {
-            foreach (var argument in call.Arguments.Concat(call.NamedArguments.Select(a => a.Value)))
+            foreach (var argument in call.Arguments)
             {
                 Evaluate(argument);
+            }
+
+            foreach (var argument in call.NamedArguments)
+            {
+                CheckUntypedValue(argument.Value);
             }
 
             Error(call, $"'{call.Function}' has no inputs to wire");
