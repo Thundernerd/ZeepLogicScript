@@ -118,7 +118,41 @@ public class BlockGroupPlacementTests
     [InlineData(new[] { 89.9f, 359.9f, 0.1f }, 0)]
     public void TheYaw_IsTheMajorityRoundedToQuarterTurns(float[] yaws, int expected)
     {
-        Assert.Equal(expected, BlockGroupPlacement.GetMajorityQuarterTurns(yaws));
+        Assert.Equal(expected, BlockGroupPlacement.GetMajorityQuarterTurns(yaws.Select(y => OneCell(0, 0, y)).ToList()));
+    }
+
+    [Fact]
+    public void AReshapedBlock_IsLeftOutOfTheCorner()
+    {
+        // Scaled up by hand, the block's real extent says nothing about where Compile put the corner
+        var origin = BlockGroupPlacement.GetOrigin([OneCell(16, 32), Reshaped(-200, -300)], [], 0);
+
+        Assert.Equal((16f, 32f), origin);
+    }
+
+    [Fact]
+    public void AnAllReshapedGroup_TakesTheCornerFromAllBlocks()
+    {
+        var origin = BlockGroupPlacement.GetOrigin([Reshaped(16, 32), Reshaped(48, 0)], [], 0);
+
+        Assert.Equal((16f, 0f), origin);
+    }
+
+    [Fact]
+    public void AReshapedBlock_IsLeftOutOfTheYaw()
+    {
+        // Tilted by hand, a block's yaw is no longer a quarter turn of the group's
+        var blocks = new[] { OneCell(0, 0, 90), Reshaped(0, 0, 0), Reshaped(0, 0, 0) };
+
+        Assert.Equal(1, BlockGroupPlacement.GetMajorityQuarterTurns(blocks));
+    }
+
+    [Fact]
+    public void AnAllReshapedGroup_TakesTheYawFromAllBlocks()
+    {
+        var blocks = new[] { Reshaped(0, 0, 180), Reshaped(0, 0, 180), Reshaped(0, 0, 90) };
+
+        Assert.Equal(2, BlockGroupPlacement.GetMajorityQuarterTurns(blocks));
     }
 
     private static IReadOnlyList<CompiledBlock> Blocks(CompileResult result)
@@ -157,6 +191,11 @@ public class BlockGroupPlacementTests
     private static GroupBlock OneCell(float x, float z, float yaw = 0)
     {
         return new GroupBlock(x, z, yaw, BlockManifest.Delay.DefaultStyle);
+    }
+
+    private static GroupBlock Reshaped(float x, float z, float yaw = 0)
+    {
+        return new GroupBlock(x, z, yaw, BlockManifest.Delay.DefaultStyle, isReshaped: true);
     }
 
     private static CompiledBlock Compiled(int x, int z, int yaw)
