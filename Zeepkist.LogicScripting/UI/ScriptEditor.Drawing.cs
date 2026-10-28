@@ -16,13 +16,14 @@ internal sealed partial class ScriptEditor
     private readonly List<Run> _runs = [];
     private ImTextLayout _runLayout = new() { Lines = new ImTextLine[4] };
     private string _runsText;
+    private int _lineCount = 1;
 
     /// <summary>
     /// Draws the visible lines, a run of one colour at a time.
     /// </summary>
     private void DrawText(ImGui gui, ImRect textRect, ImRect textBounds, SyntaxPalette palette)
     {
-        var (firstLine, lastLine) = GetVisibleLines(textRect, textBounds);
+        var (firstLine, lastLine) = GetVisibleLines(textRect, textBounds, _layout.LinesCount);
         var runs = GetRuns();
         for (var i = FindFirstRunOnLine(runs, firstLine); i < runs.Count && runs[i].Line <= lastLine; i++)
         {
@@ -58,9 +59,8 @@ internal sealed partial class ScriptEditor
     /// </summary>
     private void DrawGutter(ImGui gui, ImRect rect, float gutterWidth, ImRect textRect, ImRect textBounds, SyntaxPalette palette)
     {
-        var lineCount = Math.Max(1, _layout.LinesCount);
-        var lineHeight = gui.TextDrawer.GetLineHeightFromFontSize(gui.Style.Layout.TextSize);
-        var (firstLine, lastLine) = GetVisibleLines(textRect, textBounds, lineHeight, lineCount);
+        var lineHeight = _layout.LineHeight;
+        var (firstLine, lastLine) = GetVisibleLines(textRect, textBounds, Math.Max(1, _layout.LinesCount));
         var settings = new ImTextSettings(gui.Style.Layout.TextSize, new ImAlignment(1, 0), false, ImTextOverflow.Overflow);
         var padding = gui.Style.Layout.InnerSpacing;
 
@@ -75,19 +75,19 @@ internal sealed partial class ScriptEditor
         gui.Canvas.PopClipRect();
     }
 
-    private static float GetGutterWidth(ImGui gui, float textSize, int lineCount)
+    /// <summary>
+    /// Wide enough for the current text's last line number, and never less than two digits.
+    /// </summary>
+    private float GetGutterWidth(ImGui gui, float textSize)
     {
-        var digits = Math.Max(2, lineCount.ToString().Length);
+        GetRuns();
+        var digits = Math.Max(2, _lineCount.ToString().Length);
         return (digits * gui.TextDrawer.GetCharacterAdvance('0', textSize)) + (gui.Style.Layout.InnerSpacing * 2);
     }
 
-    private (int First, int Last) GetVisibleLines(ImRect textRect, ImRect textBounds)
+    private (int First, int Last) GetVisibleLines(ImRect textRect, ImRect textBounds, int lineCount)
     {
-        return GetVisibleLines(textRect, textBounds, _layout.LineHeight, _layout.LinesCount);
-    }
-
-    private static (int First, int Last) GetVisibleLines(ImRect textRect, ImRect textBounds, float lineHeight, int lineCount)
-    {
+        var lineHeight = _layout.LineHeight;
         var first = Mathf.Max(0, Mathf.FloorToInt((textRect.Top - textBounds.Top) / lineHeight));
         var last = Mathf.Min(lineCount - 1, Mathf.CeilToInt((textRect.Top - textBounds.Bottom) / lineHeight));
         return (first, last);
@@ -115,6 +115,7 @@ internal sealed partial class ScriptEditor
         }
 
         AddRuns(index, Text.Length, null, ref line, ref lineStart);
+        _lineCount = line + 1;
         return _runs;
     }
 

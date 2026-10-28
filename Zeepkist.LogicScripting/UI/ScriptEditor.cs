@@ -92,7 +92,7 @@ internal sealed partial class ScriptEditor
 
         gui.Box(rect, in stateStyle.Box);
 
-        var gutterWidth = GetGutterWidth(gui, textSize, _layout.LinesCount);
+        var gutterWidth = GetGutterWidth(gui, textSize);
         var textArea = new ImRect(rect.X + gutterWidth, rect.Y, rect.W - gutterWidth, rect.H);
         var textBounds = textArea.WithPadding((ImPadding)gui.Style.Layout.InnerSpacing + style.Padding);
 
