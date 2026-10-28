@@ -1,13 +1,15 @@
 using Imui.Core;
 using Imui.IO.Events;
+using UnityEngine;
 
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// A strip over the edge between two regions that moves the edge when dragged. Draw it after both regions: Imui gives
-/// the hover to the last control under the cursor.
+/// A strip over the edge of a panel that resizes the panel when dragged. Call <see cref="Drag"/> before drawing the
+/// controls under the strip, so they never see the drag's mouse events and take the drag over, and
+/// <see cref="Draw"/> after them, as Imui gives the hover to the last control under the cursor.
 /// </summary>
-internal static class ResizeHandle
+internal sealed class ResizeHandle
 {
     /// <summary>
     /// Wider than the 1px edge it lies over, so it's easy to grab.
@@ -16,46 +18,61 @@ internal static class ResizeHandle
 
     private const float LineSize = 2;
 
-    /// <summary>
-    /// Returns how far the edge was dragged this frame: along x for a vertical edge, along y (up is positive) for a
-    /// horizontal one. The edge is highlighted while the grab strip is hovered or dragged.
-    /// </summary>
-    public static float Draw(ImGui gui, uint id, ImRect edge, ImRect grab, ImAxis axis)
+    private readonly ImAxis _axis;
+    private readonly float _growDirection;
+    private float _startSize;
+    private float _startMouse;
+
+    /// <param name="axis">The axis the edge moves along.</param>
+    /// <param name="growDirection">1 when moving the edge right or up makes the panel bigger, -1 when smaller.</param>
+    public ResizeHandle(ImAxis axis, float growDirection)
     {
-        var hovered = gui.IsControlHovered(id);
-        var active = gui.IsControlActive(id);
-        var dragged = 0f;
-
-        ref readonly var evt = ref gui.Input.MouseEvent;
-        switch (evt.Type)
-        {
-            // The first frame's movement only comes with BeginDrag: Imui sends no Drag for it
-            case ImMouseEventType.Down or ImMouseEventType.BeginDrag when evt.LeftButton && hovered:
-                gui.SetActiveControl(id, ImControlFlag.Draggable);
-                dragged = GetDelta(evt, axis);
-                gui.Input.UseMouseEvent();
-                break;
-
-            case ImMouseEventType.Drag when active:
-                dragged = GetDelta(evt, axis);
-                gui.Input.UseMouseEvent();
-                break;
-
-            case ImMouseEventType.Up when active:
-                gui.ResetActiveControl();
-                break;
-        }
-
-        gui.RegisterControl(id, grab);
-        if (hovered || active)
-            gui.Canvas.Rect(Widen(edge, axis, LineSize), gui.Style.Window.ResizeHandleActiveColor);
-
-        return dragged;
+        _axis = axis;
+        _growDirection = growDirection;
     }
 
-    public static ImRect GrabAround(ImRect edge, ImAxis axis)
+    /// <summary>
+    /// Returns the size the drag gives the panel, or null while it isn't being dragged. The size follows the mouse from
+    /// where the drag began: Imui's drag deltas don't add up to the mouse's movement in game.
+    /// </summary>
+    public float? Drag(ImGui gui, uint id, float size)
     {
-        return Widen(edge, axis, GrabSize);
+        ref readonly var evt = ref gui.Input.MouseEvent;
+        if (!gui.IsControlActive(id))
+        {
+            if (evt.Type is not (ImMouseEventType.Down or ImMouseEventType.BeginDrag) || !evt.LeftButton || !gui.IsControlHovered(id))
+                return null;
+
+            gui.SetActiveControl(id, ImControlFlag.Draggable);
+            gui.Input.UseMouseEvent();
+            _startSize = size;
+            _startMouse = GetMouse(gui);
+            return null;
+        }
+
+        // Unity's button state too, in case the Up event never reaches the handle
+        if (evt.Type == ImMouseEventType.Up || !Input.GetMouseButton(0))
+        {
+            gui.ResetActiveControl();
+            return null;
+        }
+
+        if (evt.Type is ImMouseEventType.BeginDrag or ImMouseEventType.Drag)
+            gui.Input.UseMouseEvent();
+
+        return _startSize + ((GetMouse(gui) - _startMouse) * _growDirection);
+    }
+
+    public void Draw(ImGui gui, uint id, ImRect edge, ImRect grab)
+    {
+        gui.RegisterControl(id, grab);
+        if (gui.IsControlHovered(id) || gui.IsControlActive(id))
+            gui.Canvas.Rect(Widen(edge, LineSize), gui.Style.Window.ResizeHandleActiveColor);
+    }
+
+    public ImRect GrabAround(ImRect edge)
+    {
+        return Widen(edge, GrabSize);
     }
 
     /// <summary>
@@ -66,15 +83,16 @@ internal static class ResizeHandle
         return new ImRect(edge.X, edge.Y, GrabSize, edge.H);
     }
 
-    private static float GetDelta(in ImMouseEvent evt, ImAxis axis)
+    private float GetMouse(ImGui gui)
     {
-        return axis == ImAxis.Horizontal ? evt.Delta.x : evt.Delta.y;
+        var mouse = gui.Input.MousePosition;
+        return _axis == ImAxis.Horizontal ? mouse.x : mouse.y;
     }
 
-    private static ImRect Widen(ImRect edge, ImAxis axis, float size)
+    private ImRect Widen(ImRect edge, float size)
     {
         var center = edge.Center;
-        return axis == ImAxis.Horizontal
+        return _axis == ImAxis.Horizontal
             ? new ImRect(center.x - (size / 2), edge.Y, size, edge.H)
             : new ImRect(edge.X, center.y - (size / 2), edge.W, size);
     }

@@ -35,6 +35,10 @@ internal sealed partial class ScriptWindow
     private const int MinErrorRows = 1;
     private const int MinFieldRows = 3;
 
+    private readonly ResizeHandle _scriptsEdge = new(ImAxis.Horizontal, 1);
+    private readonly ResizeHandle _levelEdge = new(ImAxis.Horizontal, -1);
+    private readonly ResizeHandle _errorsEdge = new(ImAxis.Vertical, 1);
+
     private WindowState _savedState;
     private bool _showReference;
 
@@ -128,16 +132,22 @@ internal sealed partial class ScriptWindow
 
         // Before collapsing, the sides shrink to make room for the centre, the Level side first. The state keeps the
         // size they were given, so they grow back when the window does.
+        var maxScriptsWidth = area.W - MinCentreWidth - (levelCollapsed ? collapsedWidth : minLevelWidth);
         var scriptsWidth = scriptsCollapsed
             ? collapsedWidth
-            : GetPanelSize(
-                _state.ScriptsWidth,
-                DefaultScriptsWidth,
-                MinScriptsWidth,
-                area.W - MinCentreWidth - (levelCollapsed ? collapsedWidth : minLevelWidth));
+            : GetPanelSize(_state.ScriptsWidth, DefaultScriptsWidth, MinScriptsWidth, maxScriptsWidth);
+        var maxLevelWidth = area.W - MinCentreWidth - scriptsWidth;
         var levelWidth = levelCollapsed
             ? collapsedWidth
-            : GetPanelSize(_state.LevelWidth, minLevelWidth, minLevelWidth, area.W - MinCentreWidth - scriptsWidth);
+            : GetPanelSize(_state.LevelWidth, minLevelWidth, minLevelWidth, maxLevelWidth);
+
+        var scriptsEdgeId = gui.GetControlId("scripts edge");
+        var levelEdgeId = gui.GetControlId("level edge");
+        if (!scriptsCollapsed && _scriptsEdge.Drag(gui, scriptsEdgeId, scriptsWidth) is { } draggedScriptsWidth)
+            _state.ScriptsWidth = GetPanelSize(draggedScriptsWidth, DefaultScriptsWidth, MinScriptsWidth, maxScriptsWidth);
+
+        if (!levelCollapsed && _levelEdge.Drag(gui, levelEdgeId, levelWidth) is { } draggedLevelWidth)
+            _state.LevelWidth = GetPanelSize(draggedLevelWidth, minLevelWidth, minLevelWidth, maxLevelWidth);
 
         var scripts = area.TakeLeft(scriptsWidth, out var rest);
         var level = rest.TakeRight(levelWidth, out var centre);
@@ -171,29 +181,19 @@ internal sealed partial class ScriptWindow
         var hovered = levelCollapsed ? null : DrawLevelTabs(gui, GetSideBody(gui, level));
         gui.PopId();
 
+        // Each grab strip lies right of its edge, off the scrollbar of the region on the left
         if (!scriptsCollapsed)
-        {
-            // Each grab strip lies right of its edge, off the scrollbar of the region on the left
-            var grab = ResizeHandle.GrabRightOf(scriptsEdge);
-            var dragged = ResizeHandle.Draw(gui, gui.GetControlId("scripts edge"), scriptsEdge, grab, ImAxis.Horizontal);
-            if (dragged != 0)
-                _state.ScriptsWidth = Mathf.Max(MinScriptsWidth, scriptsWidth + dragged);
-        }
+            _scriptsEdge.Draw(gui, scriptsEdgeId, scriptsEdge, ResizeHandle.GrabRightOf(scriptsEdge));
 
         if (!levelCollapsed)
-        {
-            var grab = ResizeHandle.GrabRightOf(levelEdge);
-            var dragged = ResizeHandle.Draw(gui, gui.GetControlId("level edge"), levelEdge, grab, ImAxis.Horizontal);
-            if (dragged != 0)
-                _state.LevelWidth = Mathf.Max(minLevelWidth, levelWidth - dragged);
-        }
+            _levelEdge.Draw(gui, levelEdgeId, levelEdge, ResizeHandle.GrabRightOf(levelEdge));
 
         return hovered;
     }
 
     /// <summary>
-    /// A stored size of zero means the panel was never resized; a drag never stores one. Unlike
-    /// <see cref="Mathf.Clamp(float, float, float)"/>, the minimum wins when there's less room than that.
+    /// A stored size of zero means the panel was never resized; a drag never stores one, as it stores the size it shows.
+    /// Unlike <see cref="Mathf.Clamp(float, float, float)"/>, the minimum wins when there's less room than that.
     /// </summary>
     private static float GetPanelSize(float stored, float defaultSize, float min, float max)
     {
@@ -276,16 +276,15 @@ internal sealed partial class ScriptWindow
         var available = gui.Layout.GetAvailableHeight() - (spacing * 2);
         var minFieldHeight = gui.GetRowsHeightWithSpacing(MinFieldRows);
         var headerHeight = GetPanelHeaderHeight(gui);
+        var defaultErrorsHeight = gui.GetRowsHeightWithSpacing(DefaultErrorRows);
         var minErrorsHeight = gui.GetRowsHeightWithSpacing(MinErrorRows);
-        var errorsHeight = headerHeight;
-        if (!_state.ErrorsHidden)
-        {
-            errorsHeight += GetPanelSize(
-                _state.ErrorsHeight,
-                gui.GetRowsHeightWithSpacing(DefaultErrorRows),
-                minErrorsHeight,
-                available - headerHeight - minFieldHeight);
-        }
+        var maxErrorsHeight = available - headerHeight - minFieldHeight;
+        var errorsBodyHeight = GetPanelSize(_state.ErrorsHeight, defaultErrorsHeight, minErrorsHeight, maxErrorsHeight);
+        var errorsHeight = headerHeight + (_state.ErrorsHidden ? 0 : errorsBodyHeight);
+
+        var errorsEdgeId = gui.GetControlId("errors edge");
+        if (!_state.ErrorsHidden && _errorsEdge.Drag(gui, errorsEdgeId, errorsBodyHeight) is { } draggedErrorsHeight)
+            _state.ErrorsHeight = GetPanelSize(draggedErrorsHeight, defaultErrorsHeight, minErrorsHeight, maxErrorsHeight);
 
         var fieldHeight = Mathf.Max(minFieldHeight, available - errorsHeight);
         var compileRequested = DrawField(gui, gui.AddLayoutRectWithSpacing(gui.GetLayoutWidth(), fieldHeight));
@@ -316,10 +315,7 @@ internal sealed partial class ScriptWindow
 
         // Centred in the gap above the panel, so the grab strip takes as little as it can of the editor's edge
         var edge = new ImRect(errors.X, errors.Top + (spacing / 2), errors.W, 0);
-        var grab = ResizeHandle.GrabAround(edge, ImAxis.Vertical);
-        var dragged = ResizeHandle.Draw(gui, gui.GetControlId("errors edge"), edge, grab, ImAxis.Vertical);
-        if (dragged != 0)
-            _state.ErrorsHeight = Mathf.Max(minErrorsHeight, body.H + dragged);
+        _errorsEdge.Draw(gui, errorsEdgeId, edge, _errorsEdge.GrabAround(edge));
     }
 
     /// <summary>
