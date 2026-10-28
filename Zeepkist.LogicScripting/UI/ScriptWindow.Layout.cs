@@ -144,10 +144,10 @@ internal sealed partial class ScriptWindow
         var scriptsEdgeId = gui.GetControlId("scripts edge");
         var levelEdgeId = gui.GetControlId("level edge");
         if (!scriptsCollapsed && _scriptsEdge.Drag(gui, scriptsEdgeId, scriptsWidth) is { } draggedScriptsWidth)
-            _state.ScriptsWidth = GetPanelSize(draggedScriptsWidth, DefaultScriptsWidth, MinScriptsWidth, maxScriptsWidth);
+            _state.ScriptsWidth = ClampSize(draggedScriptsWidth, MinScriptsWidth, maxScriptsWidth);
 
         if (!levelCollapsed && _levelEdge.Drag(gui, levelEdgeId, levelWidth) is { } draggedLevelWidth)
-            _state.LevelWidth = GetPanelSize(draggedLevelWidth, minLevelWidth, minLevelWidth, maxLevelWidth);
+            _state.LevelWidth = ClampSize(draggedLevelWidth, minLevelWidth, maxLevelWidth);
 
         var scripts = area.TakeLeft(scriptsWidth, out var rest);
         var level = rest.TakeRight(levelWidth, out var centre);
@@ -192,12 +192,19 @@ internal sealed partial class ScriptWindow
     }
 
     /// <summary>
-    /// A stored size of zero means the panel was never resized; a drag never stores one, as it stores the size it shows.
-    /// Unlike <see cref="Mathf.Clamp(float, float, float)"/>, the minimum wins when there's less room than that.
+    /// A stored size of zero means the panel was never resized. A drag never stores one: it stores the size it shows,
+    /// clamped with <see cref="ClampSize"/>.
     /// </summary>
     private static float GetPanelSize(float stored, float defaultSize, float min, float max)
     {
-        var size = stored > 0 ? stored : defaultSize;
+        return ClampSize(stored > 0 ? stored : defaultSize, min, max);
+    }
+
+    /// <summary>
+    /// Unlike <see cref="Mathf.Clamp(float, float, float)"/>, the minimum wins when there's less room than that.
+    /// </summary>
+    private static float ClampSize(float size, float min, float max)
+    {
         return Mathf.Max(min, Mathf.Min(size, max));
     }
 
@@ -284,7 +291,7 @@ internal sealed partial class ScriptWindow
 
         var errorsEdgeId = gui.GetControlId("errors edge");
         if (!_state.ErrorsHidden && _errorsEdge.Drag(gui, errorsEdgeId, errorsBodyHeight) is { } draggedErrorsHeight)
-            _state.ErrorsHeight = GetPanelSize(draggedErrorsHeight, defaultErrorsHeight, minErrorsHeight, maxErrorsHeight);
+            _state.ErrorsHeight = ClampSize(draggedErrorsHeight, minErrorsHeight, maxErrorsHeight);
 
         var fieldHeight = Mathf.Max(minFieldHeight, available - errorsHeight);
         var compileRequested = DrawField(gui, gui.AddLayoutRectWithSpacing(gui.GetLayoutWidth(), fieldHeight));
