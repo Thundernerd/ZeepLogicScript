@@ -4,25 +4,32 @@ using System.Collections.Generic;
 namespace TNRD.Zeepkist.LogicScripting.Blocks;
 
 /// <summary>
-/// Places a set of blocks as one undo step, all or nothing. Uses only game types and plain block JSON, nothing
-/// Script-specific, so it can move to ZeepSDK later (ADR 0007).
+/// Places a set of blocks and wires them to blocks already in the level as one undo step, all or nothing. Uses only
+/// game types, plain block JSON and UIDs, nothing Script-specific, so it can move to ZeepSDK later (ADR 0007).
 /// </summary>
-internal static class BlockBatch
+internal static partial class BlockBatch
 {
     private const string KeyPaintBase = "p";
 
     /// <summary>
-    /// Creates the blocks, Wires included in their JSON, and registers them as one undo step named
-    /// <paramref name="label"/>. If anything throws, every block created so far is removed again, no undo step is
-    /// registered and the exception is rethrown.
+    /// Creates the blocks, Wires between them included in their JSON, adds <paramref name="wires"/>, each with at
+    /// least one end on a block already in the level, and registers it all as one undo step named
+    /// <paramref name="label"/>. The existing blocks the Wires touch are recorded as changed, so undo restores them
+    /// exactly. If anything throws, every block created so far is removed again, the existing blocks get their old
+    /// state back, no undo step is registered and the exception is rethrown.
     /// </summary>
-    public static List<BlockProperties> Apply(LEV_LevelEditorCentral central, IReadOnlyList<BlockPropertyJSON> adds, string label)
+    public static List<BlockProperties> Apply(
+        LEV_LevelEditorCentral central,
+        IReadOnlyList<BlockPropertyJSON> adds,
+        IReadOnlyList<BlockWire> wires,
+        string label)
     {
         // BreakLock silently skips the undo step while grabbing
         if (central.gizmos.isGrabbing)
             throw new InvalidOperationException("Can't apply a block batch while blocks are grabbed");
 
         List<BlockProperties> added = [];
+        List<ChangedBlock> changed = [];
         try
         {
             foreach (var json in adds)
@@ -31,12 +38,14 @@ internal static class BlockBatch
             }
 
             LoadConnectors(added, label);
-            RegisterUndo(central, added, label);
+            Connect(added, changed, wires, label);
+            RegisterUndo(central, added, changed, label);
             return added;
         }
         catch
         {
             Remove(central, added);
+            Restore(changed, label);
             throw;
         }
     }
@@ -98,30 +107,102 @@ internal static class BlockBatch
 
         foreach (var block in blocks)
         {
-            foreach (var blockEdit in block.GetAllBlockEditV18sFromThisBlock())
-            {
-                if (blockEdit.HasConnectors())
-                    blockEdit.GetBlockEditV18ConnectionBase().ForceRedrawConnectionVisualizers(label);
-            }
+            RedrawWires(block, label);
         }
     }
 
     /// <summary>
-    /// Added blocks are before = null / after = JSON, as the gizmo's paste does. Taken after the Connectors loaded,
-    /// so redo restores the Wires.
+    /// Wires both ends, as the connector tool does; the output end is the drawing leader. Each existing block's JSON
+    /// is noted in <paramref name="changed"/> before its first Wire, for undo and for rolling back.
     /// </summary>
-    private static void RegisterUndo(LEV_LevelEditorCentral central, List<BlockProperties> added, string label)
+    private static void Connect(List<BlockProperties> added, List<ChangedBlock> changed, IReadOnlyList<BlockWire> wires, string label)
+    {
+        HashSet<BlockProperties> touched = [.. added];
+        foreach (var wire in wires)
+        {
+            var from = GetHub(wire.FromUid, wire.FromConnector);
+            var to = GetHub(wire.ToUid, wire.ToConnector);
+            foreach (var block in new[] { from.GetBlockProperties(), to.GetBlockProperties() })
+            {
+                if (touched.Add(block))
+                    changed.Add(new ChangedBlock(block, block.ConvertBlockToJSON_v15_string(true)));
+            }
+
+            from.Connect(to, true);
+            to.Connect(from, false);
+        }
+
+        foreach (var block in touched)
+        {
+            RedrawWires(block, label);
+        }
+    }
+
+    private static ConnectorHub_Base GetHub(string uid, int connector)
+    {
+        if (!StaticConnectorTracker.allBlocksByUID.TryGetValue(uid, out var block)
+            || !block.allConnectorHubsOnThisBlock.TryGetValue(connector, out var hub))
+            throw new InvalidOperationException($"Block {uid} has no Connector {connector} to wire");
+
+        return hub;
+    }
+
+    /// <summary>
+    /// Added blocks are before = null / after = JSON, as the gizmo's paste does; changed blocks are JSON / JSON, as
+    /// the gizmo's delete records the blocks wired to deleted ones. Taken after wiring, so redo restores the Wires.
+    /// </summary>
+    private static void RegisterUndo(LEV_LevelEditorCentral central, List<BlockProperties> added, List<ChangedBlock> changed, string label)
     {
         List<string> before = [];
         List<string> after = [];
+        List<BlockProperties> blocks = [];
         foreach (var block in added)
         {
             before.Add(null);
             after.Add(block.ConvertBlockToJSON_v15_string(true));
+            blocks.Add(block);
         }
 
-        var collection = central.undoRedo.ConvertBeforeAndAfterListToCollection(before, after, added, [], []);
+        foreach (var change in changed)
+        {
+            before.Add(change.Before);
+            after.Add(change.Block.ConvertBlockToJSON_v15_string(true));
+            blocks.Add(change.Block);
+        }
+
+        var collection = central.undoRedo.ConvertBeforeAndAfterListToCollection(before, after, blocks, [], []);
         central.validation.BreakLock(collection, label);
+    }
+
+    /// <summary>
+    /// Puts each changed block's Settings and Wires back as they were, the way undo reloads a block's Connectors.
+    /// Call after removing the added blocks, so nothing redraws a Wire to them.
+    /// </summary>
+    private static void Restore(List<ChangedBlock> changed, string label)
+    {
+        foreach (var change in changed)
+        {
+            change.Block.customBlockEditProperties = LEV_UndoRedo.GetJSONblock(change.Before).d?.Clone() ?? new PropertyDictionariesJSON();
+            foreach (var blockEdit in change.Block.GetAllBlockEditV18sFromThisBlock())
+            {
+                if (blockEdit.HasConnectors())
+                    blockEdit.GetBlockEditV18ConnectionBase().LoadProperties();
+            }
+        }
+
+        foreach (var change in changed)
+        {
+            RedrawWires(change.Block, label);
+        }
+    }
+
+    private static void RedrawWires(BlockProperties block, string label)
+    {
+        foreach (var blockEdit in block.GetAllBlockEditV18sFromThisBlock())
+        {
+            if (blockEdit.HasConnectors())
+                blockEdit.GetBlockEditV18ConnectionBase().ForceRedrawConnectionVisualizers(label);
+        }
     }
 
     private static void Remove(LEV_LevelEditorCentral central, List<BlockProperties> blocks)

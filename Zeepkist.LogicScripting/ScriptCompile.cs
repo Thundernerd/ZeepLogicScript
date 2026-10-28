@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using BepInEx.Logging;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
@@ -28,21 +29,20 @@ internal static class ScriptCompile
             return "Let go of the grabbed blocks to compile";
 
         var right = central.cam.cameraTransform.right;
-        check.RunOnce();
-        var result = ScriptCompiler.Compile(text, ScriptCompiler.GetQuarterTurnsFacing(right.x, right.z), check.DisabledBlockIds);
+        var result = Check(central, text, check, ScriptCompiler.GetQuarterTurnsFacing(right.x, right.z));
         if (!result.Succeeded)
             return FormatErrors(result);
 
         if (!check.CanPlace)
             return $"No errors, but {StartupCheck.UpdateNeededMessage}; nothing placed";
 
-        if (result.Blocks.Count == 0)
+        if (result.Blocks.Count == 0 && result.PlacedWires.Count == 0)
             return "Nothing to place";
 
         try
         {
             var jsons = CompiledBlockJson.Create(result, GetPlacementPoint(central));
-            BlockBatch.Apply(central, jsons, UndoLabel);
+            BlockBatch.Apply(central, jsons, CompiledBlockJson.CreatePlacedWires(result, jsons), UndoLabel);
         }
         catch (Exception e)
         {
@@ -50,7 +50,29 @@ internal static class ScriptCompile
             return "Compile failed; level unchanged";
         }
 
-        return $"Placed {result.Blocks.Count} blocks";
+        var wiredBlocks = result.PlacedWires
+            .SelectMany(w => new[] { w.From.Uid, w.To.Uid })
+            .Where(uid => uid != null)
+            .Distinct()
+            .Count();
+        return wiredBlocks == 0
+            ? $"Placed {result.Blocks.Count} blocks"
+            : $"Placed {result.Blocks.Count} blocks, wired to {wiredBlocks} placed blocks";
+    }
+
+    /// <summary>
+    /// Compiles without placing anything, for the Placed blocks panel; null outside the editor.
+    /// </summary>
+    public static CompileResult Check(string text, StartupCheck check)
+    {
+        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        return central == null ? null : Check(central, text, check, 0);
+    }
+
+    private static CompileResult Check(LEV_LevelEditorCentral central, string text, StartupCheck check, int quarterTurns)
+    {
+        check.RunOnce();
+        return ScriptCompiler.Compile(text, quarterTurns, check.DisabledBlockIds, uid => PlacedBlocks.Find(central, uid));
     }
 
     /// <summary>
