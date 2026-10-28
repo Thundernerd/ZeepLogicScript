@@ -1,3 +1,4 @@
+using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -27,7 +28,7 @@ internal sealed partial class GraphBuilder
         }
 
         _hasDefaultHide = true;
-        _defaultHide = GetSettingValue(BlockSetting.Hide, argument);
+        _defaultHide = GetSettingValues(BlockSetting.Hide, argument)?.Single();
     }
 
     /// <summary>

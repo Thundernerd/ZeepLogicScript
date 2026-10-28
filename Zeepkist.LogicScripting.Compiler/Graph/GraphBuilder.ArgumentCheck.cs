@@ -91,15 +91,8 @@ internal sealed partial class GraphBuilder
         }
 
         /// <summary>
-        /// Gives a Setting its value; fails when the value was invalid and already reported.
-        /// </summary>
-        public void GiveSetting(BlockSetting blockSetting, Setting setting)
-        {
-            GiveSettings(blockSetting, setting == null ? null : [setting]);
-        }
-
-        /// <summary>
-        /// Gives a Setting stored under several keys; fails when the value was invalid and already reported.
+        /// Gives a Setting its values, one per key it's stored under; fails when the value was invalid and already
+        /// reported.
         /// </summary>
         public void GiveSettings(BlockSetting blockSetting, IReadOnlyList<Setting> settings)
         {
