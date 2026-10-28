@@ -20,7 +20,9 @@ internal sealed partial class ScriptWindow
     private const float DefaultWidth = 1120;
     private const float DefaultHeight = 640;
     private const float ScriptsWidth = 220;
-    private const float LevelWidth = 300;
+    private const float MinLevelWidth = 300;
+    private const string PlacedBlocksTab = "Placed blocks";
+    private const string ReferenceTab = "Reference";
 
     /// <summary>
     /// Narrower than this, the sides draw collapsed whatever the state says, so the editor stays usable.
@@ -112,15 +114,16 @@ internal sealed partial class ScriptWindow
     {
         var area = gui.Layout.AddRect(gui.GetLayoutWidth(), gui.GetLayoutHeight());
         var collapsedWidth = GetSideHeaderHeight(gui);
+        var levelWidth = GetLevelWidth(gui);
 
         // The Level side gives way first; the Scripts side only when the centre still doesn't fit without both
-        var levelFits = area.W - ScriptsWidth - LevelWidth >= MinCentreWidth;
+        var levelFits = area.W - ScriptsWidth - levelWidth >= MinCentreWidth;
         var scriptsFits = area.W - ScriptsWidth - collapsedWidth >= MinCentreWidth;
         var scriptsCollapsed = _state.ScriptsCollapsed || !scriptsFits;
         var levelCollapsed = _state.LevelCollapsed || !levelFits;
 
         var scripts = area.TakeLeft(scriptsCollapsed ? collapsedWidth : ScriptsWidth, out var rest);
-        var level = rest.TakeRight(levelCollapsed ? collapsedWidth : LevelWidth, out var centre);
+        var level = rest.TakeRight(levelCollapsed ? collapsedWidth : levelWidth, out var centre);
         DrawDivider(gui, scripts.Right - 1, area);
         DrawDivider(gui, level.X, area);
 
@@ -149,6 +152,17 @@ internal sealed partial class ScriptWindow
         var hovered = levelCollapsed ? null : DrawLevelTabs(gui, GetSideBody(gui, level));
         gui.PopId();
         return hovered;
+    }
+
+    /// <summary>
+    /// Wide enough for both tabs, each half the strip, to show their whole label in the theme's font.
+    /// </summary>
+    private static float GetLevelWidth(ImGui gui)
+    {
+        var settings = ImTabsPane.GetTextSettings(gui);
+        var widestLabel = Mathf.Max(gui.MeasureTextSize(PlacedBlocksTab, settings).x, gui.MeasureTextSize(ReferenceTab, settings).x);
+        var tabWidth = widestLabel + (gui.Style.Layout.Indent * 2);
+        return Mathf.Max(MinLevelWidth, (tabWidth * 2) + (gui.Style.Layout.Spacing * 4));
     }
 
     private static void DrawDivider(ImGui gui, float x, ImRect area)
@@ -283,11 +297,10 @@ internal sealed partial class ScriptWindow
     {
         var bar = rect.WithPadding(gui.Style.Layout.Spacing).TakeTop(ImTabsPane.GetTabBarHeight(gui), out var content);
         var placedRect = bar.TakeLeft(bar.W / 2, out var referenceRect);
-        var count = PlacedBlocksPanel.CountRows(_check);
-        if (ImTabsPane.TabBarButton(gui, gui.GetNextControlId(), !_showReference, count == 0 ? "Placed blocks" : $"Placed blocks ({count})", placedRect))
+        if (ImTabsPane.TabBarButton(gui, gui.GetNextControlId(), !_showReference, PlacedBlocksTab, placedRect))
             _showReference = false;
 
-        if (ImTabsPane.TabBarButton(gui, gui.GetNextControlId(), _showReference, "Reference", referenceRect))
+        if (ImTabsPane.TabBarButton(gui, gui.GetNextControlId(), _showReference, ReferenceTab, referenceRect))
             _showReference = true;
 
         gui.Box(content, in gui.Style.Tabs.ContainerBox);

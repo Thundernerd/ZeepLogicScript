@@ -15,14 +15,6 @@ internal sealed class PlacedBlocksPanel
 {
     private string _insertMessage = string.Empty;
 
-    /// <summary>
-    /// A block referred to more than once is one row.
-    /// </summary>
-    public static int CountRows(CompileResult check)
-    {
-        return check == null ? 0 : GetRows(check).Count;
-    }
-
     public void ClearMessage()
     {
         _insertMessage = string.Empty;
@@ -50,8 +42,10 @@ internal sealed class PlacedBlocksPanel
             return null;
         }
 
+        var rows = GetRows(check);
+        gui.Text(rows.Count == 1 ? "1 placed block" : $"{rows.Count} placed blocks", WindowColors.Muted);
         BlockProperties hovered = null;
-        foreach (var reference in GetRows(check))
+        foreach (var reference in rows)
         {
             var name = reference.Name ?? "(unnamed)";
             var block = reference.Type == null ? null : LevelBlocks.Find(central, reference.Uid);
@@ -75,6 +69,9 @@ internal sealed class PlacedBlocksPanel
         return hovered;
     }
 
+    /// <summary>
+    /// A block referred to more than once is one row.
+    /// </summary>
     private static List<PlacedBlockReference> GetRows(CompileResult check)
     {
         HashSet<string> shown = [];
