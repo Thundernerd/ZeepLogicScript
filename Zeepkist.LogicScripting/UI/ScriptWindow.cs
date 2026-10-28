@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
@@ -270,27 +269,22 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     /// </summary>
     private void DeleteScript(ScriptEntry entry, DeleteChoice choice)
     {
-        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        var central = LevelEdit.GetCentral(out var blocker);
         if (central == null)
-            return;
-
-        // The undo step isn't registered while grabbing
-        if (central.gizmos.isGrabbing)
         {
-            _listMessage = "Let go of the grabbed blocks first";
+            _listMessage = blocker;
             return;
         }
 
-        int count;
-        try
-        {
-            count = choice == DeleteChoice.KeepBlocks
+        var edited = LevelEdit.TryEditGroup(
+            _logger,
+            $"Deleting Script \"{entry.Name}\"",
+            () => choice == DeleteChoice.KeepBlocks
                 ? BlockGroupEdits.Untag(central, entry.Id)
-                : BlockGroupEdits.Delete(central, entry.Id);
-        }
-        catch (Exception e)
+                : BlockGroupEdits.Delete(central, entry.Id));
+
+        if (edited is not { } count)
         {
-            _logger.LogError($"Deleting Script \"{entry.Name}\" failed: {e}");
             _listMessage = "Delete failed; level unchanged";
             return;
         }
@@ -324,14 +318,10 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
 
     private void SelectGroup(ScriptEntry entry)
     {
-        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        var central = LevelEdit.GetCentral(out var blocker);
         if (central == null)
-            return;
-
-        // The selection's undo step isn't registered while grabbing
-        if (central.gizmos.isGrabbing)
         {
-            _listMessage = "Let go of the grabbed blocks first";
+            _listMessage = blocker;
             return;
         }
 
@@ -495,8 +485,8 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         if (HasCurrentErrors)
             return "Fix the errors first";
 
-        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
-        return central != null && central.gizmos.isGrabbing ? "Let go of the grabbed blocks first" : null;
+        LevelEdit.GetCentral(out var blocker);
+        return blocker;
     }
 
     /// <summary>

@@ -21,12 +21,9 @@ internal static class ScriptCompile
     /// </summary>
     public static string Run(StoredScript script, StartupCheck check, ManualLogSource logger)
     {
-        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        var central = LevelEdit.GetCentral(out var blocker);
         if (central == null)
-            return "Open the level editor to compile";
-
-        if (central.gizmos.isGrabbing)
-            return "Let go of the grabbed blocks to compile";
+            return blocker;
 
         var placement = CompilePlacement.For(central, script.Id);
         var result = Check(central, script.Text, script.Id, check, placement.QuarterTurns);

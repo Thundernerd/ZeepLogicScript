@@ -6,7 +6,6 @@ using Imui.Core;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
-using ZeepSDK.Utilities;
 
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
@@ -90,16 +89,11 @@ internal sealed class OrphanedGroupsPanel
         if (central == null)
             return;
 
-        try
-        {
-            var count = edit(central, orphan.Id);
-            _message = count == 1 ? $"{verb} 1 block" : $"{verb} {count} blocks";
-        }
-        catch (Exception e)
-        {
-            _logger.LogError($"{verb} orphaned group failed: {e}");
+        var count = LevelEdit.TryEditGroup(_logger, $"{verb} orphaned group", () => edit(central, orphan.Id));
+        if (count == null)
             _message = "That failed; level unchanged";
-        }
+        else
+            _message = count == 1 ? $"{verb} 1 block" : $"{verb} {count} blocks";
     }
 
     private void Select(OrphanedGroup orphan)
@@ -114,16 +108,13 @@ internal sealed class OrphanedGroupsPanel
     }
 
     /// <summary>
-    /// Null, with a message, while blocks are grabbed: undo steps aren't registered then.
+    /// Null, with the reason as the message, when the level can't take a change now.
     /// </summary>
     private LEV_LevelEditorCentral GetCentral()
     {
-        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
-        if (central != null && central.gizmos.isGrabbing)
-        {
-            _message = "Let go of the grabbed blocks first";
-            return null;
-        }
+        var central = LevelEdit.GetCentral(out var blocker);
+        if (central == null)
+            _message = blocker;
 
         return central;
     }
