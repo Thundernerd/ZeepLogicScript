@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
@@ -8,7 +10,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 internal sealed partial class GraphBuilder
 {
     /// <summary>
-    /// A Setting's value is written out in the call itself: a number, true / false, or an option word.
+    /// A Setting's value is written out in the call itself: a number, true / false, or an option word. Targets have
+    /// several values; see <see cref="GetTargets"/>.
     /// </summary>
     private Setting GetSettingValue(BlockSetting setting, NamedArgument argument)
     {
@@ -60,8 +63,7 @@ internal sealed partial class GraphBuilder
                 return setting.Choose(player);
 
             case SettingType.Targets:
-                ValueError(argument, $"{setting.Name} takes placed blocks, and placed(...) isn't available yet");
-                return null;
+                throw new ArgumentException($"{setting.Name} is stored under several keys", nameof(setting));
 
             default:
                 var options = string.Join(", ", setting.Options);
@@ -79,5 +81,54 @@ internal sealed partial class GraphBuilder
 
                 return setting.Choose(option.Name);
         }
+    }
+
+    /// <summary>
+    /// A Toggler's targets: one Placed Block Reference, or a list of 1 to 8 different ones. Null after reporting why
+    /// the value is wrong.
+    /// </summary>
+    private IReadOnlyList<Setting> GetTargets(BlockSetting setting, NamedArgument argument)
+    {
+        var example = $"{setting.Name}: [door_1, door_2]";
+        var items = argument.Value is ListExpression list ? list.Items : [argument.Value];
+        if (items.Count == 0)
+        {
+            ValueError(argument, $"{setting.Name} takes 1 to {BlockSetting.MaxTargets} placed blocks, like {example}");
+            return null;
+        }
+
+        var failed = false;
+        if (items.Count > BlockSetting.MaxTargets)
+        {
+            Error(items[BlockSetting.MaxTargets], $"A Toggler switches at most {BlockSetting.MaxTargets} blocks");
+            failed = true;
+        }
+
+        List<Setting> targets = [];
+        HashSet<string> uids = [];
+        foreach (var item in items)
+        {
+            var value = Evaluate(item);
+            if (value == null)
+            {
+                failed = true;
+            }
+            else if (!value.Value.Block.IsPlaced)
+            {
+                Error(item, $"'{Describe(item)}' isn't a placed block; {setting.Name} takes names defined with {PlacedFunction}(...)");
+                failed = true;
+            }
+            else if (!uids.Add(value.Value.Block.Uid))
+            {
+                Error(item, $"'{Describe(item)}' is already a target");
+                failed = true;
+            }
+            else
+            {
+                targets.Add(Setting.Text(setting.Key + uids.Count.ToString(CultureInfo.InvariantCulture), value.Value.Block.Uid));
+            }
+        }
+
+        return failed ? null : targets;
     }
 }

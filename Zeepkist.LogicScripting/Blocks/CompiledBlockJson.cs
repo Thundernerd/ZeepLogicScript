@@ -49,6 +49,27 @@ internal static class CompiledBlockJson
     }
 
     /// <summary>
+    /// The Wires into and out of blocks already in the level, with the new blocks' UIDs from <paramref name="jsons"/>.
+    /// </summary>
+    /// <param name="result">A successful Compile.</param>
+    /// <param name="jsons">The blocks <see cref="Create"/> made from it.</param>
+    public static List<BlockWire> CreatePlacedWires(CompileResult result, IReadOnlyList<BlockPropertyJSON> jsons)
+    {
+        List<BlockWire> wires = [];
+        foreach (var wire in result.PlacedWires)
+        {
+            wires.Add(new BlockWire(GetUid(wire.From, jsons), wire.FromConnector, GetUid(wire.To, jsons), wire.ToConnector));
+        }
+
+        return wires;
+    }
+
+    private static string GetUid(WireEnd end, IReadOnlyList<BlockPropertyJSON> jsons)
+    {
+        return end.IsPlaced ? end.Uid : jsons[end.Block].u;
+    }
+
+    /// <summary>
     /// Writes the Wire into both blocks' dictionaries, like LEV_ConnectorTool does via Connect on both ends.
     /// The output end is the drawing leader.
     /// </summary>

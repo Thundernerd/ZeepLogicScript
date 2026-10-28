@@ -145,9 +145,9 @@ public class SettingTests
     }
 
     [Theory]
-    [InlineData("toggler(1)", 1, 1, "'toggler' needs targets:, 1 to 8 placed blocks to switch; placed(...) isn't available yet")]
-    [InlineData("door(1)", 1, 1, "'door' needs targets:, 1 to 8 placed blocks to switch; placed(...) isn't available yet")]
-    [InlineData("toggler(1, targets: x)", 1, 21, "targets takes placed blocks, and placed(...) isn't available yet")]
+    [InlineData("toggler(1)", 1, 1, "'toggler' needs targets:, 1 to 8 placed blocks to switch, like targets: [door_1, door_2]")]
+    [InlineData("door(1)", 1, 1, "'door' needs targets:, 1 to 8 placed blocks to switch, like targets: [door_1, door_2]")]
+    [InlineData("x = 1 & 1\ntoggler(1, targets: x)", 2, 21, "'x' isn't a placed block; targets takes names defined with placed(...)")]
     public void Toggler_NeedsPlacedTargets(string text, int line, int column, string message)
     {
         AssertSingleError(text, line, column, message);

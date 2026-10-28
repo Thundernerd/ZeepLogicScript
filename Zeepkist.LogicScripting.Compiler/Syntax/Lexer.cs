@@ -58,6 +58,21 @@ internal static class Lexer
                     index = SkipDigits(text, index + 1);
                 }
             }
+            else if (c == '"')
+            {
+                var start = index + 1;
+                index = start;
+                while (index < text.Length && text[index] != '"' && text[index] != '\n')
+                {
+                    index++;
+                }
+
+                tokens.Add(new Token(TokenKind.String, text.Substring(start, index - start), position));
+                if (index < text.Length && text[index] == '"')
+                    index++;
+                else
+                    diagnostics.Add(new Diagnostic(position, "Text in quotes isn't closed on its line"));
+            }
             else if (IsNameStart(c))
             {
                 var start = index;
@@ -204,6 +219,8 @@ internal static class Lexer
         {
             '(' => TokenKind.OpenParen,
             ')' => TokenKind.CloseParen,
+            '[' => TokenKind.OpenBracket,
+            ']' => TokenKind.CloseBracket,
             ',' => TokenKind.Comma,
             ':' => TokenKind.Colon,
             '.' => TokenKind.Dot,
