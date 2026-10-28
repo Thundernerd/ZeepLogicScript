@@ -116,6 +116,7 @@ public class PlacedTests
     [InlineData("l = placed(\"WIRED\")\nl(1)", "2:3 Input 'intensity' of 'l' already has a Wire in the level, and an input takes one Wire")]
     [InlineData("d = placed(\"DOOR\")\nd(1)", "2:1 'd' has no inputs to wire")]
     [InlineData("t = placed(\"T\")\nt(1)", "2:1 't' has no inputs to wire")]
+    [InlineData("d = placed(\"DOOR\")\nd(open: yes)", "2:1 'd' has no inputs to wire")]
     [InlineData("l = placed(\"L\")\nx = l(1)", "2:5 Wiring into 'l' gives no value; put it on its own line")]
     [InlineData("x = 1 & 1\nx(1)", "2:1 'x' isn't a placed block, so it can't be called; only names defined with placed(...) can")]
     [InlineData("l(1)\nl = placed(\"L\")", "1:1 'l' is defined later, on line 2")]
@@ -125,6 +126,14 @@ public class PlacedTests
     public void BadReferenceCalls_AreErrors(string script, string error)
     {
         Assert.Equal([error], Errors(Compile(script)));
+    }
+
+    [Fact]
+    public void ACallToABlockWithNoInputs_StillChecksItsNamedValues()
+    {
+        var result = Compile("d = placed(\"DOOR\")\nd(open: nope & 1)");
+
+        Assert.Equal(["2:1 'd' has no inputs to wire", "2:9 'nope' isn't defined"], Errors(result));
     }
 
     [Theory]
