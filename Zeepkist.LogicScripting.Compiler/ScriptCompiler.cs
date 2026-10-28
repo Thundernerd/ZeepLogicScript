@@ -74,7 +74,7 @@ public static class ScriptCompiler
     }
 
     /// <summary>
-    /// The yaw that makes Signals flow towards the given world direction, usually the camera's right.
+    /// The yaw that makes Signals flow toward the given world direction, usually the camera's right.
     /// </summary>
     public static int GetQuarterTurnsFacing(float x, float z)
     {

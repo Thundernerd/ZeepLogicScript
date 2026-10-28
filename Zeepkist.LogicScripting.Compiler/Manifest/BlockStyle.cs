@@ -24,7 +24,7 @@ public sealed class BlockStyle
 
     /// <summary>
     /// With <see cref="MaxX"/>, the footprint's first and last cell along the block's own X, relative to its pivot
-    /// cell: -1 for a block that is a cell wider towards -X.
+    /// cell: -1 for a block that is a cell wider toward -X.
     /// </summary>
     public int MinX { get; }
 

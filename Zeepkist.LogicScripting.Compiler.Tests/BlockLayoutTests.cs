@@ -10,7 +10,7 @@ public class BlockLayoutTests
     [Fact]
     public void Columns_FollowTheLongestPathWithAGapCellBetween()
     {
-        // Generator (1 cell), Logic (3 cells), Power Display (2 cells): 8 cells deep, centred on cell 3
+        // Generator (1 cell), Logic (3 cells), Power Display (2 cells): 8 cells deep, centered on cell 3
         var result = ScriptCompiler.Compile("power_display(1 & 1)", 0);
 
         Assert.Equal(["(0, -3)", "(0, -1)", "(0, 3)"], result.Blocks.Select(b => b.Cell.ToString()));
@@ -19,7 +19,7 @@ public class BlockLayoutTests
     [Fact]
     public void Rows_FollowLineOrderWithAGapCellBetween()
     {
-        // Two Logic blocks in column 1 and two Generators in column 0: three cells wide, centred on cell 1
+        // Two Logic blocks in column 1 and two Generators in column 0: three cells wide, centered on cell 1
         var result = ScriptCompiler.Compile("a = 1 & 1\nb = 2 & 2", 0);
 
         Assert.Equal(
@@ -50,7 +50,7 @@ public class BlockLayoutTests
     }
 
     [Fact]
-    public void Columns_AreCentredAcrossTheGroup()
+    public void Columns_AreCenteredAcrossTheGroup()
     {
         var result = ScriptCompiler.Compile("a = ticker()\nb = ticker()\nc = ticker()\nlogic(a, b, c)", 0);
 
@@ -60,8 +60,8 @@ public class BlockLayoutTests
     [Fact]
     public void WideBlocks_TakeTheirFullCells()
     {
-        // Player Input reaches one cell towards -X from its pivot, Date Timer one towards +X: seven cells wide with the
-        // Ticker and the gaps, centred on cell 3
+        // Player Input reaches one cell toward -X from its pivot, Date Timer one toward +X: seven cells wide with the
+        // Ticker and the gaps, centered on cell 3
         var result = ScriptCompiler.Compile("player_input()\ndate_timer()\nticker()", 0);
 
         Assert.Equal([-2, 0, 3], result.Blocks.Select(b => b.Cell.X));
@@ -91,7 +91,7 @@ public class BlockLayoutTests
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
-    public void Footprints_NeverOverlapAndAreCentred(int quarterTurns)
+    public void Footprints_NeverOverlapAndAreCentered(int quarterTurns)
     {
         const string script = """
             p = player_input()
@@ -152,7 +152,7 @@ public class BlockLayoutTests
     }
 
     [Fact]
-    public void Rotate_TurnsPlusZTowardsPlusX()
+    public void Rotate_TurnsPlusZTowardPlusX()
     {
         Assert.Equal("(1, 0)", BlockLayout.Rotate(0, 1, 1).ToString());
         Assert.Equal("(0, -1)", BlockLayout.Rotate(1, 0, 1).ToString());

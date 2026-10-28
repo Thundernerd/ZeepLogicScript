@@ -1,7 +1,7 @@
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
 /// <summary>
-/// A run of Script text drawn in one colour. It never spans a line break.
+/// A run of Script text drawn in one color. It never spans a line break.
 /// </summary>
 public readonly struct HighlightSpan
 {

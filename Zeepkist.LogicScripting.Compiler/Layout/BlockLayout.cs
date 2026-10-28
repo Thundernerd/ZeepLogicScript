@@ -9,8 +9,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Layout;
 /// <summary>
 /// Layered layout: a block's column is its longest Wire path from a Source Block, and a few barycenter passes order
 /// the blocks within each column, ties by Script line order. One empty cell separates columns and rows, and each
-/// column is centred across the group. Signals flow along the group's +Z, which the yaw turns to point right as seen
-/// from the camera. The footprint is centred on cell (0, 0).
+/// column is centered across the group. Signals flow along the group's +Z, which the yaw turns to point right as seen
+/// from the camera. The footprint is centered on cell (0, 0).
 /// </summary>
 internal static class BlockLayout
 {
@@ -63,13 +63,13 @@ internal static class BlockLayout
 
         Order(graph, columns, columnBlocks, columnXStarts, xStarts);
 
-        var centreX = (width - 1) / 2;
-        var centreZ = (depth - 1) / 2;
+        var centerX = (width - 1) / 2;
+        var centerZ = (depth - 1) / 2;
         var cells = new GridCell[graph.Blocks.Count];
         foreach (var block in graph.Blocks)
         {
-            var x = xStarts[block.Index] - block.Style.MinX - centreX;
-            var z = columnStarts[columns[block.Index]] - centreZ;
+            var x = xStarts[block.Index] - block.Style.MinX - centerX;
+            var z = columnStarts[columns[block.Index]] - centerZ;
             cells[block.Index] = Rotate(x, z, quarterTurns);
         }
 
@@ -85,7 +85,7 @@ internal static class BlockLayout
     }
 
     /// <summary>
-    /// Rotates a cell about the Y axis the way a block's yaw does: +Z turns towards +X.
+    /// Rotates a cell about the Y axis the way a block's yaw does: +Z turns toward +X.
     /// </summary>
     public static GridCell Rotate(int x, int z, int quarterTurns)
     {
@@ -135,7 +135,7 @@ internal static class BlockLayout
     }
 
     /// <summary>
-    /// Sweeps the columns alternately forwards and backwards, sorting each by the mean centre of the blocks it is wired
+    /// Sweeps the columns alternately forward and backward, sorting each by the mean center of the blocks it is wired
     /// to in the columns already swept. A block with no such Wires keeps its place as its key.
     /// </summary>
     private static void Order(
@@ -145,14 +145,14 @@ internal static class BlockLayout
         int[] columnXStarts,
         int[] xStarts)
     {
-        var neighbours = new List<BlockNode>[graph.Blocks.Count];
+        var neighbors = new List<BlockNode>[graph.Blocks.Count];
         foreach (var wire in graph.Wires)
         {
-            (neighbours[wire.From.Index] ??= []).Add(wire.To);
-            (neighbours[wire.To.Index] ??= []).Add(wire.From);
+            (neighbors[wire.From.Index] ??= []).Add(wire.To);
+            (neighbors[wire.To.Index] ??= []).Add(wire.From);
         }
 
-        double GetCentre(BlockNode block)
+        double GetCenter(BlockNode block)
         {
             return xStarts[block.Index] + (block.Style.Width - 1) / 2.0;
         }
@@ -160,11 +160,11 @@ internal static class BlockLayout
         double GetKey(BlockNode block, bool isForward)
         {
             var column = columns[block.Index];
-            var swept = neighbours[block.Index]?
+            var swept = neighbors[block.Index]?
                 .Where(n => isForward ? columns[n.Index] < column : columns[n.Index] > column)
                 .ToList();
 
-            return swept is { Count: > 0 } ? swept.Average(GetCentre) : GetCentre(block);
+            return swept is { Count: > 0 } ? swept.Average(GetCenter) : GetCenter(block);
         }
 
         for (var pass = 0; pass < BarycenterPasses; pass++)

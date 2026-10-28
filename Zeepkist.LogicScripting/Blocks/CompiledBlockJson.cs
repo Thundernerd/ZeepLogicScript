@@ -11,7 +11,7 @@ internal static class CompiledBlockJson
     private const string KeyConnectionBase = "id";
 
     /// <param name="result">A successful Compile.</param>
-    /// <param name="origin">World position of the group's centre cell.</param>
+    /// <param name="origin">World position of the group's center cell.</param>
     /// <param name="script">The Script whose Block Group the blocks join; the first block carries it.</param>
     public static List<BlockPropertyJSON> Create(CompileResult result, Vector3 origin, StoredScript script)
     {

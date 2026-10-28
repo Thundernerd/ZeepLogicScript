@@ -60,7 +60,7 @@ internal sealed class ReferencePanel
     }
 
     /// <summary>
-    /// The name in the editor's Block Function colour, then a row per part with its label in a column of its own, and
+    /// The name in the editor's Block Function color, then a row per part with its label in a column of its own, and
     /// each Setting or mode on a row under its heading.
     /// </summary>
     private static void DrawEntry(ImGui gui, BlockReferenceEntry entry)

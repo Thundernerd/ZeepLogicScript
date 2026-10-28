@@ -50,7 +50,7 @@ public class BlockGroupPlacementTests
     [Fact]
     public void ABlockReachingPastItsPivot_SetsTheOldCorner()
     {
-        // A Player Input is a cell wider towards -X, so the old corner is a cell left of its pivot
+        // A Player Input is a cell wider toward -X, so the old corner is a cell left of its pivot
         var playerInput = new GroupBlock(0, 0, 0, BlockManifest.PlayerInput.DefaultStyle);
 
         Assert.Equal((-16f, 0f), BlockGroupPlacement.GetOrigin([playerInput], [Compiled(0, 0, 0)], 0));
@@ -76,7 +76,7 @@ public class BlockGroupPlacementTests
     [Fact]
     public void ABlockTurnedOnItsOwn_UsesItsOwnFootprint()
     {
-        // A Date Timer reaches a cell towards +X and two along +Z; turned 180° that is -X and -Z
+        // A Date Timer reaches a cell toward +X and two along +Z; turned 180° that is -X and -Z
         var dateTimer = new GroupBlock(0, 0, 180, BlockManifest.DateTimer.DefaultStyle);
 
         Assert.Equal((-16f, -32f), BlockGroupPlacement.GetOrigin([dateTimer], [Compiled(0, 0, 0)], 0));

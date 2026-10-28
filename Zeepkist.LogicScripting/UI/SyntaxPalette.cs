@@ -49,7 +49,7 @@ internal readonly struct SyntaxPalette
     }
 
     /// <summary>
-    /// Names, punctuation and text the lexer gave no kind keep the theme's text colour.
+    /// Names, punctuation and text the lexer gave no kind keep the theme's text color.
     /// </summary>
     public Color32 Get(HighlightKind? kind)
     {

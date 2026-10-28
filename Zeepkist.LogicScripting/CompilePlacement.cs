@@ -38,7 +38,7 @@ internal abstract class CompilePlacement
     }
 
     /// <summary>
-    /// World position of the new group's centre cell.
+    /// World position of the new group's center cell.
     /// </summary>
     public abstract Vector3 GetOrigin(CompileResult result);
 

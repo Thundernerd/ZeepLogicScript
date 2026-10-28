@@ -1,7 +1,7 @@
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Layout;
 
 /// <summary>
-/// A position on the editor's block grid, relative to the group's centre.
+/// A position on the editor's block grid, relative to the group's center.
 /// </summary>
 public readonly struct GridCell
 {
