@@ -64,7 +64,7 @@ internal static class BlockGroups
     /// How many of the group's Wires to blocks outside it a Replace removes without <paramref name="placedWires"/>
     /// making them again, matched by the outside block's Connector. A hand-made Wire into the group is one of these.
     /// </summary>
-    public static int CountWiresNotRemade(List<BlockProperties> group, IReadOnlyList<BlockWire> placedWires)
+    public static int CountWiresNotRemade(IReadOnlyList<BlockProperties> group, IReadOnlyList<BlockWire> placedWires)
     {
         HashSet<string> groupUids = [.. group.Select(b => b.UID)];
         Dictionary<(string Uid, int Connector), int> remade = [];
