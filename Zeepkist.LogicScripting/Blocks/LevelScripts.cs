@@ -43,6 +43,14 @@ internal static class LevelScripts
         properties.SetIntDictionaryValue(ScriptCarrier.LanguageVersionKey, script.LanguageVersion);
     }
 
+    /// <summary>
+    /// Whether the block, a member of a Block Group, holds its Script's text.
+    /// </summary>
+    public static bool IsCarrier(BlockProperties block)
+    {
+        return block.customBlockEditProperties?.t?.ContainsKey(ScriptCarrier.TextKey) == true;
+    }
+
     private static StoredScript Read(PropertyDictionariesJSON properties, ScriptId scriptId)
     {
         if (properties?.t == null || !properties.t.TryGetValue(ScriptCarrier.TextKey, out var text))

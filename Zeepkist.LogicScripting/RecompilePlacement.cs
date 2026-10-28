@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Layout;
 using UnityEngine;
@@ -14,7 +15,11 @@ internal sealed class RecompilePlacement : CompilePlacement
     public RecompilePlacement(List<BlockProperties> group)
     {
         _group = group;
-        QuarterTurns = BlockGroupPlacement.GetMajorityQuarterTurns(group.Select(b => b.transform.eulerAngles.y));
+
+        // The carrier's yaw, so hand-turning other blocks of the group never turns a recompile; the majority without one
+        var carrier = group.FirstOrDefault(LevelScripts.IsCarrier);
+        var yawBlocks = carrier != null ? [carrier] : group;
+        QuarterTurns = BlockGroupPlacement.GetMajorityQuarterTurns(yawBlocks.Select(b => b.transform.eulerAngles.y));
     }
 
     public override IReadOnlyList<BlockProperties> Group => _group;
