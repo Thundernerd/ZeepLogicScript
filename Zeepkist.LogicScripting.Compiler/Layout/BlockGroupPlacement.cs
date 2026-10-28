@@ -19,8 +19,7 @@ public static class BlockGroupPlacement
         var counts = new int[4];
         foreach (var yaw in yaws)
         {
-            var turns = (int)Math.Round(yaw / 90) % 4;
-            counts[(turns + 4) % 4]++;
+            counts[Normalize((int)Math.Round(yaw / 90))]++;
         }
 
         var majority = 0;
@@ -48,7 +47,7 @@ public static class BlockGroupPlacement
         if (oldPositions.Count == 0)
             throw new ArgumentException("The old group has no blocks", nameof(oldPositions));
 
-        var undo = 4 - (((quarterTurns % 4) + 4) % 4);
+        var undo = 4 - Normalize(quarterTurns);
         var oldInGroup = oldPositions.Select(p => Rotate(p.X, p.Z, undo)).ToList();
         var newInGroup = cells.Select(c => Rotate(c.X * GridCell.Size, c.Z * GridCell.Size, undo)).ToList();
 
@@ -62,12 +61,17 @@ public static class BlockGroupPlacement
     /// </summary>
     private static (float X, float Z) Rotate(float x, float z, int quarterTurns)
     {
-        return (((quarterTurns % 4) + 4) % 4) switch
+        return Normalize(quarterTurns) switch
         {
             1 => (z, -x),
             2 => (-x, -z),
             3 => (-z, x),
             _ => (x, z)
         };
+    }
+
+    private static int Normalize(int quarterTurns)
+    {
+        return ((quarterTurns % 4) + 4) % 4;
     }
 }

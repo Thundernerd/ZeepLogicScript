@@ -12,8 +12,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler;
 public static class PlacedBlockReferenceInsert
 {
     /// <summary>
-    /// Inserts one line per selected block the Script doesn't refer to yet and that isn't in a Block Group, as whole lines at the caret: where the
-    /// caret's line starts, or else after that line. Each name takes the lowest number not yet defined.
+    /// Inserts one line per selected block the Script doesn't refer to yet and that isn't in a Block Group, as whole
+    /// lines at the caret: where the caret's line starts, or else after that line. Each name takes the lowest number not yet defined.
     /// </summary>
     public static InsertResult Insert(string text, int caret, IReadOnlyList<SelectedBlock> blocks)
     {
@@ -32,7 +32,7 @@ public static class PlacedBlockReferenceInsert
         }
 
         List<string> lines = [];
-        var skipped = 0;
+        var alreadyReferenced = 0;
         var skippedGroupBlocks = 0;
         foreach (var block in blocks)
         {
@@ -44,7 +44,7 @@ public static class PlacedBlockReferenceInsert
 
             if (!uids.Add(block.Uid))
             {
-                skipped++;
+                alreadyReferenced++;
                 continue;
             }
 
@@ -61,7 +61,7 @@ public static class PlacedBlockReferenceInsert
         }
 
         if (lines.Count == 0)
-            return new InsertResult(text, caret, 0, skipped, skippedGroupBlocks);
+            return new InsertResult(text, caret, 0, alreadyReferenced, skippedGroupBlocks);
 
         var inserted = string.Join("\n", lines);
         int at;
@@ -78,6 +78,6 @@ public static class PlacedBlockReferenceInsert
             inserted = "\n" + inserted;
         }
 
-        return new InsertResult(text.Insert(at, inserted), at + inserted.Length, lines.Count, skipped, skippedGroupBlocks);
+        return new InsertResult(text.Insert(at, inserted), at + inserted.Length, lines.Count, alreadyReferenced, skippedGroupBlocks);
     }
 }

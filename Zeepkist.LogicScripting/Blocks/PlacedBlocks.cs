@@ -20,7 +20,7 @@ internal static class PlacedBlocks
         if (block == null)
             return null;
 
-        var isInBlockGroup = BlockGroups.GetScriptId(block) != null;
+        var isInBlockGroup = BlockGroups.IsInAnyGroup(block);
         if (!BlockManifest.TryGetBlock(block.blockID, out var type, out _))
             return new PlacedBlock(block.blockID, isInBlockGroup: isInBlockGroup);
 
@@ -34,17 +34,11 @@ internal static class PlacedBlocks
         List<int> wiredInputs = [];
         foreach (var input in type.Inputs)
         {
-            if (GetWires(block, input.Index).Any(w => !IsInGroup(central, w.targetUID, scriptId)))
+            if (GetWires(block, input.Index).Any(w => !BlockGroups.IsInGroup(central, w.targetUID, scriptId)))
                 wiredInputs.Add(input.Index);
         }
 
         return new PlacedBlock(block.blockID, settings, wiredInputs, GetDownstream(central, block, type, scriptId), isInBlockGroup);
-    }
-
-    private static bool IsInGroup(LEV_LevelEditorCentral central, string uid, string scriptId)
-    {
-        var block = LevelBlocks.Find(central, uid);
-        return block != null && BlockGroups.GetScriptId(block) == scriptId;
     }
 
     /// <summary>
@@ -62,7 +56,7 @@ internal static class PlacedBlocks
             {
                 foreach (var wire in GetWires(block, output.Index))
                 {
-                    if (IsInGroup(central, wire.targetUID, scriptId) || !reached.Add(wire.targetUID))
+                    if (BlockGroups.IsInGroup(central, wire.targetUID, scriptId) || !reached.Add(wire.targetUID))
                         continue;
 
                     var next = LevelBlocks.Find(central, wire.targetUID);

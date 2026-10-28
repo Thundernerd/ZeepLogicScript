@@ -42,7 +42,7 @@ internal static partial class BlockBatch
         List<ChangedBlock> changed = [];
         try
         {
-            RemoveBlocks(central, removes, removed, changed, label);
+            RemoveBlocks(central, removes, removedUids, removed, changed, label);
             foreach (var json in adds)
             {
                 added.Add(CreateBlock(central, json, label));
@@ -64,20 +64,17 @@ internal static partial class BlockBatch
 
     /// <summary>
     /// Removes the blocks and the other blocks' Wires to them, noting each one's JSON in <paramref name="removed"/>
-    /// and each block that loses a Wire in <paramref name="changed"/>. Unlike the game's own delete, the changed
-    /// blocks' JSON for undo is taken after the cleanup, so redo doesn't bring back Wires to removed blocks.
+    /// and each block that loses a Wire in <paramref name="changed"/>. The changed blocks' JSON for undo is taken
+    /// after the cleanup, so redo doesn't bring back Wires to removed blocks.
     /// </summary>
     private static void RemoveBlocks(
         LEV_LevelEditorCentral central,
         IReadOnlyList<BlockProperties> blocks,
+        HashSet<string> removedUids,
         List<string> removed,
         List<ChangedBlock> changed,
         string label)
     {
-        if (blocks.Count == 0)
-            return;
-
-        HashSet<string> removedUids = [.. blocks.Select(b => b.UID)];
         HashSet<string> wiredUids = [];
         foreach (var block in blocks)
         {

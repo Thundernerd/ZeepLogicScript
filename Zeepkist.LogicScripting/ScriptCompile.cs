@@ -54,7 +54,7 @@ internal static class ScriptCompile
             var origin = group.Count > 0 ? GetGroupOrigin(group, result, quarterTurns) : GetPlacementPoint(central);
             var jsons = CompiledBlockJson.Create(result, origin, scriptId);
             var placedWires = CompiledBlockJson.CreatePlacedWires(result, jsons);
-            lostWires = CountLostWires(group, placedWires);
+            lostWires = BlockGroups.CountWiresNotRemade(group, placedWires);
             BlockBatch.Apply(central, jsons, group, placedWires, UndoLabel);
         }
         catch (Exception e)
@@ -105,44 +105,6 @@ internal static class ScriptCompile
             quarterTurns);
 
         return new Vector3(x, positions.Min(p => p.y), z);
-    }
-
-    /// <summary>
-    /// How many of the group's Wires to blocks outside it the Replace removes without the new Compile making them
-    /// again, matched by the outside block's Connector. A hand-made Wire into the group is one of these.
-    /// </summary>
-    private static int CountLostWires(List<BlockProperties> group, List<BlockWire> placedWires)
-    {
-        HashSet<string> groupUids = [.. group.Select(b => b.UID)];
-        Dictionary<(string Uid, int Connector), int> remade = [];
-        foreach (var wire in placedWires)
-        {
-            foreach (var end in new[] { (wire.FromUid, wire.FromConnector), (wire.ToUid, wire.ToConnector) })
-            {
-                remade[end] = remade.TryGetValue(end, out var count) ? count + 1 : 1;
-            }
-        }
-
-        var lost = 0;
-        foreach (var block in group)
-        {
-            foreach (var hub in block.allConnectorHubsOnThisBlock.Values)
-            {
-                foreach (var wire in hub?.GetThisHubsConnectionStructs() ?? [])
-                {
-                    if (groupUids.Contains(wire.targetUID))
-                        continue;
-
-                    var end = (wire.targetUID, wire.connectorID);
-                    if (remade.TryGetValue(end, out var count) && count > 0)
-                        remade[end] = count - 1;
-                    else
-                        lost++;
-                }
-            }
-        }
-
-        return lost;
     }
 
     /// <summary>

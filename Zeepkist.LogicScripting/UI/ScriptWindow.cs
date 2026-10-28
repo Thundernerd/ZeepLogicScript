@@ -278,7 +278,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         List<SelectedBlock> selected = [];
         foreach (var block in central.selection.list)
         {
-            selected.Add(new SelectedBlock(block.UID, block.blockID, BlockGroups.GetScriptId(block) != null));
+            selected.Add(new SelectedBlock(block.UID, block.blockID, BlockGroups.IsInAnyGroup(block)));
         }
 
         // Clicking the button took focus from the field, but the editor still holds the caret
@@ -290,8 +290,8 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         }
 
         _insertMessage = $"Inserted {insert.InsertedCount} placed blocks";
-        if (insert.SkippedCount > 0)
-            _insertMessage += $"; skipped {insert.SkippedCount} the Script already refers to";
+        if (insert.AlreadyReferencedCount > 0)
+            _insertMessage += $"; skipped {insert.AlreadyReferencedCount} the Script already refers to";
 
         if (insert.SkippedGroupBlockCount > 0)
             _insertMessage += $"; skipped {insert.SkippedGroupBlockCount} in a Block Group, which a recompile replaces";
