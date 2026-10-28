@@ -14,12 +14,11 @@ internal static partial class BlockBatch
     private const string KeyPaintBase = "p";
 
     /// <summary>
-    /// Removes <paramref name="removes"/>, creates <paramref name="adds"/>, Wires between them included in their JSON,
-    /// adds <paramref name="wires"/>, each with at least one end on a block already in the level, and registers it all
-    /// as one undo step named <paramref name="label"/>. Blocks that stay are recorded as changed when they lose a Wire
-    /// to a removed block or gain one of <paramref name="wires"/>, so undo restores them exactly. If anything throws,
-    /// the added blocks are removed again, the removed ones come back, the changed ones get their old state back, no
-    /// undo step is registered and the exception is rethrown.
+    /// Wires between <paramref name="adds"/> go in their JSON; each of <paramref name="wires"/> has at least one end on
+    /// a block already in the level. Blocks that stay are recorded as changed when they lose a Wire to a removed block
+    /// or gain one of <paramref name="wires"/>, so undo restores them exactly. If anything throws, the added blocks are
+    /// removed again, the removed ones come back, the changed ones get their old state back, no undo step is registered
+    /// and the exception is rethrown.
     /// </summary>
     public static List<BlockProperties> Apply(
         LEV_LevelEditorCentral central,
@@ -124,10 +123,6 @@ internal static partial class BlockBatch
         }
     }
 
-    /// <summary>
-    /// After removed blocks dropped out of the selection, the gizmo moves to the blocks still selected, or goes away
-    /// with the selection.
-    /// </summary>
     private static void UpdateSelection(LEV_LevelEditorCentral central, string label)
     {
         if (central.selection.list.Count == 0)
@@ -278,8 +273,7 @@ internal static partial class BlockBatch
     }
 
     /// <summary>
-    /// Brings removed blocks back from their JSON, Wires included, for rolling back, and selects again the ones that
-    /// were selected. Call before <see cref="Restore"/>, so the changed blocks' Wires to them resolve.
+    /// Call before <see cref="Restore"/>, so the changed blocks' Wires to the recreated blocks resolve.
     /// </summary>
     private static void Recreate(LEV_LevelEditorCentral central, List<string> removed, HashSet<string> selectedUids, string label)
     {
@@ -298,9 +292,8 @@ internal static partial class BlockBatch
     }
 
     /// <summary>
-    /// Puts each changed block's Settings and Wires back as they were, then reloads and redraws every block wired to
-    /// one of them, so they show the restored Wires. Call after removing the added blocks, so nothing redraws a Wire to
-    /// them.
+    /// Also reloads every block wired to a changed one, so it shows the restored Wires. Call after removing the added
+    /// blocks, so nothing redraws a Wire to them.
     /// </summary>
     private static void Restore(LEV_LevelEditorCentral central, List<ChangedBlock> changed, string label)
     {

@@ -18,9 +18,6 @@ internal sealed partial class ScriptEditor
     private string _runsText;
     private int _lineCount = 1;
 
-    /// <summary>
-    /// Draws the visible lines, a run of one colour at a time.
-    /// </summary>
     private void DrawText(ImGui gui, ImRect textRect, ImRect textBounds, SyntaxPalette palette)
     {
         var (firstLine, lastLine) = GetVisibleLines(textRect, textBounds, _layout.LinesCount);
@@ -35,7 +32,7 @@ internal sealed partial class ScriptEditor
     }
 
     /// <summary>
-    /// A line under each error; one with nothing to underline (at the end of a line) gets a short one.
+    /// An error with nothing to underline (at the end of a line) still gets a short underline.
     /// </summary>
     private void DrawErrors(ImGui gui, ImRect textRect, SyntaxPalette palette)
     {
@@ -55,7 +52,7 @@ internal sealed partial class ScriptEditor
     }
 
     /// <summary>
-    /// Line numbers, right-aligned in a column left of the text, scrolled with it vertically but not horizontally.
+    /// The line numbers scroll with the text vertically but not horizontally.
     /// </summary>
     private void DrawGutter(ImGui gui, ImRect rect, float gutterWidth, ImRect textRect, ImRect textBounds, SyntaxPalette palette)
     {
@@ -75,11 +72,9 @@ internal sealed partial class ScriptEditor
         gui.Canvas.PopClipRect();
     }
 
-    /// <summary>
-    /// Wide enough for the current text's last line number, and never less than two digits.
-    /// </summary>
     private float GetGutterWidth(ImGui gui, float textSize)
     {
+        // Brings _lineCount up to date with the text
         GetRuns();
         var digits = Math.Max(2, _lineCount.ToString().Length);
         return (digits * gui.TextDrawer.GetCharacterAdvance('0', textSize)) + (gui.Style.Layout.InnerSpacing * 2);
@@ -93,10 +88,6 @@ internal sealed partial class ScriptEditor
         return (first, last);
     }
 
-    /// <summary>
-    /// The text split into runs of one colour at line breaks and at the lexer's spans, leaving out runs of only
-    /// whitespace. Worked out again only when the text changed.
-    /// </summary>
     private List<TextRun> GetRuns()
     {
         if (ReferenceEquals(_runsText, Text))

@@ -15,9 +15,7 @@ using ZeepSDK.Utilities;
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// The Logic Scripting window: the Script editor, the errors from live checking, Insert selected and Compile buttons,
-/// the result line and the Placed blocks panel. Editor mouse input is blocked while the cursor is over the window,
-/// editor keyboard input while the field has focus.
+/// Editor mouse input is blocked while the cursor is over the window, editor keyboard input while the field has focus.
 /// </summary>
 internal sealed class ScriptWindow : IZeepGUIDrawer
 {
@@ -36,7 +34,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private const float CheckDelay = 0.4f;
 
     /// <summary>
-    /// The most errors listed under the field; the underlines still show every one.
+    /// The underlines still show every error.
     /// </summary>
     private const int MaxListedErrors = 8;
 
@@ -61,9 +59,6 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private bool _blockingMouse;
     private bool _blockingKeyboard;
 
-    /// <summary>
-    /// Whether the latest check is of the text as it is now, and found errors.
-    /// </summary>
     private bool HasCurrentErrors => _check != null && _checkedText == _editor.Text && !_check.Succeeded;
 
     public ScriptWindow(ManualLogSource logger, StartupCheck startupCheck)
@@ -123,7 +118,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     }
 
     /// <summary>
-    /// Releases every input block; call when the mod unloads.
+    /// Call when the mod unloads too, or the level editor's input stays blocked.
     /// </summary>
     public void ReleaseInput()
     {
@@ -134,9 +129,6 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         SetKeyboardBlocked(false);
     }
 
-    /// <summary>
-    /// A standing warning for what the startup check turned off.
-    /// </summary>
     private void DrawStartupCheck(ImGui gui)
     {
         if (!_startupCheck.CanPlace)
@@ -183,9 +175,6 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         _editor.SetErrors([]);
     }
 
-    /// <summary>
-    /// The errors of the latest check, once it's up to date with the text; clicking one jumps to it.
-    /// </summary>
     private void DrawErrors(ImGui gui)
     {
         if (!HasCurrentErrors)
@@ -203,9 +192,6 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             gui.Text($"and {count - MaxListedErrors} more", _errorColor);
     }
 
-    /// <summary>
-    /// Returns whether it was clicked; it's turned off, with the reason as its tooltip, while Compile can't run.
-    /// </summary>
     private bool DrawCompileButton(ImGui gui)
     {
         var blocker = GetCompileBlocker();
@@ -220,7 +206,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     }
 
     /// <summary>
-    /// Why Compile can't run right now, or null when it can: the checked Script has errors, or blocks are grabbed.
+    /// Why Compile can't run right now, or null when it can.
     /// </summary>
     private string GetCompileBlocker()
     {
@@ -263,9 +249,6 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         _nextCheckTime = 0;
     }
 
-    /// <summary>
-    /// Writes a Placed Block Reference for each selected block at the field's caret.
-    /// </summary>
     private void InsertSelected(ImGui gui)
     {
         var central = ComponentCache.Get<LEV_LevelEditorCentral>();
@@ -298,8 +281,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     }
 
     /// <summary>
-    /// One row per placed block the Script refers to; a missing one in red. Clicking a row frames its block.
-    /// Returns the block under the hovered row, if any.
+    /// Returns the block under the hovered row, or null.
     /// </summary>
     private BlockProperties DrawPlacedBlocks(ImGui gui)
     {
@@ -340,10 +322,6 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         return hovered;
     }
 
-    /// <summary>
-    /// Compiles the Script without placing anything, for live checking and the Placed blocks panel: shortly after
-    /// typing stops, and every <see cref="CheckInterval"/> seconds while it's unchanged.
-    /// </summary>
     private void RefreshCheck()
     {
         if (Time.unscaledTime < _nextCheckTime)

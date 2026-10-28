@@ -57,27 +57,23 @@ public sealed class BlockType
     public IReadOnlyList<BlockStyle> Styles { get; }
 
     public BlockStyle DefaultStyle => Styles[0];
-
-    /// <summary>
-    /// Whether <c>style:</c> picks between several blocks.
-    /// </summary>
     public bool HasStyles => Styles.Count > 1;
 
     /// <summary>
-    /// Input Connectors in the order positional arguments fill them.
+    /// In the order positional arguments fill them.
     /// </summary>
     public IReadOnlyList<BlockConnector> Inputs { get; }
 
     /// <summary>
-    /// Output Connectors; a block with more than one is used through dot access. For a block with
-    /// <see cref="Modes"/>, these are the names in its first mode.
+    /// A block with more than one is used through dot access. For a block with <see cref="Modes"/>, these are the
+    /// names in its first mode.
     /// </summary>
     public IReadOnlyList<BlockConnector> Outputs { get; }
 
     public IReadOnlyList<BlockSetting> Settings { get; }
 
     /// <summary>
-    /// The Setting that renames the outputs per mode, or null.
+    /// The Setting that renames the outputs per mode; null when the outputs never change.
     /// </summary>
     public BlockModes Modes { get; }
 
@@ -91,9 +87,6 @@ public sealed class BlockType
     /// </summary>
     public BlockRange Range { get; }
 
-    /// <summary>
-    /// The position of the named input in <see cref="Inputs"/>, or -1.
-    /// </summary>
     public int IndexOfInput(string name)
     {
         for (var i = 0; i < Inputs.Count; i++)
@@ -113,9 +106,6 @@ public sealed class BlockType
         return Modes == null ? Outputs : Modes.Outputs[GetModeIndex(settings)];
     }
 
-    /// <summary>
-    /// The option word of the mode a block with the given Settings is in.
-    /// </summary>
     public string GetModeName(IReadOnlyList<Setting> settings)
     {
         return Modes.Setting.Options[GetModeIndex(settings)];
@@ -135,9 +125,6 @@ public sealed class BlockType
         return 0;
     }
 
-    /// <summary>
-    /// The Block Function name, with the style's name where the type has several.
-    /// </summary>
     public string Describe(BlockStyle style)
     {
         return HasStyles ? $"{Function} style {style.Name}" : Function;
@@ -204,9 +191,6 @@ public sealed class BlockType
         return ordered.ToArray();
     }
 
-    /// <summary>
-    /// Every name a call can give as a named argument.
-    /// </summary>
     private IEnumerable<string> GetArgumentNames()
     {
         var names = Inputs.Select(i => i.Name).Concat(Settings.Select(s => s.Name));

@@ -11,9 +11,8 @@ using UnityEngine;
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// The Script editor: a multi-line text field with a line-number gutter, colours from the compiler's lexer, error
-/// underlines and an undo and redo of its own, which never touch the level. Forked from Imui's
-/// <c>ImTextEdit.TextEdit</c> (MIT, see THIRD_PARTY_NOTICES.md).
+/// Has an undo and redo of its own, which never touch the level. Forked from Imui's <c>ImTextEdit.TextEdit</c> (MIT,
+/// see THIRD_PARTY_NOTICES.md).
 /// </summary>
 internal sealed partial class ScriptEditor
 {
@@ -36,7 +35,7 @@ internal sealed partial class ScriptEditor
     public uint Id { get; private set; }
 
     /// <summary>
-    /// The spans to underline as errors; character indices into <see cref="Text"/>.
+    /// Spans are character indices into <see cref="Text"/>.
     /// </summary>
     public void SetErrors(IReadOnlyList<TextSpan> errors)
     {
@@ -44,7 +43,7 @@ internal sealed partial class ScriptEditor
     }
 
     /// <summary>
-    /// Replaces the text as exactly one undo step of its own, as Insert selected does.
+    /// Records exactly one undo step of its own.
     /// </summary>
     public void Replace(string text, int caret, double time)
     {
@@ -57,7 +56,7 @@ internal sealed partial class ScriptEditor
     }
 
     /// <summary>
-    /// Puts the caret at a line and column, scrolls to it and focuses the field.
+    /// Also focuses the field.
     /// </summary>
     public void JumpTo(Position position)
     {
@@ -69,8 +68,7 @@ internal sealed partial class ScriptEditor
     }
 
     /// <summary>
-    /// Draws the editor and handles its input. Returns whether the text changed; <paramref name="compileRequested"/>
-    /// is set when Ctrl+Enter was pressed in it.
+    /// Returns whether the text changed; <paramref name="compileRequested"/> is set when Ctrl+Enter was pressed in it.
     /// </summary>
     public bool Draw(ImGui gui, ImRect rect, out bool compileRequested)
     {

@@ -9,9 +9,6 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 /// </summary>
 public sealed partial class EditHistory
 {
-    /// <summary>
-    /// How many steps undo can go back.
-    /// </summary>
     public const int MaxSteps = 500;
 
     /// <summary>

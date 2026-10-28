@@ -9,7 +9,6 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal sealed partial class ScriptEditor
 {
     /// <summary>
-    /// Handles this frame's keys: undo and redo, Ctrl+Enter, the editor's own shortcuts, then Imui's text editing.
     /// Every edit is recorded in the history; a caret move without an edit ends the current typing step.
     /// </summary>
     private bool HandleKeyboard(ImGui gui, ref ImTextEditBuffer buffer, ImRect textRect, bool editable, out bool compileRequested)
@@ -149,9 +148,6 @@ internal sealed partial class ScriptEditor
         return EditCommands.DeleteTo(before, ImTextEdit.FindEndOfWordOrSpacesSequence(before.Caret, direction, buffer));
     }
 
-    /// <summary>
-    /// Ctrl+Z undoes; Ctrl+Y and Ctrl+Shift+Z redo.
-    /// </summary>
     private bool TryStepHistory(in ImKeyboardEvent evt, out TextSnapshot snapshot)
     {
         var shift = (evt.Modifiers & EventModifiers.Shift) != 0;
@@ -166,7 +162,7 @@ internal sealed partial class ScriptEditor
     }
 
     /// <summary>
-    /// Ctrl, or Cmd on macOS; not with Alt, because AltGr arrives as Ctrl+Alt and types characters.
+    /// Not with Alt, because AltGr arrives as Ctrl+Alt and types characters.
     /// </summary>
     private static bool IsCommand(in ImKeyboardEvent evt)
     {

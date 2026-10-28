@@ -23,9 +23,6 @@ internal static class BlockGroups
         return GetScriptId(block) != null;
     }
 
-    /// <summary>
-    /// Whether the live block with a UID is in the Script's Block Group.
-    /// </summary>
     public static bool IsInGroup(LEV_LevelEditorCentral central, string uid, string scriptId)
     {
         var block = LevelBlocks.Find(central, uid);
@@ -33,8 +30,7 @@ internal static class BlockGroups
     }
 
     /// <summary>
-    /// Every block in the Script's Block Group. Goes through all the level's blocks, so call it on a Compile, not per
-    /// frame.
+    /// Goes through all the level's blocks, so call it on a Compile, not per frame.
     /// </summary>
     public static List<BlockProperties> Find(LEV_LevelEditorCentral central, string scriptId)
     {

@@ -13,13 +13,6 @@ internal sealed class OperatorBlock
         Setting = setting;
     }
 
-    /// <summary>
-    /// The block type to place.
-    /// </summary>
     public BlockType Type { get; }
-
-    /// <summary>
-    /// The Setting that picks the operation on <see cref="Type"/>.
-    /// </summary>
     public Setting Setting { get; }
 }

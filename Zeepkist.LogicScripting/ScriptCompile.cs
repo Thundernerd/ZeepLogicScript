@@ -20,8 +20,7 @@ internal static class ScriptCompile
 
     /// <summary>
     /// Returns the result to show in the window: one line, or the error list. The new blocks replace the Block Group
-    /// of the Script with <paramref name="scriptId"/>. When the startup check found the game's block creation changed,
-    /// the Script is still checked, but nothing is placed.
+    /// of the Script with <paramref name="scriptId"/>.
     /// </summary>
     public static string Run(string text, string scriptId, StartupCheck check, ManualLogSource logger)
     {
@@ -107,9 +106,6 @@ internal static class ScriptCompile
         return new Vector3(x, positions.Min(p => p.y), z);
     }
 
-    /// <summary>
-    /// A heading line, then every error as "line:column: message", one per line.
-    /// </summary>
     private static string FormatErrors(CompileResult result)
     {
         var heading = result.Errors.Count == 1 ? "1 error; nothing placed" : $"{result.Errors.Count} errors; nothing placed";
@@ -117,9 +113,7 @@ internal static class ScriptCompile
     }
 
     /// <summary>
-    /// Same point as the game's own new-block placement: the view direction times 80, flattened, at the editor's
-    /// new-block height (40 below the camera when the camera is lower), snapped to 16 (8 vertically), y >= 0.
-    /// The new-block height is only read, never changed.
+    /// Same point as the game's own new-block placement, but the new-block height is only read, never changed.
     /// </summary>
     private static Vector3 GetPlacementPoint(LEV_LevelEditorCentral central)
     {

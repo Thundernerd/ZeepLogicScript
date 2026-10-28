@@ -5,9 +5,6 @@ using UnityEngine;
 
 namespace TNRD.Zeepkist.LogicScripting.Blocks;
 
-/// <summary>
-/// Turns the compiler's plain block data into the game's block JSON, Wires included.
-/// </summary>
 internal static class CompiledBlockJson
 {
     private const string KeyConnectionBase = "id";
@@ -51,9 +48,6 @@ internal static class CompiledBlockJson
         return jsons;
     }
 
-    /// <summary>
-    /// The Wires into and out of blocks already in the level, with the new blocks' UIDs from <paramref name="jsons"/>.
-    /// </summary>
     /// <param name="result">A successful Compile.</param>
     /// <param name="jsons">The blocks <see cref="Create"/> made from it.</param>
     public static List<BlockWire> CreatePlacedWires(CompileResult result, IReadOnlyList<BlockPropertyJSON> jsons)
@@ -73,8 +67,7 @@ internal static class CompiledBlockJson
     }
 
     /// <summary>
-    /// Writes the Wire into both blocks' dictionaries, like LEV_ConnectorTool does via Connect on both ends.
-    /// The output end is the drawing leader.
+    /// Both ends hold the Wire, as with LEV_ConnectorTool's Connect on both ends; the output end is the drawing leader.
     /// </summary>
     private static void AddWire(BlockPropertyJSON from, int fromConnector, BlockPropertyJSON to, int toConnector)
     {

@@ -12,8 +12,8 @@ internal sealed class PlacedBlockHighlight
     private BlockProperties _block;
 
     /// <summary>
-    /// Moves the highlight to <paramref name="block"/>, or removes it for null. Only paints on a change: every paint
-    /// makes new materials. Blocks in the selection already wear the paint and are left alone.
+    /// Null removes the highlight. Only paints on a change, because every paint makes new materials. Blocks in the
+    /// selection already wear the paint and are left alone.
     /// </summary>
     public void Set(LEV_LevelEditorCentral central, BlockProperties block)
     {
@@ -39,9 +39,6 @@ internal sealed class PlacedBlockHighlight
         return block != null && !central.selection.list.Contains(block);
     }
 
-    /// <summary>
-    /// Moves the camera so the block is in front of it, keeping the camera's rotation and the selection.
-    /// </summary>
     public static void Frame(LEV_LevelEditorCentral central, BlockProperties block)
     {
         var renderers = block.GetComponentsInChildren<Renderer>();

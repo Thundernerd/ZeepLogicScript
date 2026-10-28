@@ -1,8 +1,5 @@
 namespace TNRD.Zeepkist.LogicScripting.Compiler;
 
-/// <summary>
-/// A Compile error at a position in the Script.
-/// </summary>
 public sealed class Diagnostic
 {
     public Diagnostic(Position position, string message)

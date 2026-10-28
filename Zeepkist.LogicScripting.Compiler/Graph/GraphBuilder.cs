@@ -11,7 +11,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 /// Checks the parsed Script and turns it into a block graph: one block per Block Function call or operator,
 /// one shared Generator per distinct literal value. Names are defined before use, once each; only inside
 /// <c>delay(...)</c> can a name refer to a later definition or to itself, so every cycle within the Script passes
-/// through a Delay. Placed Block References reach blocks already in the level; Wires into them are checked for loops.
+/// through a Delay (ADR 0002). Placed Block References reach blocks already in the level; Wires into them are checked
+/// for loops.
 /// </summary>
 internal sealed partial class GraphBuilder
 {
@@ -76,7 +77,7 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// Returns what the expression stands for, or null after reporting why it stands for nothing.
+    /// Null after reporting why the expression stands for nothing.
     /// </summary>
     private Resolved? Evaluate(Expression expression)
     {
@@ -132,9 +133,6 @@ internal sealed partial class GraphBuilder
         }
     }
 
-    /// <summary>
-    /// Like <see cref="Evaluate"/>, but the expression has to stand for one output.
-    /// </summary>
     private BlockOutput? EvaluateOutput(Expression expression)
     {
         var value = Evaluate(expression);
@@ -195,8 +193,9 @@ internal sealed partial class GraphBuilder
         };
     }
 
-    /// <param name="origin">What the literal is written as; the shared Generator is placed by the first one.</param>
-    /// <param name="value">The literal's value.</param>
+    /// <summary>
+    /// One Generator per value, placed by the first <paramref name="origin"/> that writes it.
+    /// </summary>
     private BlockOutput GetLiteral(SyntaxNode origin, long value)
     {
         if (_literals.TryGetValue(value, out var output))
@@ -211,8 +210,7 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// Adds a block to the graph; reports it at <paramref name="origin"/>, the call, operator or literal that places
-    /// it, when the startup check turned its block off.
+    /// Reports at <paramref name="origin"/> when the startup check turned the block off.
     /// </summary>
     private BlockNode AddBlock(SyntaxNode origin, BlockType type, BlockStyle style, params Setting[] settings)
     {

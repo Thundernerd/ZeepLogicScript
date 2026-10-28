@@ -35,8 +35,7 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// Places <paramref name="operatorBlock"/> and wires <paramref name="inputs"/> into its first inputs, in order. Each
-    /// input is asked for after the block is placed, so a Generator it creates comes after the block.
+    /// Each input is asked for after the block is placed, so a Generator it creates comes after the block.
     /// </summary>
     private BlockOutput AddOperatorBlock(SyntaxNode origin, OperatorBlock operatorBlock, IReadOnlyList<Func<InputFeed>> inputs)
     {

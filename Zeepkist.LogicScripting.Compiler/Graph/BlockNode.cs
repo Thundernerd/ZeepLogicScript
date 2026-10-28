@@ -18,9 +18,6 @@ internal sealed class BlockNode
         Outputs = type.GetOutputs(_settings);
     }
 
-    /// <summary>
-    /// A block already in the level, reached through a Placed Block Reference.
-    /// </summary>
     public BlockNode(string uid, BlockType type, BlockStyle style, PlacedBlock placed)
         : this(0, type, style, placed.Settings)
     {
@@ -29,19 +26,19 @@ internal sealed class BlockNode
     }
 
     /// <summary>
-    /// Position in the graph; blocks are added in Script line order. A placed block isn't laid out, so it has none.
+    /// Blocks are added in Script line order.
     /// </summary>
     public int Index => IsPlaced
         ? throw new InvalidOperationException($"Block {Uid} is already in the level, so it has no index")
         : _index;
 
     /// <summary>
-    /// The placed block's UID, or null for a block the Compile places.
+    /// Null for a block the Compile places.
     /// </summary>
     public string Uid { get; }
 
     /// <summary>
-    /// What the level says about the placed block, or null for a block the Compile places.
+    /// What the level says about the placed block; null for a block the Compile places.
     /// </summary>
     public PlacedBlock Placed { get; }
 

@@ -359,9 +359,6 @@ public static class BlockManifest
     private static readonly Dictionary<string, BlockType> _placedOnly = ByFunction(isPlacedOnly: true);
     private static readonly Dictionary<int, (BlockType Type, BlockStyle Style)> _blocks = ByBlockId();
 
-    /// <summary>
-    /// Short names for Block Functions.
-    /// </summary>
     public static IReadOnlyDictionary<string, BlockType> Aliases { get; } = new Dictionary<string, BlockType>
     {
         ["mux"] = Multiplexer,
@@ -378,17 +375,11 @@ public static class BlockManifest
         return _functions.TryGetValue(name, out type) || Aliases.TryGetValue(name, out type);
     }
 
-    /// <summary>
-    /// The placed-only type with this name.
-    /// </summary>
     public static bool TryGetPlacedOnly(string name, out BlockType type)
     {
         return _placedOnly.TryGetValue(name, out type);
     }
 
-    /// <summary>
-    /// The type and style a block ID belongs to.
-    /// </summary>
     public static bool TryGetBlock(int blockId, out BlockType type, out BlockStyle style)
     {
         var found = _blocks.TryGetValue(blockId, out var block);
@@ -440,9 +431,6 @@ public static class BlockManifest
         return new BlockType(function, styles, inputs, outputs, isPlacedOnly: true);
     }
 
-    /// <summary>
-    /// Connectors with consecutive indices, starting at <paramref name="firstIndex"/>.
-    /// </summary>
     private static BlockConnector[] Numbered(int firstIndex, params string[] names)
     {
         var connectors = new BlockConnector[names.Length];

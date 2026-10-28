@@ -2,9 +2,6 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 
 internal sealed partial class GraphBuilder
 {
-    /// <summary>
-    /// What a call's argument wires an input to, and whether it does so by position or by name.
-    /// </summary>
     private readonly struct WiredInput
     {
         private WiredInput(InputFeed? feed, bool isByPosition)
