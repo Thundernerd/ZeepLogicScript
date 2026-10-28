@@ -37,6 +37,7 @@ internal static partial class BlockBatch
         if (adds.Any(json => removedUids.Contains(json.u)))
             throw new InvalidOperationException("Can't remove and add a block with the same UID in one block batch");
 
+        HashSet<string> selectedUids = [.. removes.Where(central.selection.list.Contains).Select(b => b.UID)];
         List<string> removed = [];
         List<BlockProperties> added = [];
         List<ChangedBlock> changed = [];
@@ -56,8 +57,15 @@ internal static partial class BlockBatch
         catch
         {
             Remove(central, added);
-            Recreate(central, removed, label);
-            Restore(central, changed, label);
+            try
+            {
+                Recreate(central, removed, selectedUids, label);
+            }
+            finally
+            {
+                Restore(central, changed, label);
+            }
+
             throw;
         }
     }
@@ -270,10 +278,10 @@ internal static partial class BlockBatch
     }
 
     /// <summary>
-    /// Brings removed blocks back from their JSON, Wires included, for rolling back. Call before
-    /// <see cref="Restore"/>, so the changed blocks' Wires to them resolve.
+    /// Brings removed blocks back from their JSON, Wires included, for rolling back, and selects again the ones that
+    /// were selected. Call before <see cref="Restore"/>, so the changed blocks' Wires to them resolve.
     /// </summary>
-    private static void Recreate(LEV_LevelEditorCentral central, List<string> removed, string label)
+    private static void Recreate(LEV_LevelEditorCentral central, List<string> removed, HashSet<string> selectedUids, string label)
     {
         List<BlockProperties> blocks = [];
         foreach (var json in removed)
@@ -282,6 +290,11 @@ internal static partial class BlockBatch
         }
 
         LoadConnectors(blocks, label);
+        foreach (var block in blocks)
+        {
+            if (selectedUids.Contains(block.UID))
+                central.selection.AddThisBlock(block);
+        }
     }
 
     /// <summary>
