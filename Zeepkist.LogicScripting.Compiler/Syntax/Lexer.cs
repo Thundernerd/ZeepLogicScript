@@ -5,7 +5,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 /// <summary>
 /// Splits Script text into tokens. Line breaks are tokens of their own, because each statement takes one line,
-/// except inside a matched pair of brackets, where a statement continues on the next line. <c>#</c> starts a comment
+/// except inside a matched pair of parentheses, where a statement continues on the next line. <c>#</c> starts a comment
 /// that runs to the end of the line.
 /// </summary>
 internal static class Lexer
@@ -105,8 +105,8 @@ internal static class Lexer
     }
 
     /// <summary>
-    /// Drops the line breaks inside each matched pair of brackets and flags opening brackets that are never closed.
-    /// An unclosed bracket doesn't swallow the lines after it, so they're still checked on their own.
+    /// Drops the line breaks inside each matched pair of parentheses and flags opening ones that are never closed. An
+    /// unclosed parenthesis doesn't swallow the lines after it, so they're still checked on their own.
     /// </summary>
     private static List<Token> JoinBracketedLines(List<Token> tokens)
     {
@@ -114,7 +114,7 @@ internal static class Lexer
         var matched = new bool[tokens.Count];
         for (var i = 0; i < tokens.Count; i++)
         {
-            // A definition can't sit inside brackets, so the brackets still open before one were never closed
+            // A definition can't sit inside parentheses, so the ones still open before it were never closed
             if (IsDefinitionStart(tokens, i))
             {
                 open.Clear();

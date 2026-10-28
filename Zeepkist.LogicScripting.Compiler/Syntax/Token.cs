@@ -22,7 +22,7 @@ internal readonly struct Token
     public Position Position { get; }
 
     /// <summary>
-    /// An opening bracket with no closing bracket to match it.
+    /// An opening parenthesis with no closing one to match it.
     /// </summary>
     public bool IsUnclosed { get; }
 

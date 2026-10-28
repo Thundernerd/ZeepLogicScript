@@ -71,8 +71,9 @@ internal static partial class BlockBatch
 
     /// <summary>
     /// Removes the blocks and the other blocks' Wires to them, noting each one's JSON in <paramref name="removed"/>
-    /// and each block that loses a Wire in <paramref name="changed"/>. The changed blocks' JSON for undo is taken
-    /// after the cleanup, so redo doesn't bring back Wires to removed blocks.
+    /// and each block that loses a Wire in <paramref name="changed"/>. A changed block's undo state is noted before the
+    /// cleanup; its redo state is taken in <see cref="RegisterUndo"/>, after it, so redo doesn't bring back Wires to
+    /// removed blocks.
     /// </summary>
     private static void RemoveBlocks(
         LEV_LevelEditorCentral central,
