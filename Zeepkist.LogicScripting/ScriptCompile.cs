@@ -72,7 +72,7 @@ internal static class ScriptCompile
             line += $", wired to {wiredBlocks} placed blocks";
 
         if (lostWires > 0)
-            line += $"\nRemoved {lostWires} Wires between the group and other blocks that the Script doesn't make; to keep one, wire the block in the Script with placed(...)";
+            line += $"\nRemoved {lostWires} Wires between the group and other blocks that this Compile doesn't make again; to keep a hand-made one, wire the block in the Script with placed(...)";
 
         return line;
     }
