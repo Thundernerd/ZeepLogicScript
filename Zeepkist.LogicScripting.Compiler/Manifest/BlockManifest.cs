@@ -334,6 +334,12 @@ public static class BlockManifest
         []);
 
     /// <summary>
+    /// Any block the Block Manifest doesn't describe, reached through a Placed Block Reference. It has no Connectors,
+    /// so it can only be a Toggler target.
+    /// </summary>
+    public static readonly BlockType OtherBlock = new("block", [], [], [], isPlacedOnly: true);
+
+    /// <summary>
     /// Every type, Block Functions first. The decorative Simple Rotator has no Connectors and isn't one of them.
     /// </summary>
     public static readonly IReadOnlyList<BlockType> All =
@@ -349,6 +355,7 @@ public static class BlockManifest
 
     private static readonly Dictionary<string, BlockType> _functions = ByFunction(isPlacedOnly: false);
     private static readonly Dictionary<string, BlockType> _placedOnly = ByFunction(isPlacedOnly: true);
+    private static readonly Dictionary<int, (BlockType Type, BlockStyle Style)> _blocks = ByBlockId();
 
     /// <summary>
     /// Short names for Block Functions.
@@ -375,6 +382,31 @@ public static class BlockManifest
     public static bool TryGetPlacedOnly(string name, out BlockType type)
     {
         return _placedOnly.TryGetValue(name, out type);
+    }
+
+    /// <summary>
+    /// The type and style a block ID belongs to.
+    /// </summary>
+    public static bool TryGetBlock(int blockId, out BlockType type, out BlockStyle style)
+    {
+        var found = _blocks.TryGetValue(blockId, out var block);
+        type = block.Type;
+        style = block.Style;
+        return found;
+    }
+
+    private static Dictionary<int, (BlockType Type, BlockStyle Style)> ByBlockId()
+    {
+        Dictionary<int, (BlockType Type, BlockStyle Style)> blocks = [];
+        foreach (var type in All)
+        {
+            foreach (var style in type.Styles)
+            {
+                blocks.Add(style.BlockId, (type, style));
+            }
+        }
+
+        return blocks;
     }
 
     private static Dictionary<string, BlockType> ByFunction(bool isPlacedOnly)

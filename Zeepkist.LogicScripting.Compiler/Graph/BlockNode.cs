@@ -17,11 +17,36 @@ internal sealed class BlockNode
     }
 
     /// <summary>
-    /// Position in the graph; blocks are added in Script line order.
+    /// A block already in the level, reached through a Placed Block Reference.
+    /// </summary>
+    public BlockNode(string uid, BlockType type, BlockStyle style, PlacedBlock placed)
+        : this(-1, type, style, placed.Settings)
+    {
+        Uid = uid;
+        Placed = placed;
+    }
+
+    /// <summary>
+    /// Position in the graph; blocks are added in Script line order. -1 for a placed block, which isn't laid out.
     /// </summary>
     public int Index { get; }
 
+    /// <summary>
+    /// The placed block's UID, or null for a block the Compile places.
+    /// </summary>
+    public string Uid { get; }
+
+    /// <summary>
+    /// What the level says about the placed block, or null for a block the Compile places.
+    /// </summary>
+    public PlacedBlock Placed { get; }
+
+    public bool IsPlaced => Placed != null;
+
     public BlockType Type { get; }
+    /// <summary>
+    /// Null for a placed block the Block Manifest doesn't describe.
+    /// </summary>
     public BlockStyle Style { get; }
     public IReadOnlyList<Setting> Settings => _settings;
 

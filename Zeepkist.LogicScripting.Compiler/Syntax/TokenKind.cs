@@ -4,9 +4,12 @@ internal enum TokenKind
 {
     Integer,
     Name,
+    String,
     Operator,
     OpenParen,
     CloseParen,
+    OpenBracket,
+    CloseBracket,
     Comma,
     Colon,
     Dot,

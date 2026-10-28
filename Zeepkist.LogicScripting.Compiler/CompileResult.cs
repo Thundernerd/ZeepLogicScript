@@ -4,11 +4,18 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler;
 
 public sealed class CompileResult
 {
-    public CompileResult(IReadOnlyList<Diagnostic> errors, IReadOnlyList<CompiledBlock> blocks, IReadOnlyList<CompiledWire> wires)
+    public CompileResult(
+        IReadOnlyList<Diagnostic> errors,
+        IReadOnlyList<CompiledBlock> blocks,
+        IReadOnlyList<CompiledWire> wires,
+        IReadOnlyList<PlacedWire> placedWires,
+        IReadOnlyList<PlacedReference> placedReferences)
     {
         Errors = errors;
         Blocks = blocks;
         Wires = wires;
+        PlacedWires = placedWires;
+        PlacedReferences = placedReferences;
     }
 
     /// <summary>
@@ -22,6 +29,16 @@ public sealed class CompileResult
     /// Wires between <see cref="Blocks"/>, by index.
     /// </summary>
     public IReadOnlyList<CompiledWire> Wires { get; }
+
+    /// <summary>
+    /// Wires into or out of blocks already in the level. When there are errors, there are none.
+    /// </summary>
+    public IReadOnlyList<PlacedWire> PlacedWires { get; }
+
+    /// <summary>
+    /// Every <c>placed("UID")</c> the Script could be read far enough to find, errors or not, in Script order.
+    /// </summary>
+    public IReadOnlyList<PlacedReference> PlacedReferences { get; }
 
     public bool Succeeded => Errors.Count == 0;
 }

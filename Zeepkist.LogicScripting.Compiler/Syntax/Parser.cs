@@ -146,6 +146,13 @@ internal sealed partial class Parser
             case TokenKind.Integer:
                 return ParseInteger(token, token, string.Empty);
 
+            case TokenKind.String:
+                _index++;
+                return new StringLiteral(token.Position, token.Text);
+
+            case TokenKind.OpenBracket:
+                return ParseList();
+
             case TokenKind.Name:
                 _index++;
                 if (Current.Kind == TokenKind.OpenParen)
@@ -212,6 +219,31 @@ internal sealed partial class Parser
 
             Expect(TokenKind.CloseParen, "',' or ')'");
             return new CallExpression(function.Position, function.Text, arguments, namedArguments);
+        }
+    }
+
+    private ListExpression ParseList()
+    {
+        var open = Current;
+        _index++;
+        List<Expression> items = [];
+        if (Current.Kind == TokenKind.CloseBracket)
+        {
+            _index++;
+            return new ListExpression(open.Position, items);
+        }
+
+        while (true)
+        {
+            items.Add(ParseExpression());
+            if (Current.Kind == TokenKind.Comma)
+            {
+                _index++;
+                continue;
+            }
+
+            Expect(TokenKind.CloseBracket, "',' or ']'");
+            return new ListExpression(open.Position, items);
         }
     }
 
@@ -283,6 +315,7 @@ internal sealed partial class Parser
         {
             TokenKind.NewLine => "the end of the line",
             TokenKind.End => "the end of the Script",
+            TokenKind.String => $"\"{token.Text}\"",
             _ => $"'{token.Text}'"
         };
     }

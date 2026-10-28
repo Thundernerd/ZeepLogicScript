@@ -182,16 +182,16 @@ public sealed class BlockType
     }
 
     /// <summary>
-    /// The given Settings in the order <see cref="Settings"/> declares them, <c>hide:</c> last, whatever order they
+    /// The given Settings, each stored under one or more keys, in the order <see cref="Settings"/> declares them, <c>hide:</c> last, whatever order they
     /// were given in.
     /// </summary>
-    public Setting[] OrderSettings(IReadOnlyDictionary<BlockSetting, Setting> settings)
+    public Setting[] OrderSettings(IReadOnlyDictionary<BlockSetting, IReadOnlyList<Setting>> settings)
     {
         List<Setting> ordered = [];
         foreach (var blockSetting in Settings.Append(BlockSetting.Hide))
         {
-            if (settings.TryGetValue(blockSetting, out var setting))
-                ordered.Add(setting);
+            if (settings.TryGetValue(blockSetting, out var stored))
+                ordered.AddRange(stored);
         }
 
         return ordered.ToArray();

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -9,27 +10,38 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 /// <summary>
 /// Checks the parsed Script and turns it into a block graph: one block per Block Function call or operator,
 /// one shared Generator per distinct literal value. Names are defined before use, once each; only inside
-/// <c>delay(...)</c> can a name refer to a later definition or to itself, so every cycle passes through a Delay.
+/// <c>delay(...)</c> can a name refer to a later definition or to itself, so every cycle within the Script passes
+/// through a Delay. Placed Block References reach blocks already in the level; Wires into them are checked for loops.
 /// </summary>
 internal sealed partial class GraphBuilder
 {
     private readonly List<Diagnostic> _diagnostics;
     private readonly IReadOnlyCollection<int> _disabledBlockIds;
+    private readonly Func<string, PlacedBlock> _findPlacedBlock;
     private readonly BlockGraph _graph = new();
     private readonly Dictionary<long, BlockOutput> _literals = [];
 
-    private GraphBuilder(List<Diagnostic> diagnostics, IReadOnlyCollection<int> disabledBlockIds)
+    private GraphBuilder(
+        List<Diagnostic> diagnostics,
+        IReadOnlyCollection<int> disabledBlockIds,
+        Func<string, PlacedBlock> findPlacedBlock)
     {
         _diagnostics = diagnostics;
         _disabledBlockIds = disabledBlockIds;
+        _findPlacedBlock = findPlacedBlock;
     }
 
     /// <param name="statements">The parsed Script.</param>
     /// <param name="diagnostics">Where to add the errors found.</param>
     /// <param name="disabledBlockIds">Blocks that don't match the game; placing one is an error.</param>
-    public static BlockGraph Build(List<Statement> statements, List<Diagnostic> diagnostics, IReadOnlyCollection<int> disabledBlockIds)
+    /// <param name="findPlacedBlock">The block in the level with a UID, or null when there's none.</param>
+    public static BlockGraph Build(
+        List<Statement> statements,
+        List<Diagnostic> diagnostics,
+        IReadOnlyCollection<int> disabledBlockIds,
+        Func<string, PlacedBlock> findPlacedBlock)
     {
-        var builder = new GraphBuilder(diagnostics, disabledBlockIds);
+        var builder = new GraphBuilder(diagnostics, disabledBlockIds, findPlacedBlock);
         builder.CollectDefinitions(statements);
 
         foreach (var statement in statements)
@@ -38,6 +50,7 @@ internal sealed partial class GraphBuilder
         }
 
         builder.ConnectDeferredWires();
+        builder.CheckDependencyLoops();
         builder.ApplyDefaults();
         return builder._graph;
     }
@@ -52,7 +65,7 @@ internal sealed partial class GraphBuilder
             case DefaultStatement defaultStatement:
                 VisitDefault(defaultStatement);
                 break;
-            case ExpressionStatement { Expression: CallExpression call }:
+            case ExpressionStatement { Expression: CallExpression call } when call.Function != PlacedFunction:
                 VisitCall(call);
                 break;
             case ExpressionStatement expression:
@@ -72,6 +85,17 @@ internal sealed partial class GraphBuilder
             case IntegerLiteral literal:
                 return Resolved.Of(GetLiteral(literal, literal.Value));
 
+            case StringLiteral text:
+                return Fail(text, $"Text in quotes is only for the UID in {PlacedFunction}(...)");
+
+            case ListExpression list:
+                foreach (var item in list.Items)
+                {
+                    Evaluate(item);
+                }
+
+                return Fail(list, "A list in [ ] is only for a Toggler's targets:");
+
             case NameExpression name:
                 return LookUp(name);
 
@@ -83,6 +107,13 @@ internal sealed partial class GraphBuilder
 
             case BinaryExpression binary:
                 return Resolved.Of(VisitBinary(binary));
+
+            case CallExpression { Function: PlacedFunction } call:
+                return VisitPlaced(call);
+
+            case CallExpression call when IsReferenceCall(call):
+                VisitReferenceCall(call);
+                return Fail(call, $"Wiring into '{call.Function}' gives no value; put it on its own line");
 
             case CallExpression call:
                 var block = VisitCall(call);
@@ -113,6 +144,12 @@ internal sealed partial class GraphBuilder
         if (value.Value.Output != null)
             return value.Value.Output;
 
+        if (value.Value.Block.Outputs.Count == 0)
+        {
+            Error(expression, $"'{Describe(expression)}' has no output to use as a value");
+            return null;
+        }
+
         var first = value.Value.Block.Outputs[0].Name;
         var example = expression is NameExpression name ? $"{name.Name}.{first}" : $"{Describe(expression)}().{first}";
         Error(expression, $"'{Describe(expression)}' has several outputs; pick one, like {example}");
@@ -128,6 +165,9 @@ internal sealed partial class GraphBuilder
         var block = target.Value.Block;
         if (target.Value.Output != null)
             return Fail(member, $"'{Describe(member.Target)}' has a single output; use it without .{member.Output}");
+
+        if (block.Outputs.Count == 0)
+            return Fail(member, $"'{Describe(member.Target)}' has no outputs");
 
         List<string> names = [];
         foreach (var output in block.Outputs)

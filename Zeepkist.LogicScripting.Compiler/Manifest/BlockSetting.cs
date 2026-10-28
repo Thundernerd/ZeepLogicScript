@@ -13,6 +13,11 @@ public sealed class BlockSetting
     /// </summary>
     public static readonly BlockSetting Hide = Bool("hide", "lbhd");
 
+    /// <summary>
+    /// The most blocks a <see cref="SettingType.Targets"/> Setting holds.
+    /// </summary>
+    public const int MaxTargets = 8;
+
     private BlockSetting(
         string name,
         string key,
@@ -88,7 +93,7 @@ public sealed class BlockSetting
     }
 
     /// <summary>
-    /// A required list of Placed Block References, stored as one key per target.
+    /// A required list of Placed Block References, stored as one key per target: the prefix and 1, 2, ….
     /// </summary>
     public static BlockSetting Targets(string name, string keyPrefix)
     {

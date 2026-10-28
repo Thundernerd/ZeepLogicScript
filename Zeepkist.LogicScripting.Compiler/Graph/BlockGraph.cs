@@ -8,8 +8,22 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 /// </summary>
 internal sealed class BlockGraph
 {
+    /// <summary>
+    /// The blocks the Compile places.
+    /// </summary>
     public List<BlockNode> Blocks { get; } = [];
+
+    /// <summary>
+    /// Wires between <see cref="Blocks"/>.
+    /// </summary>
     public List<GraphWire> Wires { get; } = [];
+
+    /// <summary>
+    /// Wires with at least one end on a placed block. Layout leaves them out, since placed blocks never move.
+    /// </summary>
+    public List<GraphWire> PlacedWires { get; } = [];
+
+    public List<PlacedReference> PlacedReferences { get; } = [];
 
     public BlockNode AddBlock(BlockType type, BlockStyle style, params Setting[] settings)
     {
@@ -18,8 +32,14 @@ internal sealed class BlockGraph
         return block;
     }
 
-    public void AddWire(BlockOutput from, BlockNode to, int toConnector)
+    public GraphWire AddWire(BlockOutput from, BlockNode to, int toConnector)
     {
-        Wires.Add(new GraphWire(from.Block, from.Connector, to, toConnector));
+        var wire = new GraphWire(from.Block, from.Connector, to, toConnector);
+        if (from.Block.IsPlaced || to.IsPlaced)
+            PlacedWires.Add(wire);
+        else
+            Wires.Add(wire);
+
+        return wire;
     }
 }

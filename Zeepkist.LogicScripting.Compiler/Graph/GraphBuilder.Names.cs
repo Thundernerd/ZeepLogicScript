@@ -59,11 +59,11 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// Block Functions, and the words Settings use for true and false.
+    /// Block Functions, <c>placed</c>, and the words Settings use for true and false.
     /// </summary>
     private static bool IsReserved(string name)
     {
-        return name is "true" or "false" || BlockManifest.TryGetFunction(name, out _);
+        return name is "true" or "false" or PlacedFunction || BlockManifest.TryGetFunction(name, out _);
     }
 
     private bool IsForwardReference(Expression expression)
@@ -95,6 +95,9 @@ internal sealed partial class GraphBuilder
 
         if (_definitions.TryGetValue(name.Name, out var later))
             return Fail(name, $"'{name.Name}' is defined later, on line {later.Position.Line}; only delay(...) can refer ahead");
+
+        if (name.Name == PlacedFunction)
+            return Fail(name, $"{PlacedFunction} takes a UID; call it like {PlacedFunction}(\"AbC12\")");
 
         return Fail(name, BlockManifest.TryGetFunction(name.Name, out _)
             ? $"'{name.Name}' is a Block Function; call it with ( )"

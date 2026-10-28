@@ -8,6 +8,12 @@ internal sealed partial class GraphBuilder
 {
     private BlockNode VisitCall(CallExpression call)
     {
+        if (IsReferenceCall(call))
+        {
+            VisitReferenceCall(call);
+            return null;
+        }
+
         if (!BlockManifest.TryGetFunction(call.Function, out var type))
         {
             foreach (var argument in call.Arguments)
@@ -15,9 +21,10 @@ internal sealed partial class GraphBuilder
                 EvaluateFeed(argument);
             }
 
-            Error(call, BlockManifest.TryGetPlacedOnly(call.Function, out _)
-                ? $"'{call.Function}' is placed by hand; a Script can only refer to one with placed(...)"
-                : $"'{call.Function}' isn't a Block Function");
+            var message = GetUnknownFunctionMessage(call.Function);
+            if (message != null)
+                Error(call, message);
+
             return null;
         }
 
@@ -44,6 +51,26 @@ internal sealed partial class GraphBuilder
         }
 
         return block;
+    }
+
+    /// <summary>
+    /// Why a call to something other than a Block Function or a Placed Block Reference is wrong, or null when its
+    /// name's definition already reported why it failed.
+    /// </summary>
+    private string GetUnknownFunctionMessage(string function)
+    {
+        if (_failedNames.Contains(function))
+            return null;
+
+        if (_names.ContainsKey(function))
+            return $"'{function}' isn't a placed block, so it can't be called; only names defined with {PlacedFunction}(...) can";
+
+        if (_definitions.TryGetValue(function, out var later))
+            return $"'{function}' is defined later, on line {later.Position.Line}";
+
+        return BlockManifest.TryGetPlacedOnly(function, out _)
+            ? $"'{function}' is placed by hand; a Script can only refer to one with {PlacedFunction}(...)"
+            : $"'{function}' isn't a Block Function";
     }
 
     private void VisitPositionalArguments(ArgumentCheck check)
@@ -105,7 +132,10 @@ internal sealed partial class GraphBuilder
             return;
         }
 
-        check.GiveSetting(blockSetting, GetSettingValue(blockSetting, argument));
+        if (blockSetting.Type == SettingType.Targets)
+            check.GiveSettings(blockSetting, GetTargets(blockSetting, argument));
+        else
+            check.GiveSetting(blockSetting, GetSettingValue(blockSetting, argument));
     }
 
     /// <summary>

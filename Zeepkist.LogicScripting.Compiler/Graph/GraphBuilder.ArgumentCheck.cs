@@ -33,7 +33,10 @@ internal sealed partial class GraphBuilder
         public CallExpression Call { get; }
         public BlockType Type { get; }
         public WiredInput?[] Inputs { get; }
-        public Dictionary<BlockSetting, Setting> Settings { get; } = [];
+        /// <summary>
+        /// The stored Settings per Setting given; several for a Toggler's targets.
+        /// </summary>
+        public Dictionary<BlockSetting, IReadOnlyList<Setting>> Settings { get; } = [];
 
         /// <summary>
         /// The style the call picked, or the type's default.
@@ -92,10 +95,18 @@ internal sealed partial class GraphBuilder
         /// </summary>
         public void GiveSetting(BlockSetting blockSetting, Setting setting)
         {
-            if (setting == null)
+            GiveSettings(blockSetting, setting == null ? null : [setting]);
+        }
+
+        /// <summary>
+        /// Gives a Setting stored under several keys; fails when the value was invalid and already reported.
+        /// </summary>
+        public void GiveSettings(BlockSetting blockSetting, IReadOnlyList<Setting> settings)
+        {
+            if (settings == null)
                 MarkFailed();
             else
-                Settings.Add(blockSetting, setting);
+                Settings.Add(blockSetting, settings);
         }
 
         /// <summary>
@@ -136,7 +147,7 @@ internal sealed partial class GraphBuilder
                 if (blockSetting.IsRequired && !IsGivenOrMeant(blockSetting.Name))
                 {
                     ReportAndFail(Call, blockSetting.Type == SettingType.Targets
-                        ? $"'{Call.Function}' needs {blockSetting.Name}:, 1 to 8 placed blocks to switch; placed(...) isn't available yet"
+                        ? $"'{Call.Function}' needs {blockSetting.Name}:, 1 to {BlockSetting.MaxTargets} placed blocks to switch, like {blockSetting.Name}: [door_1, door_2]"
                         : $"'{Call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
                 }
             }
