@@ -4,8 +4,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
 /// <summary>
 /// The editor's own undo and redo, separate from the level editor's. Typing characters in a row is one step, and so
-/// is deleting them one by one; a pause, a line break, a caret move or any other edit starts a new step. Any other
-/// edit, like a paste or Insert selected, is a step of its own that later typing never joins.
+/// is deleting them one by one; a pause, a typed line break or a caret move starts a new step. Any other edit, like a
+/// paste or Insert selected, is exactly one step that the typing around it never joins.
 /// </summary>
 public sealed partial class EditHistory
 {
@@ -28,7 +28,8 @@ public sealed partial class EditHistory
 
     /// <summary>
     /// Records one edit, joining the newest step when both are typing (or both deleting) that continues where it left
-    /// off; a typed line break starts a new step that the typing after it joins. Drops the steps redo could go to. An edit that leaves the text as it was isn't recorded.
+    /// off; a typed line break starts a new step that the typing after it joins. Drops the steps redo could go to. An
+    /// edit that leaves the text as it was isn't recorded.
     /// </summary>
     public void Record(TextSnapshot before, TextSnapshot after, double time)
     {
@@ -64,13 +65,6 @@ public sealed partial class EditHistory
     public void BreakGroup()
     {
         _groupBroken = true;
-    }
-
-    public void Clear()
-    {
-        _undo.Clear();
-        _redo.Clear();
-        _groupBroken = false;
     }
 
     /// <summary>

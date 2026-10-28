@@ -13,7 +13,7 @@ internal sealed partial class ScriptEditor
 {
     private const float ErrorThickness = 2;
 
-    private readonly List<Run> _runs = [];
+    private readonly List<TextRun> _runs = [];
     private ImTextLayout _runLayout = new() { Lines = new ImTextLine[4] };
     private string _runsText;
     private int _lineCount = 1;
@@ -97,7 +97,7 @@ internal sealed partial class ScriptEditor
     /// The text split into runs of one colour at line breaks and at the lexer's spans, leaving out runs of only
     /// whitespace. Worked out again only when the text changed.
     /// </summary>
-    private List<Run> GetRuns()
+    private List<TextRun> GetRuns()
     {
         if (ReferenceEquals(_runsText, Text))
             return _runs;
@@ -127,7 +127,7 @@ internal sealed partial class ScriptEditor
             var pieceEnd = lineBreak < 0 ? end : lineBreak;
             var piece = Text.Substring(start, pieceEnd - start);
             if (!string.IsNullOrWhiteSpace(piece))
-                _runs.Add(new Run(line, start - lineStart, piece, kind));
+                _runs.Add(new TextRun(line, start - lineStart, piece, kind));
 
             if (lineBreak < 0)
                 return;
@@ -138,7 +138,7 @@ internal sealed partial class ScriptEditor
         }
     }
 
-    private static int FindFirstRunOnLine(List<Run> runs, int line)
+    private static int FindFirstRunOnLine(List<TextRun> runs, int line)
     {
         var low = 0;
         var high = runs.Count;

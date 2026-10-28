@@ -7,9 +7,9 @@ internal sealed partial class ScriptEditor
     /// <summary>
     /// A piece of one line drawn in one colour.
     /// </summary>
-    private readonly struct Run
+    private readonly struct TextRun
     {
-        public Run(int line, int offset, string text, HighlightKind? kind)
+        public TextRun(int line, int offset, string text, HighlightKind? kind)
         {
             Line = line;
             Offset = offset;
