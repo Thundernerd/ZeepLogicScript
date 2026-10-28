@@ -33,7 +33,7 @@
 
 ## Spelling
 
-Write American English in code, comments, docs and UI text (`color`, `center`, `canceled`). Names the game or a library defines keep their own spelling.
+Write American English in code, comments, docs, and UI text (`color`, `center`, `canceled`). Names the game or a library defines keep their own spelling.
 
 ## Names
 
