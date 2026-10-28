@@ -92,7 +92,8 @@ public class SettingTests
     [Theory]
     [InlineData("random(1, min: 5, max: x)", 1, 24, "max takes a whole number, like max: 5")]
     [InlineData("random(1, min: 5, mx: 1)", 1, 19, "'random' has no input or Setting 'mx'; did you mean max?")]
-    public void Random_MaxWithoutAValue_IsNotAlsoARangeError(string text, int line, int column, string message)
+    [InlineData("random(1, min: 5, max_inn: 2)", 1, 19, "'random' has no input or Setting 'max_inn'; did you mean max_in?")]
+    public void Random_MaxOrMaxInWithoutAValue_IsNotAlsoARangeError(string text, int line, int column, string message)
     {
         AssertSingleError(text, line, column, message);
     }

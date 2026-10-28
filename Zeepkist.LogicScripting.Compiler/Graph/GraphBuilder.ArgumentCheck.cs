@@ -156,13 +156,14 @@ internal sealed partial class GraphBuilder
 
         /// <summary>
         /// Reports a <see cref="BlockType.Range"/> whose minimum is above its maximum, unless the input that replaces
-        /// the maximum is wired. An omitted Setting counts as 0, the fresh block's value; one whose value was
-        /// invalid, or a misspelt name was probably meant as, has already been reported.
+        /// the maximum is wired, or a misspelt name was probably meant as it. An omitted Setting counts as 0, the
+        /// fresh block's value; one whose value was invalid, or a misspelt name was probably meant as, has already
+        /// been reported.
         /// </summary>
         public void CheckRange()
         {
             var range = Type.Range;
-            if (range == null || Inputs[Type.IndexOfInput(range.MaximumInput)] != null)
+            if (range == null || Inputs[Type.IndexOfInput(range.MaximumInput)] != null || IsGivenOrMeant(range.MaximumInput))
                 return;
 
             if (!TryGetNumber(range.Minimum, out var minimum) || !TryGetNumber(range.Maximum, out var maximum))
