@@ -48,6 +48,9 @@ internal sealed partial class GraphBuilder
         if (style != null && _disabledBlockIds.Contains(style.BlockId))
             return Fail(call, $"'{type.Describe(style)}' doesn't match this game version and is turned off");
 
+        if (placed.IsInBlockGroup)
+            return Fail(uid, $"Block \"{uid.Value}\" is in a Block Group, which a recompile replaces; refer to a hand-placed block, such as a Passthrough between two Scripts");
+
         if (!_placedNodes.TryGetValue(uid.Value, out var block))
         {
             block = new BlockNode(uid.Value, type, style, placed);

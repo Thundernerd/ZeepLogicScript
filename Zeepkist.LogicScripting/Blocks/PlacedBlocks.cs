@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 
@@ -10,16 +11,18 @@ namespace TNRD.Zeepkist.LogicScripting.Blocks;
 internal static class PlacedBlocks
 {
     /// <summary>
-    /// What the compiler needs to know about the block with a UID, or null when the level has none.
+    /// What the compiler needs to know about the block with a UID, or null when the level has none. The Block Group of
+    /// the Script being compiled is left out of its Wires: a recompile replaces it, Wires and all.
     /// </summary>
-    public static PlacedBlock Find(LEV_LevelEditorCentral central, string uid)
+    public static PlacedBlock Find(LEV_LevelEditorCentral central, string uid, string scriptId)
     {
         var block = LevelBlocks.Find(central, uid);
         if (block == null)
             return null;
 
+        var isInBlockGroup = BlockGroups.GetScriptId(block) != null;
         if (!BlockManifest.TryGetBlock(block.blockID, out var type, out _))
-            return new PlacedBlock(block.blockID);
+            return new PlacedBlock(block.blockID, isInBlockGroup: isInBlockGroup);
 
         List<Setting> settings = [];
         if (type.Modes != null)
@@ -31,17 +34,24 @@ internal static class PlacedBlocks
         List<int> wiredInputs = [];
         foreach (var input in type.Inputs)
         {
-            if (GetWires(block, input.Index).Count > 0)
+            if (GetWires(block, input.Index).Any(w => !IsInGroup(central, w.targetUID, scriptId)))
                 wiredInputs.Add(input.Index);
         }
 
-        return new PlacedBlock(block.blockID, settings, wiredInputs, GetDownstream(central, block, type));
+        return new PlacedBlock(block.blockID, settings, wiredInputs, GetDownstream(central, block, type, scriptId), isInBlockGroup);
+    }
+
+    private static bool IsInGroup(LEV_LevelEditorCentral central, string uid, string scriptId)
+    {
+        var block = LevelBlocks.Find(central, uid);
+        return block != null && BlockGroups.GetScriptId(block) == scriptId;
     }
 
     /// <summary>
-    /// Follows the level's Wires out of the block, stopping at Delays, which pass a Signal on only in the next Tick.
+    /// Follows the level's Wires out of the block, stopping at Delays, which pass a Signal on only in the next Tick, and
+    /// at the compiling Script's own Block Group, which the Compile replaces.
     /// </summary>
-    private static HashSet<string> GetDownstream(LEV_LevelEditorCentral central, BlockProperties start, BlockType startType)
+    private static HashSet<string> GetDownstream(LEV_LevelEditorCentral central, BlockProperties start, BlockType startType, string scriptId)
     {
         HashSet<string> reached = [];
         Stack<(BlockProperties Block, BlockType Type)> open = new([(start, startType)]);
@@ -52,7 +62,7 @@ internal static class PlacedBlocks
             {
                 foreach (var wire in GetWires(block, output.Index))
                 {
-                    if (!reached.Add(wire.targetUID))
+                    if (IsInGroup(central, wire.targetUID, scriptId) || !reached.Add(wire.targetUID))
                         continue;
 
                     var next = LevelBlocks.Find(central, wire.targetUID);

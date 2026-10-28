@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
@@ -45,6 +46,9 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private readonly StartupCheck _startupCheck;
     private readonly PlacedBlockHighlight _highlight = new();
     private readonly ScriptEditor _editor = new();
+
+    // One Script per game session until Scripts are stored in the level; its Block Group is found by this id
+    private readonly string _scriptId = Guid.NewGuid().ToString();
 
     private string _result = string.Empty;
     private string _insertMessage = string.Empty;
@@ -253,7 +257,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
                 return;
         }
 
-        _result = ScriptCompile.Run(_editor.Text, _startupCheck, _logger);
+        _result = ScriptCompile.Run(_editor.Text, _scriptId, _startupCheck, _logger);
 
         // Placing changed the level, so the Placed blocks panel checks again now
         _nextCheckTime = 0;
@@ -274,7 +278,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         List<SelectedBlock> selected = [];
         foreach (var block in central.selection.list)
         {
-            selected.Add(new SelectedBlock(block.UID, block.blockID));
+            selected.Add(new SelectedBlock(block.UID, block.blockID, BlockGroups.GetScriptId(block) != null));
         }
 
         // Clicking the button took focus from the field, but the editor still holds the caret
@@ -285,9 +289,12 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             OnEdited();
         }
 
-        _insertMessage = insert.SkippedCount == 0
-            ? $"Inserted {insert.InsertedCount} placed blocks"
-            : $"Inserted {insert.InsertedCount} placed blocks; skipped {insert.SkippedCount} the Script already refers to";
+        _insertMessage = $"Inserted {insert.InsertedCount} placed blocks";
+        if (insert.SkippedCount > 0)
+            _insertMessage += $"; skipped {insert.SkippedCount} the Script already refers to";
+
+        if (insert.SkippedGroupBlockCount > 0)
+            _insertMessage += $"; skipped {insert.SkippedGroupBlockCount} in a Block Group, which a recompile replaces";
     }
 
     /// <summary>
@@ -343,7 +350,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             return;
 
         var text = _editor.Text;
-        _check = ScriptCompile.Check(text, _startupCheck);
+        _check = ScriptCompile.Check(text, _scriptId, _startupCheck);
         _checkedText = text;
         _nextCheckTime = Time.unscaledTime + CheckInterval;
         _editor.SetErrors(_check == null ? [] : ScriptText.GetErrorSpans(text, _check.Errors.Select(e => e.Position)));

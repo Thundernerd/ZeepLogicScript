@@ -1,24 +1,29 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using BepInEx.Logging;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
+using TNRD.Zeepkist.LogicScripting.Compiler.Layout;
 using UnityEngine;
 using ZeepSDK.Utilities;
 
 namespace TNRD.Zeepkist.LogicScripting;
 
 /// <summary>
-/// Compiles a Script and places its blocks in the open level, in front of the camera.
+/// Compiles a Script and places its blocks in the open level: a first Compile in front of the camera, a recompile in
+/// place of the Script's Block Group.
 /// </summary>
 internal static class ScriptCompile
 {
     private const string UndoLabel = "Logic Scripting Compile";
 
     /// <summary>
-    /// Returns the result to show in the window: one line, or the error list. When the startup check found the
-    /// game's block creation changed, the Script is still checked, but nothing is placed.
+    /// Returns the result to show in the window: one line, or the error list. The new blocks replace the Block Group
+    /// of the Script with <paramref name="scriptId"/>. When the startup check found the game's block creation changed,
+    /// the Script is still checked, but nothing is placed.
     /// </summary>
-    public static string Run(string text, StartupCheck check, ManualLogSource logger)
+    public static string Run(string text, string scriptId, StartupCheck check, ManualLogSource logger)
     {
         var central = ComponentCache.Get<LEV_LevelEditorCentral>();
         if (central == null)
@@ -27,21 +32,30 @@ internal static class ScriptCompile
         if (central.gizmos.isGrabbing)
             return "Let go of the grabbed blocks to compile";
 
+        var group = BlockGroups.Find(central, scriptId);
         var right = central.cam.cameraTransform.right;
-        var result = Check(central, text, check, ScriptCompiler.GetQuarterTurnsFacing(right.x, right.z));
+        var quarterTurns = group.Count > 0
+            ? BlockGroupPlacement.GetMajorityQuarterTurns(group.Select(b => b.transform.eulerAngles.y))
+            : ScriptCompiler.GetQuarterTurnsFacing(right.x, right.z);
+
+        var result = Check(central, text, scriptId, check, quarterTurns);
         if (!result.Succeeded)
             return FormatErrors(result);
 
         if (!check.CanPlace)
             return $"No errors, but {StartupCheck.UpdateNeededMessage}; nothing placed";
 
-        if (result.Blocks.Count == 0 && result.PlacedWires.Count == 0)
+        if (result.Blocks.Count == 0 && result.PlacedWires.Count == 0 && group.Count == 0)
             return "Nothing to place";
 
+        int lostWires;
         try
         {
-            var jsons = CompiledBlockJson.Create(result, GetPlacementPoint(central));
-            BlockBatch.Apply(central, jsons, CompiledBlockJson.CreatePlacedWires(result, jsons), UndoLabel);
+            var origin = group.Count > 0 ? GetGroupOrigin(group, result, quarterTurns) : GetPlacementPoint(central);
+            var jsons = CompiledBlockJson.Create(result, origin, scriptId);
+            var placedWires = CompiledBlockJson.CreatePlacedWires(result, jsons);
+            lostWires = CountLostWires(group, placedWires);
+            BlockBatch.Apply(central, jsons, group, placedWires, UndoLabel);
         }
         catch (Exception e)
         {
@@ -49,25 +63,86 @@ internal static class ScriptCompile
             return "Compile failed; level unchanged";
         }
 
-        var wiredBlocks = result.WiredPlacedBlockCount;
-        return wiredBlocks == 0
+        var line = group.Count == 0
             ? $"Placed {result.Blocks.Count} blocks"
-            : $"Placed {result.Blocks.Count} blocks, wired to {wiredBlocks} placed blocks";
+            : $"Replaced {group.Count} → {result.Blocks.Count} blocks";
+
+        var wiredBlocks = result.WiredPlacedBlockCount;
+        if (wiredBlocks > 0)
+            line += $", wired to {wiredBlocks} placed blocks";
+
+        if (lostWires > 0)
+            line += $"\nRemoved {lostWires} Wires between the group and other blocks that the Script doesn't make; to keep one, wire the block in the Script with placed(...)";
+
+        return line;
     }
 
     /// <summary>
     /// Compiles without placing anything, for the Placed blocks panel; null outside the editor.
     /// </summary>
-    public static CompileResult Check(string text, StartupCheck check)
+    public static CompileResult Check(string text, string scriptId, StartupCheck check)
     {
         var central = ComponentCache.Get<LEV_LevelEditorCentral>();
-        return central == null ? null : Check(central, text, check, 0);
+        return central == null ? null : Check(central, text, scriptId, check, 0);
     }
 
-    private static CompileResult Check(LEV_LevelEditorCentral central, string text, StartupCheck check, int quarterTurns)
+    private static CompileResult Check(LEV_LevelEditorCentral central, string text, string scriptId, StartupCheck check, int quarterTurns)
     {
         check.RunOnce();
-        return ScriptCompiler.Compile(text, quarterTurns, check.DisabledBlockIds, uid => PlacedBlocks.Find(central, uid));
+        return ScriptCompiler.Compile(text, quarterTurns, check.DisabledBlockIds, uid => PlacedBlocks.Find(central, uid, scriptId));
+    }
+
+    /// <summary>
+    /// Where the new group's centre cell goes so its start corner lands on the old group's, at the old group's
+    /// lowest height.
+    /// </summary>
+    private static Vector3 GetGroupOrigin(List<BlockProperties> group, CompileResult result, int quarterTurns)
+    {
+        var positions = group.Select(b => b.transform.position).ToList();
+        var (x, z) = BlockGroupPlacement.GetOrigin(
+            positions.Select(p => (p.x, p.z)).ToList(),
+            result.Blocks.Select(b => b.Cell).ToList(),
+            quarterTurns);
+
+        return new Vector3(x, positions.Min(p => p.y), z);
+    }
+
+    /// <summary>
+    /// How many of the group's Wires to blocks outside it the Replace removes without the new Compile making them
+    /// again, matched by the outside block's Connector. A hand-made Wire into the group is one of these.
+    /// </summary>
+    private static int CountLostWires(List<BlockProperties> group, List<BlockWire> placedWires)
+    {
+        HashSet<string> groupUids = [.. group.Select(b => b.UID)];
+        Dictionary<(string Uid, int Connector), int> remade = [];
+        foreach (var wire in placedWires)
+        {
+            foreach (var end in new[] { (wire.FromUid, wire.FromConnector), (wire.ToUid, wire.ToConnector) })
+            {
+                remade[end] = remade.TryGetValue(end, out var count) ? count + 1 : 1;
+            }
+        }
+
+        var lost = 0;
+        foreach (var block in group)
+        {
+            foreach (var hub in block.allConnectorHubsOnThisBlock.Values)
+            {
+                foreach (var wire in hub?.GetThisHubsConnectionStructs() ?? [])
+                {
+                    if (groupUids.Contains(wire.targetUID))
+                        continue;
+
+                    var end = (wire.targetUID, wire.connectorID);
+                    if (remade.TryGetValue(end, out var count) && count > 0)
+                        remade[end] = count - 1;
+                    else
+                        lost++;
+                }
+            }
+        }
+
+        return lost;
     }
 
     /// <summary>

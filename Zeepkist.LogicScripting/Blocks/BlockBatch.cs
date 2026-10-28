@@ -1,26 +1,30 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TNRD.Zeepkist.LogicScripting.Blocks;
 
 /// <summary>
-/// Places a set of blocks and wires them to blocks already in the level as one undo step, all or nothing. Uses only
-/// game types, plain block JSON and UIDs, nothing Script-specific, so it can move to ZeepSDK later (ADR 0007).
+/// Removes a set of blocks, places a set of blocks and wires them to blocks already in the level as one undo step, all
+/// or nothing. Uses only game types, plain block JSON and UIDs, nothing Script-specific, so it can move to ZeepSDK later
+/// (ADR 0007).
 /// </summary>
 internal static partial class BlockBatch
 {
     private const string KeyPaintBase = "p";
 
     /// <summary>
-    /// Creates the blocks, Wires between them included in their JSON, adds <paramref name="wires"/>, each with at
-    /// least one end on a block already in the level, and registers it all as one undo step named
-    /// <paramref name="label"/>. The existing blocks the Wires touch are recorded as changed, so undo restores them
-    /// exactly. If anything throws, every block created so far is removed again, the existing blocks get their old
-    /// state back, no undo step is registered and the exception is rethrown.
+    /// Removes <paramref name="removes"/>, creates <paramref name="adds"/>, Wires between them included in their JSON,
+    /// adds <paramref name="wires"/>, each with at least one end on a block already in the level, and registers it all
+    /// as one undo step named <paramref name="label"/>. Blocks that stay are recorded as changed when they lose a Wire
+    /// to a removed block or gain one of <paramref name="wires"/>, so undo restores them exactly. If anything throws,
+    /// the added blocks are removed again, the removed ones come back, the changed ones get their old state back, no
+    /// undo step is registered and the exception is rethrown.
     /// </summary>
     public static List<BlockProperties> Apply(
         LEV_LevelEditorCentral central,
         IReadOnlyList<BlockPropertyJSON> adds,
+        IReadOnlyList<BlockProperties> removes,
         IReadOnlyList<BlockWire> wires,
         string label)
     {
@@ -28,10 +32,17 @@ internal static partial class BlockBatch
         if (central.gizmos.isGrabbing)
             throw new InvalidOperationException("Can't apply a block batch while blocks are grabbed");
 
+        // Undo finds each block by UID, so a remove and an add of one UID in one step would depend on their order
+        HashSet<string> removedUids = [.. removes.Select(b => b.UID)];
+        if (adds.Any(json => removedUids.Contains(json.u)))
+            throw new InvalidOperationException("Can't remove and add a block with the same UID in one block batch");
+
+        List<string> removed = [];
         List<BlockProperties> added = [];
         List<ChangedBlock> changed = [];
         try
         {
+            RemoveBlocks(central, removes, removed, changed, label);
             foreach (var json in adds)
             {
                 added.Add(CreateBlock(central, json, label));
@@ -39,15 +50,85 @@ internal static partial class BlockBatch
 
             LoadConnectors(added, label);
             Connect(central, added, changed, wires, label);
-            RegisterUndo(central, added, changed, label);
+            RegisterUndo(central, removed, added, changed, label);
             return added;
         }
         catch
         {
             Remove(central, added);
+            Recreate(central, removed, label);
             Restore(central, changed, label);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Removes the blocks and the other blocks' Wires to them, noting each one's JSON in <paramref name="removed"/>
+    /// and each block that loses a Wire in <paramref name="changed"/>. Unlike the game's own delete, the changed
+    /// blocks' JSON for undo is taken after the cleanup, so redo doesn't bring back Wires to removed blocks.
+    /// </summary>
+    private static void RemoveBlocks(
+        LEV_LevelEditorCentral central,
+        IReadOnlyList<BlockProperties> blocks,
+        List<string> removed,
+        List<ChangedBlock> changed,
+        string label)
+    {
+        if (blocks.Count == 0)
+            return;
+
+        HashSet<string> removedUids = [.. blocks.Select(b => b.UID)];
+        HashSet<string> wiredUids = [];
+        foreach (var block in blocks)
+        {
+            foreach (var blockEdit in block.GetAllBlockEditV18sFromThisBlock())
+            {
+                if (blockEdit.HasConnectors())
+                    wiredUids.UnionWith(blockEdit.GetBlockEditV18ConnectionBase().GetAllConnectedUIDsOnEntireBlockEdit());
+            }
+        }
+
+        List<BlockProperties> survivors = [];
+        foreach (var uid in wiredUids)
+        {
+            var block = LevelBlocks.Find(central, uid);
+            if (block != null && !removedUids.Contains(uid))
+                survivors.Add(block);
+        }
+
+        foreach (var survivor in survivors)
+        {
+            changed.Add(new ChangedBlock(survivor, survivor.ConvertBlockToJSON_v15_string(true)));
+        }
+
+        var wasSelected = blocks.Any(central.selection.list.Contains);
+        foreach (var block in blocks)
+        {
+            removed.Add(block.ConvertBlockToJSON_v15_string(true));
+            Remove(central, [block]);
+        }
+
+        if (wasSelected)
+            UpdateSelection(central, label);
+
+        // Cleanup drops each Wire whose other end has left StaticConnectorTracker, which Remove did
+        foreach (var survivor in survivors)
+        {
+            survivor.RunConnectionCleanup();
+            RedrawWires(survivor, label);
+        }
+    }
+
+    /// <summary>
+    /// After removed blocks dropped out of the selection, the gizmo moves to the blocks still selected, or goes away
+    /// with the selection.
+    /// </summary>
+    private static void UpdateSelection(LEV_LevelEditorCentral central, string label)
+    {
+        if (central.selection.list.Count == 0)
+            central.selection.DeselectAllBlocks(false, label);
+        else
+            central.selection.CalculateMiddlePivot();
     }
 
     /// <summary>
@@ -122,7 +203,7 @@ internal static partial class BlockBatch
         IReadOnlyList<BlockWire> wires,
         string label)
     {
-        HashSet<BlockProperties> touched = [.. added];
+        HashSet<BlockProperties> touched = [.. added, .. changed.Select(c => c.Block)];
         foreach (var wire in wires)
         {
             var from = GetConnector(central, wire.FromUid, wire.FromConnector);
@@ -153,14 +234,26 @@ internal static partial class BlockBatch
     }
 
     /// <summary>
-    /// Added blocks are recorded as before = null / after = JSON and changed blocks as JSON / JSON, the shapes the
-    /// editor's own undo steps use. Taken after wiring, so redo restores the Wires.
+    /// Removed blocks are recorded as before = JSON / after = null, added blocks as null / JSON and changed blocks as
+    /// JSON / JSON, the shapes the editor's own undo steps use. Taken after wiring, so redo restores the Wires.
     /// </summary>
-    private static void RegisterUndo(LEV_LevelEditorCentral central, List<BlockProperties> added, List<ChangedBlock> changed, string label)
+    private static void RegisterUndo(
+        LEV_LevelEditorCentral central,
+        List<string> removed,
+        List<BlockProperties> added,
+        List<ChangedBlock> changed,
+        string label)
     {
         List<string> before = [];
         List<string> after = [];
         List<BlockProperties> blocks = [];
+        foreach (var json in removed)
+        {
+            before.Add(json);
+            after.Add(null);
+            blocks.Add(null);
+        }
+
         foreach (var block in added)
         {
             before.Add(null);
@@ -177,6 +270,21 @@ internal static partial class BlockBatch
 
         var collection = central.undoRedo.ConvertBeforeAndAfterListToCollection(before, after, blocks, [], []);
         central.validation.BreakLock(collection, label);
+    }
+
+    /// <summary>
+    /// Brings removed blocks back from their JSON, Wires included, for rolling back. Call before
+    /// <see cref="Restore"/>, so the changed blocks' Wires to them resolve.
+    /// </summary>
+    private static void Recreate(LEV_LevelEditorCentral central, List<string> removed, string label)
+    {
+        List<BlockProperties> blocks = [];
+        foreach (var json in removed)
+        {
+            blocks.Add(CreateBlock(central, LEV_UndoRedo.GetJSONblock(json), label));
+        }
+
+        LoadConnectors(blocks, label);
     }
 
     /// <summary>
