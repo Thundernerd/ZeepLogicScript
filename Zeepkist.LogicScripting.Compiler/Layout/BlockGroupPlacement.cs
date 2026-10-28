@@ -18,7 +18,7 @@ public static class BlockGroupPlacement
     public static int GetMajorityQuarterTurns(IReadOnlyCollection<GroupBlock> blocks)
     {
         var counts = new int[4];
-        foreach (var block in GetShapedAsPlaced(blocks))
+        foreach (var block in WithoutReshaped(blocks))
         {
             counts[QuarterTurns.FromDegrees(block.Yaw)]++;
         }
@@ -49,7 +49,7 @@ public static class BlockGroupPlacement
         if (oldBlocks.Count == 0)
             throw new ArgumentException("The old group has no blocks", nameof(oldBlocks));
 
-        var oldCorners = GetShapedAsPlaced(oldBlocks).Select(b => GetStartCorner(b, quarterTurns)).ToList();
+        var oldCorners = WithoutReshaped(oldBlocks).Select(b => GetStartCorner(b, quarterTurns)).ToList();
         var newCorners = newBlocks
             .Select(b => new GroupBlock(b.Cell.X * GridCell.Size, b.Cell.Z * GridCell.Size, b.Yaw, b.Style))
             .Select(b => GetStartCorner(b, quarterTurns))
@@ -60,13 +60,10 @@ public static class BlockGroupPlacement
         return QuarterTurns.Rotate(originX, originZ, quarterTurns);
     }
 
-    /// <summary>
-    /// The blocks still scaled and turned as Compile placed them, or all of them when the player reshaped every one.
-    /// </summary>
-    private static IReadOnlyCollection<GroupBlock> GetShapedAsPlaced(IReadOnlyCollection<GroupBlock> blocks)
+    private static IReadOnlyCollection<GroupBlock> WithoutReshaped(IReadOnlyCollection<GroupBlock> blocks)
     {
-        var shapedAsPlaced = blocks.Where(b => !b.IsReshaped).ToList();
-        return shapedAsPlaced.Count > 0 ? shapedAsPlaced : blocks;
+        var notReshaped = blocks.Where(b => !b.IsReshaped).ToList();
+        return notReshaped.Count > 0 ? notReshaped : blocks;
     }
 
     /// <summary>

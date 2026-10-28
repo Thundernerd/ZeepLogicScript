@@ -23,9 +23,10 @@ internal sealed class RecompilePlacement : CompilePlacement
 
         // The carrier's yaw, so hand-turning other blocks of the group never turns a recompile; the majority without one
         // or when the carrier itself was reshaped
-        var carrier = group.FirstOrDefault(LevelScripts.IsCarrier);
-        var yawBlocks = carrier != null && !IsReshaped(carrier) ? [carrier] : group;
-        QuarterTurns = BlockGroupPlacement.GetMajorityQuarterTurns(yawBlocks.Select(ToGroupBlock).ToList());
+        var blocks = group.Select(ToGroupBlock).ToList();
+        var carrier = group.FindIndex(LevelScripts.IsCarrier);
+        var yawBlocks = carrier >= 0 && !blocks[carrier].IsReshaped ? [blocks[carrier]] : blocks;
+        QuarterTurns = BlockGroupPlacement.GetMajorityQuarterTurns(yawBlocks);
     }
 
     public override IReadOnlyList<BlockProperties> Group => _group;
