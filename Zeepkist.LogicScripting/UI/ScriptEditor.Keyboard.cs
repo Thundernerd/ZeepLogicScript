@@ -63,7 +63,13 @@ internal sealed partial class ScriptEditor
                 {
                     text = after.Text;
                     buffer = new ImTextEditBuffer(text, gui.Arena, 0);
-                    _history.Record(before, after, gui.Input.Time);
+
+                    // Enter is typing, which the typing after it joins; every other shortcut is a step of its own
+                    if (evt.Char == '\n')
+                        _history.Record(before, after, gui.Input.Time);
+                    else
+                        _history.RecordStep(before, after, gui.Input.Time);
+
                     _state.Flag |= ImTextEditStateFlag.NeedScrollToCaret;
                     changed = true;
                 }

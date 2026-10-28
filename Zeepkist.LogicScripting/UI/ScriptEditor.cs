@@ -53,7 +53,7 @@ internal sealed partial class ScriptEditor
         _state.Caret = Mathf.Clamp(caret, 0, Text.Length);
         _state.Selection = 0;
         _state.Flag |= ImTextEditStateFlag.NeedScrollToCaret;
-        _history.Record(before, GetSnapshot(), time);
+        _history.RecordStep(before, GetSnapshot(), time);
     }
 
     /// <summary>
