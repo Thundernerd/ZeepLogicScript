@@ -27,6 +27,12 @@ internal sealed partial class GraphBuilder
                     return null;
                 }
 
+                if (literal.Value > setting.Maximum)
+                {
+                    ValueError(argument, $"{setting.Name} must be at most {setting.Maximum}");
+                    return null;
+                }
+
                 return Setting.Text(setting.Key, literal.Value.ToString(CultureInfo.InvariantCulture));
 
             case SettingType.Bool:

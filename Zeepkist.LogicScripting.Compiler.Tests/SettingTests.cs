@@ -41,6 +41,30 @@ public class SettingTests
         AssertSingleError(text, line, column, message);
     }
 
+    [Theory]
+    [InlineData("counter(max_reset: 0, min_reset: 0)", "ld1=0, ld2=0")]
+    [InlineData("counter(max_reset: 2147483647)", "ld1=2147483647")]
+    [InlineData("counter(min_reset: -9223372036854775807)", "ld2=-9223372036854775807")]
+    [InlineData("delay(1, ticks: 2147483647)", "ldl=2147483647")]
+    public void NumberSettings_AcceptTheirWholeRange(string call, string settings)
+    {
+        var result = ScriptCompiler.Compile(call, 0);
+
+        Assert.True(result.Succeeded, string.Join("\n", result.Errors));
+        Assert.Equal(settings, Render(result.Blocks.Last()));
+    }
+
+    [Theory]
+    [InlineData("counter(max_reset: -5)", 1, 20, "max_reset must be at least 0")]
+    [InlineData("counter(max_reset: 2147483648)", 1, 20, "max_reset must be at most 2147483647")]
+    [InlineData("counter(min_reset: 5)", 1, 20, "min_reset must be at most 0")]
+    [InlineData("counter(min_reset: -9223372036854775808)", 1, 20, "min_reset must be at least -9223372036854775807")]
+    [InlineData("delay(1, ticks: 2147483648)", 1, 17, "ticks must be at most 2147483647")]
+    public void NumberSettings_OutsideTheirRange_AreErrors(string text, int line, int column, string message)
+    {
+        AssertSingleError(text, line, column, message);
+    }
+
     [Fact]
     public void Style_PicksTheBlock()
     {
