@@ -9,7 +9,7 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal sealed partial class ScriptEditor
 {
     /// <summary>
-    /// Handles this frame's keys: undo and redo, Ctrl+Enter, then Imui's own text editing. Every edit is recorded in
+    /// Handles this frame's keys: undo and redo, Ctrl+Enter, the editor's own shortcuts, then Imui's text editing. Every edit is recorded in
     /// the history; a caret move without an edit ends the current typing step.
     /// </summary>
     private bool HandleKeyboard(ImGui gui, ref ImTextEditBuffer buffer, ImRect textRect, bool editable, out bool compileRequested)
@@ -53,6 +53,29 @@ internal sealed partial class ScriptEditor
             }
 
             var before = new TextSnapshot(text, _state.Caret, _state.Selection);
+            if (RunShortcut(in evt, before, buffer, editable) is { } after)
+            {
+                gui.Input.UseKeyboardEvent(i);
+                _state.Caret = after.Caret;
+                _state.Selection = after.Selection;
+                _state.BlinkTime = gui.Input.Time;
+                if (after.Text != text)
+                {
+                    text = after.Text;
+                    buffer = new ImTextEditBuffer(text, gui.Arena, 0);
+                    _history.Record(before, after, gui.Input.Time);
+                    _state.Flag |= ImTextEditStateFlag.NeedScrollToCaret;
+                    changed = true;
+                }
+                else if (!after.Equals(before))
+                {
+                    _history.BreakGroup();
+                    ImTextEdit.ScrollToCaret(gui, _state, textRect, in _layout, buffer);
+                }
+
+                continue;
+            }
+
             if (!ImTextEdit.HandleKeyboardEvent(gui, in evt, ref _state, ref buffer, textRect, in _layout, true, editable, out var textChanged))
                 continue;
 
@@ -76,6 +99,48 @@ internal sealed partial class ScriptEditor
 
         Text = text;
         return changed;
+    }
+
+    /// <summary>
+    /// The editing shortcuts Imui's text field doesn't have. On macOS, Cmd jumps to the ends of the Script and Option
+    /// deletes words, as Imui's arrow keys do there. A Tab character on its own is swallowed: the Tab key indents.
+    /// </summary>
+    private static TextSnapshot? RunShortcut(in ImKeyboardEvent evt, TextSnapshot before, ImTextEditBuffer buffer, bool editable)
+    {
+        var shift = (evt.Modifiers & EventModifiers.Shift) != 0;
+        var alt = (evt.Modifiers & EventModifiers.Alt) != 0;
+        var control = (evt.Modifiers & (EventModifiers.Control | EventModifiers.Command)) != 0;
+        var command = IsCommand(evt);
+        var mac = SystemInfo.operatingSystemFamily == OperatingSystemFamily.MacOSX;
+        var wordDelete = editable && (mac ? alt && !control : command);
+        return evt.Key switch
+        {
+            KeyCode.Home when command => EditCommands.MoveTo(before, 0, shift),
+            KeyCode.End when command => EditCommands.MoveTo(before, before.Text.Length, shift),
+            KeyCode.Home => EditCommands.Home(before, shift),
+            KeyCode.End => EditCommands.End(before, shift),
+            KeyCode.UpArrow when mac && command => EditCommands.MoveTo(before, 0, shift),
+            KeyCode.DownArrow when mac && command => EditCommands.MoveTo(before, before.Text.Length, shift),
+            KeyCode.UpArrow when editable && alt && !control && !shift => EditCommands.MoveLines(before, -1),
+            KeyCode.DownArrow when editable && alt && !control && !shift => EditCommands.MoveLines(before, 1),
+            KeyCode.Backspace when wordDelete => DeleteWord(before, buffer, -1),
+            KeyCode.Delete when wordDelete => DeleteWord(before, buffer, 1),
+            KeyCode.D when editable && command && !shift => EditCommands.Duplicate(before),
+            KeyCode.K when editable && command && shift => EditCommands.DeleteLines(before),
+            KeyCode.Slash or KeyCode.KeypadDivide when editable && command => EditCommands.ToggleComment(before),
+            KeyCode.Tab when editable && !control && !alt => shift ? EditCommands.Outdent(before) : EditCommands.Indent(before),
+            _ when evt.Char == '\t' => before,
+            _ when editable && evt.Char == '\n' && !control => EditCommands.NewLine(before),
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// Deletes to the same word boundary Ctrl+Left/Right (Option on macOS) moves to.
+    /// </summary>
+    private static TextSnapshot DeleteWord(TextSnapshot before, ImTextEditBuffer buffer, int direction)
+    {
+        return EditCommands.DeleteTo(before, ImTextEdit.FindEndOfWordOrSpacesSequence(before.Caret, direction, buffer));
     }
 
     /// <summary>

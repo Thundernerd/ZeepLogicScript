@@ -42,7 +42,7 @@ public sealed partial class EditHistory
         if (!_groupBroken
             && last != null
             && kind != StepKind.Other
-            && !IsLineBreakTyped(kind, after)
+            && !IsLineBreakTyped(kind, before, after)
             && last.Kind == kind
             && last.After.Equals(before)
             && time - last.Time <= GroupSeconds)
@@ -104,14 +104,14 @@ public sealed partial class EditHistory
         return true;
     }
 
-    private static bool IsLineBreakTyped(StepKind kind, TextSnapshot after)
+    private static bool IsLineBreakTyped(StepKind kind, TextSnapshot before, TextSnapshot after)
     {
-        return kind == StepKind.Typing && after.Text[after.Caret - 1] == '\n';
+        return kind == StepKind.Typing && after.Text[before.Caret] == '\n';
     }
 
     /// <summary>
-    /// Typing is one character inserted at the caret; deleting is one character removed next
-    /// to the caret. Either one only when nothing was selected.
+    /// Typing is one character inserted at the caret, or a line break with the indentation the editor keeps after
+    /// it; deleting is one character removed next to the caret. Either one only when nothing was selected.
     /// </summary>
     private static StepKind GetKind(TextSnapshot before, TextSnapshot after)
     {
@@ -126,6 +126,9 @@ public sealed partial class EditHistory
             return StepKind.Typing;
         }
 
+        if (IsIndentedLineBreak(before, after))
+            return StepKind.Typing;
+
         if (after.Text.Length == before.Text.Length - 1
             && (after.Caret == caret - 1 || after.Caret == caret)
             && IsSameExcept(before.Text, after.Text, after.Caret))
@@ -134,6 +137,23 @@ public sealed partial class EditHistory
         }
 
         return StepKind.Other;
+    }
+
+    private static bool IsIndentedLineBreak(TextSnapshot before, TextSnapshot after)
+    {
+        var caret = before.Caret;
+        var added = after.Text.Length - before.Text.Length;
+        if (added < 2 || after.Caret != caret + added || after.Text[caret] != '\n')
+            return false;
+
+        for (var i = caret + 1; i < after.Caret; i++)
+        {
+            if (after.Text[i] is not (' ' or '\t'))
+                return false;
+        }
+
+        return string.CompareOrdinal(after.Text, 0, before.Text, 0, caret) == 0
+            && string.CompareOrdinal(after.Text, after.Caret, before.Text, caret, before.Text.Length - caret) == 0;
     }
 
     /// <summary>
