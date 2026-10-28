@@ -17,6 +17,11 @@ internal sealed class ReferencePanel
     private const string OutputsLabel = "outputs";
     private const string SettingsLabel = "settings";
 
+    /// <summary>
+    /// The most of an entry's width a name column takes, so the options beside it still have room.
+    /// </summary>
+    private const float MaxNameColumn = 0.45f;
+
     private string _filter = string.Empty;
 
     public bool FilterFocused { get; private set; }
@@ -63,6 +68,7 @@ internal sealed class ReferencePanel
         gui.Separator();
         var text = gui.Style.Text.Color;
         var palette = SyntaxPalette.For(gui.Style.Window.Box.BackColor, text);
+        var nameColor = palette.Get(HighlightKind.Keyword);
         gui.Text(entry.Function, palette.Get(HighlightKind.Function), wrap: true);
         var note = GetNote(entry);
         if (note.Length > 0)
@@ -72,20 +78,20 @@ internal sealed class ReferencePanel
         var labelWidth = gui.MeasureTextSize(OutputsLabel).x + indent;
         DrawRow(gui, InputsLabel, WindowColors.Muted, entry.Inputs, text, labelWidth);
 
-        if (entry.Outputs.Count == 1 && entry.Outputs[0].Name == null)
+        if (entry.Outputs != null)
         {
-            DrawRow(gui, OutputsLabel, WindowColors.Muted, entry.Outputs[0].Value, text, labelWidth);
+            DrawRow(gui, OutputsLabel, WindowColors.Muted, entry.Outputs, text, labelWidth);
         }
         else
         {
             gui.Text(OutputsLabel, WindowColors.Muted);
-            DrawNamedRows(gui, entry.Outputs, palette.Get(HighlightKind.Keyword), text);
+            DrawNamedRows(gui, entry.ModeOutputs, nameColor, text);
         }
 
         if (entry.Settings.Count > 0)
         {
             gui.Text(SettingsLabel, WindowColors.Muted);
-            DrawNamedRows(gui, entry.Settings, palette.Get(HighlightKind.Keyword), text);
+            DrawNamedRows(gui, entry.Settings, nameColor, text);
         }
     }
 
@@ -103,20 +109,22 @@ internal sealed class ReferencePanel
     /// </summary>
     private static void DrawNamedRows(ImGui gui, IReadOnlyList<BlockReferenceRow> rows, Color32 nameColor, Color32 valueColor)
     {
+        gui.BeginIndent();
         var indent = gui.Style.Layout.Indent;
-        var maxNameWidth = gui.GetLayoutWidth() * 0.45f;
+        var maxNameWidth = gui.GetLayoutWidth() * MaxNameColumn;
+        var widths = new float[rows.Count];
         var nameWidth = 0f;
-        foreach (var row in rows)
+        for (var i = 0; i < rows.Count; i++)
         {
-            var width = gui.MeasureTextSize(row.Name).x + indent;
-            if (width <= maxNameWidth)
-                nameWidth = Mathf.Max(nameWidth, width);
+            widths[i] = gui.MeasureTextSize(rows[i].Name).x + indent;
+            if (widths[i] <= maxNameWidth)
+                nameWidth = Mathf.Max(nameWidth, widths[i]);
         }
 
-        gui.BeginIndent();
-        foreach (var row in rows)
+        for (var i = 0; i < rows.Count; i++)
         {
-            if (gui.MeasureTextSize(row.Name).x + indent > maxNameWidth)
+            var row = rows[i];
+            if (widths[i] > maxNameWidth)
             {
                 gui.Text(row.Name, nameColor);
                 gui.BeginIndent();

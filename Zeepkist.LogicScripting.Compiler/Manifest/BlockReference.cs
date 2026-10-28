@@ -22,15 +22,16 @@ public static class BlockReference
             type.Function,
             string.Join(", ", aliases),
             JoinNames(type.Inputs),
-            DescribeOutputs(type),
+            type.Modes == null ? JoinNames(type.Outputs) : null,
+            DescribeModeOutputs(type),
             DescribeSettings(type),
             type.IsPlacedOnly);
     }
 
-    private static List<BlockReferenceRow> DescribeOutputs(BlockType type)
+    private static List<BlockReferenceRow> DescribeModeOutputs(BlockType type)
     {
         if (type.Modes == null)
-            return [new BlockReferenceRow(null, JoinNames(type.Outputs))];
+            return [];
 
         var options = type.Modes.Setting.Options;
         return options.Select((option, i) => new BlockReferenceRow(option, JoinNames(type.Modes.Outputs[i]))).ToList();
@@ -38,20 +39,17 @@ public static class BlockReference
 
     private static List<BlockReferenceRow> DescribeSettings(BlockType type)
     {
-        var settings = type.Settings.Select(s => new BlockReferenceRow(s.Name, DescribeSetting(s))).ToList();
+        var settings = type.Settings.Select(DescribeSetting).ToList();
         if (type.HasStyles)
             settings.Add(new BlockReferenceRow(BlockType.StyleName, string.Join(", ", type.Styles.Select(s => s.Name))));
 
         if (!type.IsPlacedOnly)
-            settings.Add(new BlockReferenceRow(BlockSetting.Hide.Name, DescribeSetting(BlockSetting.Hide)));
+            settings.Add(DescribeSetting(BlockSetting.Hide));
 
         return settings;
     }
 
-    /// <summary>
-    /// What the Setting accepts.
-    /// </summary>
-    private static string DescribeSetting(BlockSetting setting)
+    private static BlockReferenceRow DescribeSetting(BlockSetting setting)
     {
         var accepts = setting.Type switch
         {
@@ -61,7 +59,9 @@ public static class BlockReference
             _ => string.Join(", ", setting.Options)
         };
 
-        return setting.IsRequired && setting.Type != SettingType.Targets ? $"{accepts} (required)" : accepts;
+        return new BlockReferenceRow(
+            setting.Name,
+            setting.IsRequired && setting.Type != SettingType.Targets ? $"{accepts} (required)" : accepts);
     }
 
     private static string DescribeNumber(BlockSetting setting)

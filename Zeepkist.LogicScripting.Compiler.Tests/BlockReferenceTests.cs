@@ -21,7 +21,8 @@ public class BlockReferenceTests
         var logic = Find("logic");
 
         Assert.Equal("a, b, op_in", logic.Inputs);
-        Assert.Equal([(null, "out")], Rows(logic.Outputs));
+        Assert.Equal("out", logic.Outputs);
+        Assert.Empty(logic.ModeOutputs);
         Assert.Equal([("op", "and, or, nand, nor, xor, xnor"), ("hide", "true, false")], Rows(logic.Settings));
     }
 
@@ -31,7 +32,7 @@ public class BlockReferenceTests
         var ticker = Find("ticker");
 
         Assert.Equal("–", ticker.Inputs);
-        Assert.Equal([(null, "–")], Rows(Find("toggler").Outputs));
+        Assert.Equal("–", Find("toggler").Outputs);
     }
 
     [Fact]
@@ -68,7 +69,8 @@ public class BlockReferenceTests
 
         Assert.Equal(
             [("basic", "speed, yaw, up, state"), ("local_velocity", "yaw, x, y, z"), ("global_velocity", "x, y, z, heading")],
-            Rows(telemetry.Outputs));
+            Rows(telemetry.ModeOutputs));
+        Assert.Null(telemetry.Outputs);
     }
 
     [Fact]

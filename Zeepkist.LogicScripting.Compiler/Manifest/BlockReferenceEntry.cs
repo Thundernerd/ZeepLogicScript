@@ -13,7 +13,8 @@ public sealed class BlockReferenceEntry
         string function,
         string aliases,
         string inputs,
-        IReadOnlyList<BlockReferenceRow> outputs,
+        string outputs,
+        IReadOnlyList<BlockReferenceRow> modeOutputs,
         IReadOnlyList<BlockReferenceRow> settings,
         bool isPlacedOnly)
     {
@@ -21,6 +22,7 @@ public sealed class BlockReferenceEntry
         Aliases = aliases;
         Inputs = inputs;
         Outputs = outputs;
+        ModeOutputs = modeOutputs;
         Settings = settings;
         IsPlacedOnly = isPlacedOnly;
     }
@@ -35,9 +37,14 @@ public sealed class BlockReferenceEntry
     public string Inputs { get; }
 
     /// <summary>
-    /// One row per mode for a block whose mode renames its outputs, otherwise one row without a name.
+    /// Null for a block whose mode renames its outputs; <see cref="ModeOutputs"/> has them then.
     /// </summary>
-    public IReadOnlyList<BlockReferenceRow> Outputs { get; }
+    public string Outputs { get; }
+
+    /// <summary>
+    /// One row per mode, empty unless the mode renames the outputs.
+    /// </summary>
+    public IReadOnlyList<BlockReferenceRow> ModeOutputs { get; }
 
     /// <summary>
     /// Empty when the type takes none.
@@ -59,7 +66,8 @@ public sealed class BlockReferenceEntry
             || Contains(Function, trimmed)
             || Contains(Aliases, trimmed)
             || Contains(Inputs, trimmed)
-            || Outputs.Concat(Settings).Any(r => Contains(r.Name ?? string.Empty, trimmed) || Contains(r.Value, trimmed));
+            || (Outputs != null && Contains(Outputs, trimmed))
+            || ModeOutputs.Concat(Settings).Any(r => Contains(r.Name, trimmed) || Contains(r.Value, trimmed));
     }
 
     private static bool Contains(string text, string filter)

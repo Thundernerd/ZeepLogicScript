@@ -1,7 +1,7 @@
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 
 /// <summary>
-/// One line of a <see cref="BlockReferenceEntry"/>: a Setting and what it accepts, or a mode and its outputs.
+/// One named line of a <see cref="BlockReferenceEntry"/>: a Setting and what it accepts, or a mode and its outputs.
 /// </summary>
 public sealed class BlockReferenceRow
 {
@@ -11,9 +11,6 @@ public sealed class BlockReferenceRow
         Value = value;
     }
 
-    /// <summary>
-    /// Null for the outputs of a block without modes, which are one row.
-    /// </summary>
     public string Name { get; }
 
     public string Value { get; }
