@@ -1,8 +1,10 @@
 using BepInEx;
 using HarmonyLib;
 using TNRD.Zeepkist.LogicScripting.Blocks;
+using TNRD.Zeepkist.LogicScripting.Storage;
 using TNRD.Zeepkist.LogicScripting.UI;
 using ZeepSDK.LevelEditor;
+using ZeepSDK.Storage;
 using ZeepSDK.UI;
 
 namespace TNRD.Zeepkist.LogicScripting;
@@ -26,7 +28,8 @@ public class Plugin : BaseUnityPlugin
         LevelEditorApi.EnteredTestMode += OnEnteredTestMode;
         LevelEditorApi.LevelLoaded += OnLevelLoaded;
 
-        _scriptWindow = new ScriptWindow(Logger, _startupCheck);
+        var drafts = new DraftStore(StorageApi.CreateModStorage(this), Logger);
+        _scriptWindow = new ScriptWindow(Logger, _startupCheck, drafts);
         UIApi.AddZeepGUIDrawer(_scriptWindow);
 
         Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
@@ -42,6 +45,7 @@ public class Plugin : BaseUnityPlugin
         {
             UIApi.RemoveZeepGUIDrawer(_scriptWindow);
             _scriptWindow.ReleaseInput();
+            _scriptWindow.SaveDrafts();
         }
 
         _harmony?.UnpatchSelf();

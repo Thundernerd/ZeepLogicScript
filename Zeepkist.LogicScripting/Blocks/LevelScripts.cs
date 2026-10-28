@@ -12,11 +12,12 @@ internal static class LevelScripts
     /// <summary>
     /// Goes through all the level's blocks, so call it after a change, not per frame.
     /// </summary>
-    /// <returns>Every Script whose text the level holds, and every Script with blocks in the level.</returns>
-    public static (List<StoredScript> Stored, HashSet<ScriptId> GroupIds) Find(LEV_LevelEditorCentral central)
+    /// <returns>Every Script whose text the level holds, and the number of blocks of every Script with blocks in the
+    /// level.</returns>
+    public static (List<StoredScript> Stored, Dictionary<ScriptId, int> BlockCounts) Find(LEV_LevelEditorCentral central)
     {
         List<StoredScript> stored = [];
-        HashSet<ScriptId> groupIds = [];
+        Dictionary<ScriptId, int> blockCounts = [];
         HashSet<ScriptId> storedIds = [];
         foreach (var block in central.undoRedo.allBlocksDictionary.Values)
         {
@@ -24,13 +25,13 @@ internal static class LevelScripts
             if (scriptId == null)
                 continue;
 
-            groupIds.Add(scriptId);
+            blockCounts[scriptId] = blockCounts.TryGetValue(scriptId, out var count) ? count + 1 : 1;
             var script = Read(block.customBlockEditProperties, scriptId);
             if (script != null && storedIds.Add(scriptId))
                 stored.Add(script);
         }
 
-        return (stored, groupIds);
+        return (stored, blockCounts);
     }
 
     /// <summary>
@@ -41,6 +42,17 @@ internal static class LevelScripts
         properties.SetStringDictionaryValue(ScriptCarrier.NameKey, script.Name);
         properties.SetStringDictionaryValue(ScriptCarrier.TextKey, script.Text);
         properties.SetIntDictionaryValue(ScriptCarrier.LanguageVersionKey, script.LanguageVersion);
+    }
+
+    /// <summary>
+    /// Takes the block out of its Block Group, with the Script it carries, if any.
+    /// </summary>
+    public static void Untag(PropertyDictionariesJSON properties)
+    {
+        properties.t?.Remove(BlockGroupTag.Key);
+        properties.t?.Remove(ScriptCarrier.NameKey);
+        properties.t?.Remove(ScriptCarrier.TextKey);
+        properties.n?.Remove(ScriptCarrier.LanguageVersionKey);
     }
 
     /// <summary>
