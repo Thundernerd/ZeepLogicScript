@@ -304,7 +304,8 @@ internal sealed partial class ScriptWindow
         if (DrawErrorsHeader(gui, header))
             _state.ErrorsHidden = !_state.ErrorsHidden;
 
-        if (_state.ErrorsHidden)
+        // A window too short for the editor's minimum leaves no room under the header
+        if (_state.ErrorsHidden || body.H <= 0)
             return;
 
         WindowRegion.Begin(gui, body);
