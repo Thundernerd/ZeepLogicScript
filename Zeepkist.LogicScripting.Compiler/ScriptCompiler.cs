@@ -13,12 +13,15 @@ public static class ScriptCompiler
 {
     /// <param name="text">The Script.</param>
     /// <param name="quarterTurns">The group's yaw in 90° steps; see <see cref="GetQuarterTurnsFacing"/>.</param>
-    public static CompileResult Compile(string text, int quarterTurns)
+    /// <param name="disabledBlockIds">
+    /// Blocks the startup check found don't match the game; a Script that places one gets an error.
+    /// </param>
+    public static CompileResult Compile(string text, int quarterTurns, IReadOnlyCollection<int> disabledBlockIds = null)
     {
         List<Diagnostic> diagnostics = [];
         var tokens = Lexer.Tokenize(text ?? string.Empty, diagnostics);
         var statements = Parser.Parse(tokens, diagnostics);
-        var graph = GraphBuilder.Build(statements, diagnostics);
+        var graph = GraphBuilder.Build(statements, diagnostics, disabledBlockIds ?? []);
 
         if (diagnostics.Count > 0)
         {
@@ -32,7 +35,7 @@ public static class ScriptCompiler
         List<CompiledBlock> blocks = [];
         foreach (var block in graph.Blocks)
         {
-            blocks.Add(new CompiledBlock(block.Type, block.Settings, cells[block.Index], yaw));
+            blocks.Add(new CompiledBlock(block.Type, block.Style, block.Settings, cells[block.Index], yaw));
         }
 
         List<CompiledWire> wires = [];

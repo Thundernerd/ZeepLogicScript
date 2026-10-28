@@ -5,10 +5,16 @@ using System.Linq;
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 
 /// <summary>
-/// One Logic Block type in the Block Manifest: its Block Function name, block ID, Connectors and footprint.
+/// One Logic Block type in the Block Manifest: its Block Function name, the blocks it can place, its Connectors and
+/// its Settings.
 /// </summary>
 public sealed class BlockType
 {
+    /// <summary>
+    /// The argument that picks one of several <see cref="Styles"/>.
+    /// </summary>
+    public const string StyleName = "style";
+
     public BlockType(
         string function,
         int blockId,
@@ -16,22 +22,44 @@ public sealed class BlockType
         IReadOnlyList<BlockConnector> inputs,
         IReadOnlyList<BlockConnector> outputs,
         params BlockSetting[] settings)
+        : this(function, [new BlockStyle(null, blockId, length)], inputs, outputs, settings)
     {
-        Function = function;
-        BlockId = blockId;
-        Length = length;
-        Inputs = inputs;
-        Outputs = outputs;
-        Settings = settings;
     }
 
-    public string Function { get; }
-    public int BlockId { get; }
+    public BlockType(
+        string function,
+        IReadOnlyList<BlockStyle> styles,
+        IReadOnlyList<BlockConnector> inputs,
+        IReadOnlyList<BlockConnector> outputs,
+        IReadOnlyList<BlockSetting> settings = null,
+        BlockModes modes = null,
+        bool isPlacedOnly = false)
+    {
+        Function = function;
+        Styles = styles;
+        Inputs = inputs;
+        Outputs = outputs;
+        Settings = settings ?? [];
+        Modes = modes;
+        IsPlacedOnly = isPlacedOnly;
+    }
 
     /// <summary>
-    /// Footprint along the block's own +Z (the direction Signals flow), in 16-unit cells.
+    /// The Block Function name; for a placed-only type, the name a Placed Block Reference is checked against.
     /// </summary>
-    public int Length { get; }
+    public string Function { get; }
+
+    /// <summary>
+    /// The blocks this type can be, one per block ID. The first is what a call without <c>style:</c> places.
+    /// </summary>
+    public IReadOnlyList<BlockStyle> Styles { get; }
+
+    public BlockStyle DefaultStyle => Styles[0];
+
+    /// <summary>
+    /// Whether <c>style:</c> picks between several blocks.
+    /// </summary>
+    public bool HasStyles => Styles.Count > 1;
 
     /// <summary>
     /// Input Connectors in the order positional arguments fill them.
@@ -39,11 +67,22 @@ public sealed class BlockType
     public IReadOnlyList<BlockConnector> Inputs { get; }
 
     /// <summary>
-    /// Output Connectors; a block with more than one is used through dot access.
+    /// Output Connectors; a block with more than one is used through dot access. For a block with
+    /// <see cref="Modes"/>, these are the names in its first mode.
     /// </summary>
     public IReadOnlyList<BlockConnector> Outputs { get; }
 
     public IReadOnlyList<BlockSetting> Settings { get; }
+
+    /// <summary>
+    /// The Setting that renames the outputs per mode, or null.
+    /// </summary>
+    public BlockModes Modes { get; }
+
+    /// <summary>
+    /// A block whose position matters: Scripts only reach it through a Placed Block Reference, never place it.
+    /// </summary>
+    public bool IsPlacedOnly { get; }
 
     /// <summary>
     /// The position of the named input in <see cref="Inputs"/>, or -1.
@@ -59,17 +98,58 @@ public sealed class BlockType
         return -1;
     }
 
-    public BlockConnector FindOutput(string name)
+    /// <summary>
+    /// The outputs of a block with the given Settings; they differ from <see cref="Outputs"/> only per mode.
+    /// </summary>
+    public IReadOnlyList<BlockConnector> GetOutputs(IReadOnlyList<Setting> settings)
     {
-        foreach (var output in Outputs)
+        return Modes == null ? Outputs : Modes.Outputs[GetModeIndex(settings)];
+    }
+
+    /// <summary>
+    /// The option word of the mode a block with the given Settings is in.
+    /// </summary>
+    public string GetModeName(IReadOnlyList<Setting> settings)
+    {
+        return Modes.Setting.Options[GetModeIndex(settings)];
+    }
+
+    /// <summary>
+    /// The mode a block with the given Settings is in; 0, the fresh block's mode, when the Settings leave it out.
+    /// </summary>
+    public int GetModeIndex(IReadOnlyList<Setting> settings)
+    {
+        foreach (var setting in settings)
         {
-            if (output.Name == name)
-                return output;
+            if (setting.Key == Modes.Setting.Key)
+                return setting.IntValue;
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// The Block Function name, with the style's name where the type has several.
+    /// </summary>
+    public string Describe(BlockStyle style)
+    {
+        return HasStyles ? $"{Function} style {style.Name}" : Function;
+    }
+
+    public BlockStyle FindStyle(string name)
+    {
+        foreach (var style in Styles)
+        {
+            if (style.Name == name)
+                return style;
         }
 
         return null;
     }
 
+    /// <summary>
+    /// One of <see cref="Settings"/>, or <see cref="BlockSetting.Hide"/>, which every Block Function takes.
+    /// </summary>
     public BlockSetting FindSetting(string name)
     {
         foreach (var setting in Settings)
@@ -78,7 +158,7 @@ public sealed class BlockType
                 return setting;
         }
 
-        return null;
+        return !IsPlacedOnly && name == BlockSetting.Hide.Name ? BlockSetting.Hide : null;
     }
 
     /// <summary>
@@ -88,7 +168,7 @@ public sealed class BlockType
     {
         string closest = null;
         var closestDistance = int.MaxValue;
-        foreach (var candidate in Inputs.Select(i => i.Name).Concat(Settings.Select(s => s.Name)))
+        foreach (var candidate in GetArgumentNames())
         {
             var distance = GetEditDistance(name, candidate);
             if (distance <= 2 && distance < Math.Min(name.Length, candidate.Length) && distance < closestDistance)
@@ -102,18 +182,34 @@ public sealed class BlockType
     }
 
     /// <summary>
-    /// The given Settings in the order <see cref="Settings"/> declares them, whatever order they were given in.
+    /// The given Settings in the order <see cref="Settings"/> declares them, <c>hide:</c> last, whatever order they
+    /// were given in.
     /// </summary>
     public Setting[] OrderSettings(IReadOnlyDictionary<BlockSetting, Setting> settings)
     {
         List<Setting> ordered = [];
-        foreach (var blockSetting in Settings)
+        foreach (var blockSetting in Settings.Append(BlockSetting.Hide))
         {
             if (settings.TryGetValue(blockSetting, out var setting))
                 ordered.Add(setting);
         }
 
         return ordered.ToArray();
+    }
+
+    /// <summary>
+    /// Every name a call can give as a named argument.
+    /// </summary>
+    private IEnumerable<string> GetArgumentNames()
+    {
+        var names = Inputs.Select(i => i.Name).Concat(Settings.Select(s => s.Name));
+        if (!IsPlacedOnly)
+            names = names.Append(BlockSetting.Hide.Name);
+
+        if (HasStyles)
+            names = names.Append(StyleName);
+
+        return names;
     }
 
     private static int GetEditDistance(string a, string b)

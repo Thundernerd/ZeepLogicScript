@@ -15,9 +15,10 @@ internal static class ScriptCompile
     private const string UndoLabel = "Logic Scripting Compile";
 
     /// <summary>
-    /// Returns the result to show in the window: one line, or the error list.
+    /// Returns the result to show in the window: one line, or the error list. When the startup check found the
+    /// game's block creation changed, the Script is still checked, but nothing is placed.
     /// </summary>
-    public static string Run(string text, ManualLogSource logger)
+    public static string Run(string text, StartupCheck check, ManualLogSource logger)
     {
         var central = ComponentCache.Get<LEV_LevelEditorCentral>();
         if (central == null)
@@ -27,9 +28,13 @@ internal static class ScriptCompile
             return "Let go of the grabbed blocks to compile";
 
         var right = central.cam.cameraTransform.right;
-        var result = ScriptCompiler.Compile(text, ScriptCompiler.GetQuarterTurnsFacing(right.x, right.z));
+        check.RunOnce();
+        var result = ScriptCompiler.Compile(text, ScriptCompiler.GetQuarterTurnsFacing(right.x, right.z), check.DisabledBlockIds);
         if (!result.Succeeded)
             return FormatErrors(result);
+
+        if (!check.CanPlace)
+            return $"No errors, but {StartupCheck.UpdateNeededMessage}; nothing placed";
 
         if (result.Blocks.Count == 0)
             return "Nothing to place";

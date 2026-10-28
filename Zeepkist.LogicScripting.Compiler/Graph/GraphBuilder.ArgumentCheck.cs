@@ -26,6 +26,7 @@ internal sealed partial class GraphBuilder
             Call = call;
             Type = type;
             Inputs = new WiredInput?[type.Inputs.Count];
+            Style = type.DefaultStyle;
             _error = error;
         }
 
@@ -33,6 +34,12 @@ internal sealed partial class GraphBuilder
         public BlockType Type { get; }
         public WiredInput?[] Inputs { get; }
         public Dictionary<BlockSetting, Setting> Settings { get; } = [];
+
+        /// <summary>
+        /// The style the call picked, or the type's default.
+        /// </summary>
+        public BlockStyle Style { get; private set; }
+
         public bool Failed { get; private set; }
 
         /// <summary>
@@ -92,6 +99,17 @@ internal sealed partial class GraphBuilder
         }
 
         /// <summary>
+        /// Picks the block the call places; fails when the style was invalid and already reported.
+        /// </summary>
+        public void ChooseStyle(BlockStyle style)
+        {
+            if (style == null)
+                MarkFailed();
+            else
+                Style = style;
+        }
+
+        /// <summary>
         /// Reports a name that is neither an input nor a Setting, with the closest one it was probably meant as.
         /// </summary>
         public void ReportUnknownName(NamedArgument argument)
@@ -117,7 +135,9 @@ internal sealed partial class GraphBuilder
             {
                 if (blockSetting.IsRequired && !IsGivenOrMeant(blockSetting.Name))
                 {
-                    ReportAndFail(Call, $"'{Call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
+                    ReportAndFail(Call, blockSetting.Type == SettingType.Targets
+                        ? $"'{Call.Function}' needs {blockSetting.Name}:, 1 to 8 placed blocks to switch; placed(...) isn't available yet"
+                        : $"'{Call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
                 }
             }
         }

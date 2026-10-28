@@ -18,5 +18,16 @@ public enum SettingType
     /// <summary>
     /// A bare word from <see cref="BlockSetting.Options"/>, stored as its index.
     /// </summary>
-    Option
+    Option,
+
+    /// <summary>
+    /// A player as the editor shows it: <c>1</c>–<c>4</c>, or <c>all</c> where the editor offers everyone. Stored as
+    /// its index in <see cref="BlockSetting.Options"/>, like an option.
+    /// </summary>
+    Player,
+
+    /// <summary>
+    /// The blocks a Toggler switches, given as Placed Block References.
+    /// </summary>
+    Targets
 }

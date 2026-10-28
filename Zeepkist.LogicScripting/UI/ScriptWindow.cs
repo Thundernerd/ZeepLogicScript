@@ -1,6 +1,7 @@
 using BepInEx.Logging;
 using Imui.Controls;
 using Imui.Core;
+using TNRD.Zeepkist.LogicScripting.Blocks;
 using UnityEngine;
 using ZeepSDK.LevelEditor;
 using ZeepSDK.UI;
@@ -18,6 +19,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private const float FieldHeight = 240;
 
     private readonly ManualLogSource _logger;
+    private readonly StartupCheck _startupCheck;
 
     private string _text = string.Empty;
     private string _result = string.Empty;
@@ -27,9 +29,10 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private bool _blockingMouse;
     private bool _blockingKeyboard;
 
-    public ScriptWindow(ManualLogSource logger)
+    public ScriptWindow(ManualLogSource logger, StartupCheck startupCheck)
     {
         _logger = logger;
+        _startupCheck = startupCheck;
     }
 
     public void OnZeepGUI(ImGui gui)
@@ -57,10 +60,11 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
                 mouseExited: () => SetMouseBlocked(false),
                 size: new ImSize(480, 360)))
         {
+            DrawStartupCheck(gui);
             DrawField(gui);
 
             if (gui.Button("Compile"))
-                _result = ScriptCompile.Run(_text, _logger);
+                _result = ScriptCompile.Run(_text, _startupCheck, _logger);
 
             gui.Text(_result, wrap: true);
         }
@@ -77,6 +81,18 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         _fieldFocused = false;
         SetMouseBlocked(false);
         SetKeyboardBlocked(false);
+    }
+
+    /// <summary>
+    /// A standing warning for what the startup check turned off.
+    /// </summary>
+    private void DrawStartupCheck(ImGui gui)
+    {
+        if (!_startupCheck.CanPlace)
+            gui.Text($"{StartupCheck.UpdateNeededMessage}. Scripts are still checked, but Compile places nothing.", wrap: true);
+
+        if (_startupCheck.DisabledBlocks.Count > 0)
+            gui.Text($"Turned off for this game version: {string.Join(", ", _startupCheck.DisabledBlocks)}", wrap: true);
     }
 
     private void DrawField(ImGui gui)

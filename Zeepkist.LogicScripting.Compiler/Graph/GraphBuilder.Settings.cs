@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -33,6 +34,27 @@ internal sealed partial class GraphBuilder
                     return Setting.Int(setting.Key, word.Name == "true" ? 1 : 0);
 
                 ValueError(argument, $"{setting.Name} takes true or false");
+                return null;
+
+            case SettingType.Player:
+                var player = argument.Value switch
+                {
+                    IntegerLiteral number => number.Value.ToString(CultureInfo.InvariantCulture),
+                    NameExpression everyone => everyone.Name,
+                    _ => null
+                };
+
+                if (player == null || setting.IndexOf(player) < 0)
+                {
+                    var players = string.Join(", ", setting.Options.Take(setting.Options.Count - 1));
+                    ValueError(argument, $"{setting.Name} takes {players} or {setting.Options[setting.Options.Count - 1]}");
+                    return null;
+                }
+
+                return setting.Choose(player);
+
+            case SettingType.Targets:
+                ValueError(argument, $"{setting.Name} takes placed blocks, and placed(...) isn't available yet");
                 return null;
 
             default:

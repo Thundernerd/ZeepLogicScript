@@ -8,6 +8,11 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 /// </summary>
 public sealed class BlockSetting
 {
+    /// <summary>
+    /// <c>hide:</c>, which every Block Function takes: hides the block and its Wires in game.
+    /// </summary>
+    public static readonly BlockSetting Hide = Bool("hide", "lbhd");
+
     private BlockSetting(string name, string key, SettingType type, IReadOnlyList<string> options, bool isRequired, long minimum)
     {
         Name = name;
@@ -23,7 +28,8 @@ public sealed class BlockSetting
     public SettingType Type { get; }
 
     /// <summary>
-    /// The option words in stored order; empty unless <see cref="Type"/> is <see cref="SettingType.Option"/>.
+    /// The option words in stored order; empty unless <see cref="Type"/> is <see cref="SettingType.Option"/> or
+    /// <see cref="SettingType.Player"/>.
     /// </summary>
     public IReadOnlyList<string> Options { get; }
 
@@ -50,6 +56,24 @@ public sealed class BlockSetting
     public static BlockSetting Option(string name, string key, params string[] options)
     {
         return new BlockSetting(name, key, SettingType.Option, options, false, 0);
+    }
+
+    /// <summary>
+    /// <c>player:</c>, with the players in the order the editor lists them; <paramref name="hasEveryone"/> when the
+    /// list starts with everyone.
+    /// </summary>
+    public static BlockSetting Player(string key, bool hasEveryone)
+    {
+        string[] options = hasEveryone ? ["all", "1", "2", "3", "4"] : ["1", "2", "3", "4"];
+        return new BlockSetting("player", key, SettingType.Player, options, false, 0);
+    }
+
+    /// <summary>
+    /// A required list of Placed Block References, stored as one key per target.
+    /// </summary>
+    public static BlockSetting Targets(string name, string keyPrefix)
+    {
+        return new BlockSetting(name, keyPrefix, SettingType.Targets, [], true, 0);
     }
 
     /// <summary>

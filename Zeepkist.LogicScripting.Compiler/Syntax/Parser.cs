@@ -66,6 +66,13 @@ internal sealed partial class Parser
             return new Definition(name.Position, name.Text, ParseExpression());
         }
 
+        if (Current.Kind == TokenKind.Name && Current.Text == DefaultStatement.Keyword && IsNamedArgument(1))
+        {
+            var keyword = Current;
+            _index++;
+            return new DefaultStatement(keyword.Position, ParseNamedArgument());
+        }
+
         return new ExpressionStatement(ParseExpression());
     }
 
@@ -183,13 +190,9 @@ internal sealed partial class Parser
 
         while (true)
         {
-            if (Current.Kind == TokenKind.Name && Peek(1).Kind == TokenKind.Colon)
+            if (IsNamedArgument(0))
             {
-                var name = Current;
-                _index += 2;
-                var valueStart = Current;
-                var value = ParseExpression();
-                namedArguments.Add(new NamedArgument(name.Position, name.Text, value, valueStart.Position));
+                namedArguments.Add(ParseNamedArgument());
             }
             else
             {
@@ -210,6 +213,23 @@ internal sealed partial class Parser
             Expect(TokenKind.CloseParen, "',' or ')'");
             return new CallExpression(function.Position, function.Text, arguments, namedArguments);
         }
+    }
+
+    /// <summary>
+    /// Whether the tokens from <paramref name="offset"/> on start <c>name:</c>.
+    /// </summary>
+    private bool IsNamedArgument(int offset)
+    {
+        return Peek(offset).Kind == TokenKind.Name && Peek(offset + 1).Kind == TokenKind.Colon;
+    }
+
+    private NamedArgument ParseNamedArgument()
+    {
+        var name = Current;
+        _index += 2;
+        var valueStart = Current;
+        var value = ParseExpression();
+        return new NamedArgument(name.Position, name.Text, value, valueStart.Position);
     }
 
     private void ExpectOpenParen()
