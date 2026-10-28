@@ -1,3 +1,4 @@
+using System.Linq;
 using Xunit;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Tests;
@@ -58,5 +59,26 @@ public class CallTests
 
         var error = Assert.Single(result.Errors);
         Assert.Equal((new Position(line, column), message), (error.Position, error.Message));
+    }
+
+    [Theory]
+    [InlineData("lump(a: nope & 1)", "1:9: 'nope' isn't defined")]
+    [InlineData("lump(a: nope.x)", "1:9: 'nope' isn't defined")]
+    [InlineData("lump(a: logic(nope))", "1:15: 'nope' isn't defined")]
+    [InlineData("lump(targets: [nope])", "1:16: 'nope' isn't defined")]
+    public void UnknownCalls_CheckTheirNamedValues(string call, string error)
+    {
+        var result = ScriptCompiler.Compile(call, 0);
+
+        Assert.Equal(["1:1: 'lump' isn't a Block Function", error], result.Errors.Select(e => e.ToString()));
+    }
+
+    [Fact]
+    public void UnknownCalls_DontLookUpBareWords()
+    {
+        var result = ScriptCompiler.Compile("lump(1, op: and)", 0);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("'lump' isn't a Block Function", error.Message);
     }
 }

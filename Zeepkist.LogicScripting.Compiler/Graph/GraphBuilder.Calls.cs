@@ -21,6 +21,11 @@ internal sealed partial class GraphBuilder
                 EvaluateFeed(argument);
             }
 
+            foreach (var argument in call.NamedArguments)
+            {
+                CheckUntypedValue(argument.Value);
+            }
+
             var message = GetUnknownFunctionMessage(call.Function);
             if (message != null)
                 Error(call, message);
@@ -52,6 +57,31 @@ internal sealed partial class GraphBuilder
         }
 
         return block;
+    }
+
+    /// <summary>
+    /// Reports what's wrong in a named argument's value when there's no type to tell a Setting from an input. A bare
+    /// word may be a Setting's option (<c>op: and</c>), so it isn't looked up as a name.
+    /// </summary>
+    private void CheckUntypedValue(Expression value)
+    {
+        switch (value)
+        {
+            case NameExpression:
+                return;
+
+            case ListExpression list:
+                foreach (var item in list.Items)
+                {
+                    Evaluate(item);
+                }
+
+                return;
+
+            default:
+                Evaluate(value);
+                return;
+        }
     }
 
     /// <summary>
