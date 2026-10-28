@@ -112,6 +112,22 @@ public class EditHistoryTests
     }
 
     [Fact]
+    public void ARecordedStep_NeverJoinsTheTypingAround_EvenAsOneCharacter()
+    {
+        var history = new EditHistory();
+        var text = Type(history, string.Empty, "ab", 0);
+        var spaced = new TextSnapshot("ab ", 3);
+        history.RecordStep(text, spaced, 0);
+        Type(history, spaced.Text, "c", 0);
+
+        history.TryUndo(out var undone);
+        Assert.Equal(spaced, undone);
+
+        history.TryUndo(out undone);
+        Assert.Equal(text, undone);
+    }
+
+    [Fact]
     public void AnEditAfterUndo_DropsTheRedoSteps()
     {
         var history = new EditHistory();

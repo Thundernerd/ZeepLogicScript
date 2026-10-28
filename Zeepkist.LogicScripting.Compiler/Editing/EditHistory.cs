@@ -5,7 +5,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 /// <summary>
 /// The editor's own undo and redo, separate from the level editor's. Typing characters in a row is one step, and so
 /// is deleting them one by one; a pause, a typed line break or a caret move starts a new step. Any other edit, like a
-/// paste or Insert selected, is exactly one step that the typing around it never joins.
+/// paste, a shortcut or Insert selected, is exactly one step that the typing around it never joins.
 /// </summary>
 public sealed partial class EditHistory
 {
@@ -33,16 +33,29 @@ public sealed partial class EditHistory
     /// </summary>
     public void Record(TextSnapshot before, TextSnapshot after, double time)
     {
+        Record(before, after, time, GetKind(before, after));
+    }
+
+    /// <summary>
+    /// Records an edit as exactly one step of its own, whatever its shape; for a shortcut or Insert selected, which
+    /// must not join the typing around it even when they add or remove a single character.
+    /// </summary>
+    public void RecordStep(TextSnapshot before, TextSnapshot after, double time)
+    {
+        Record(before, after, time, StepKind.Other);
+    }
+
+    private void Record(TextSnapshot before, TextSnapshot after, double time, StepKind kind)
+    {
         if (before.Text == after.Text)
             return;
 
         _redo.Clear();
-        var kind = GetKind(before, after);
         var last = _undo.Last?.Value;
         if (!_groupBroken
             && last != null
             && kind != StepKind.Other
-            && !IsLineBreakTyped(kind, after)
+            && !IsLineBreakTyped(kind, before, after)
             && last.Kind == kind
             && last.After.Equals(before)
             && time - last.Time <= GroupSeconds)
@@ -104,14 +117,14 @@ public sealed partial class EditHistory
         return true;
     }
 
-    private static bool IsLineBreakTyped(StepKind kind, TextSnapshot after)
+    private static bool IsLineBreakTyped(StepKind kind, TextSnapshot before, TextSnapshot after)
     {
-        return kind == StepKind.Typing && after.Text[after.Caret - 1] == '\n';
+        return kind == StepKind.Typing && after.Text[before.Caret] == '\n';
     }
 
     /// <summary>
-    /// Typing is one character inserted at the caret; deleting is one character removed next
-    /// to the caret. Either one only when nothing was selected.
+    /// Typing is one character inserted at the caret, or a line break with the indentation the editor keeps after
+    /// it; deleting is one character removed next to the caret. Either one only when nothing was selected.
     /// </summary>
     private static StepKind GetKind(TextSnapshot before, TextSnapshot after)
     {
@@ -126,6 +139,9 @@ public sealed partial class EditHistory
             return StepKind.Typing;
         }
 
+        if (IsIndentedLineBreak(before, after))
+            return StepKind.Typing;
+
         if (after.Text.Length == before.Text.Length - 1
             && (after.Caret == caret - 1 || after.Caret == caret)
             && IsSameExcept(before.Text, after.Text, after.Caret))
@@ -134,6 +150,23 @@ public sealed partial class EditHistory
         }
 
         return StepKind.Other;
+    }
+
+    private static bool IsIndentedLineBreak(TextSnapshot before, TextSnapshot after)
+    {
+        var caret = before.Caret;
+        var added = after.Text.Length - before.Text.Length;
+        if (added < 2 || after.Caret != caret + added || after.Text[caret] != '\n')
+            return false;
+
+        for (var i = caret + 1; i < after.Caret; i++)
+        {
+            if (after.Text[i] is not (' ' or '\t'))
+                return false;
+        }
+
+        return string.CompareOrdinal(after.Text, 0, before.Text, 0, caret) == 0
+            && string.CompareOrdinal(after.Text, after.Caret, before.Text, caret, before.Text.Length - caret) == 0;
     }
 
     /// <summary>

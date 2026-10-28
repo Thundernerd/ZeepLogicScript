@@ -77,7 +77,11 @@ public static class ScriptText
         if (line >= lineStarts.Count)
             return textLength;
 
-        var lineEnd = line + 1 < lineStarts.Count ? lineStarts[line + 1] - 1 : textLength;
-        return Math.Min(lineStarts[line] + Math.Max(0, position.Column - 1), lineEnd);
+        return Math.Min(lineStarts[line] + Math.Max(0, position.Column - 1), GetLineEnd(lineStarts, textLength, line));
+    }
+
+    internal static int GetLineEnd(List<int> lineStarts, int textLength, int line)
+    {
+        return line + 1 < lineStarts.Count ? lineStarts[line + 1] - 1 : textLength;
     }
 }
