@@ -34,25 +34,44 @@ public static class BlockGroupPlacement
 
     /// <summary>
     /// The world position for the new group's cell (0, 0), so its start corner lands on the old group's. Both corners
-    /// are taken from block pivots, in the group's rotation.
+    /// are taken from the blocks' footprints, in the group's rotation, so a block that reaches past its pivot doesn't
+    /// shift the group when it moves on or off the corner's edge.
     /// </summary>
-    /// <param name="oldPositions">World X and Z of each old group block's pivot; at least one.</param>
-    /// <param name="cells">The new group's cells, laid out with <paramref name="quarterTurns"/>.</param>
+    /// <param name="oldBlocks">The old group's blocks; at least one.</param>
+    /// <param name="newBlocks">The new group's blocks, laid out with <paramref name="quarterTurns"/>.</param>
     /// <param name="quarterTurns">The group's yaw in 90° steps.</param>
     public static (float X, float Z) GetOrigin(
-        IReadOnlyCollection<(float X, float Z)> oldPositions,
-        IReadOnlyCollection<GridCell> cells,
+        IReadOnlyCollection<GroupBlock> oldBlocks,
+        IReadOnlyCollection<CompiledBlock> newBlocks,
         int quarterTurns)
     {
-        if (oldPositions.Count == 0)
-            throw new ArgumentException("The old group has no blocks", nameof(oldPositions));
+        if (oldBlocks.Count == 0)
+            throw new ArgumentException("The old group has no blocks", nameof(oldBlocks));
 
-        var undo = -quarterTurns;
-        var oldInGroup = oldPositions.Select(p => QuarterTurns.Rotate(p.X, p.Z, undo)).ToList();
-        var newInGroup = cells.Select(c => QuarterTurns.Rotate(c.X * GridCell.Size, c.Z * GridCell.Size, undo)).ToList();
+        var oldCorners = oldBlocks.Select(b => GetStartCorner(b, quarterTurns)).ToList();
+        var newCorners = newBlocks
+            .Select(b => new GroupBlock(b.Cell.X * GridCell.Size, b.Cell.Z * GridCell.Size, b.Yaw, b.Style))
+            .Select(b => GetStartCorner(b, quarterTurns))
+            .ToList();
 
-        var originX = oldInGroup.Min(p => p.X) - (newInGroup.Count == 0 ? 0 : newInGroup.Min(p => p.X));
-        var originZ = oldInGroup.Min(p => p.Z) - (newInGroup.Count == 0 ? 0 : newInGroup.Min(p => p.Z));
+        var originX = oldCorners.Min(c => c.X) - (newCorners.Count == 0 ? 0 : newCorners.Min(c => c.X));
+        var originZ = oldCorners.Min(c => c.Z) - (newCorners.Count == 0 ? 0 : newCorners.Min(c => c.Z));
         return QuarterTurns.Rotate(originX, originZ, quarterTurns);
+    }
+
+    /// <summary>
+    /// The lowest X and Z of a block's footprint, in the axes of a group turned by <paramref name="quarterTurns"/>.
+    /// </summary>
+    private static (float X, float Z) GetStartCorner(GroupBlock block, int quarterTurns)
+    {
+        var minX = (block.Style?.MinX ?? 0) * GridCell.Size;
+        var maxX = (block.Style?.MaxX ?? 0) * GridCell.Size;
+        var maxZ = ((block.Style?.Length ?? 1) - 1) * GridCell.Size;
+
+        var turns = QuarterTurns.FromDegrees(block.Yaw) - quarterTurns;
+        var first = QuarterTurns.Rotate(minX, 0, turns);
+        var last = QuarterTurns.Rotate(maxX, maxZ, turns);
+        var pivot = QuarterTurns.Rotate(block.X, block.Z, -quarterTurns);
+        return (pivot.X + Math.Min(first.X, last.X), pivot.Z + Math.Min(first.Z, last.Z));
     }
 }
