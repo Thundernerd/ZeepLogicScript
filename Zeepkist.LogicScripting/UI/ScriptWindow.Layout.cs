@@ -117,7 +117,7 @@ internal sealed partial class ScriptWindow
     private BlockProperties DrawRegions(ImGui gui)
     {
         var area = gui.Layout.AddRect(gui.GetLayoutWidth(), gui.GetLayoutHeight());
-        var collapsedWidth = GetSideHeaderHeight(gui);
+        var collapsedWidth = GetPanelHeaderHeight(gui);
         var minLevelWidth = GetMinLevelWidth(gui);
 
         // The Level side gives way first; the Scripts side only when the centre still doesn't fit without both
@@ -130,13 +130,14 @@ internal sealed partial class ScriptWindow
         // size they were given, so they grow back when the window does.
         var scriptsWidth = scriptsCollapsed
             ? collapsedWidth
-            : ClampSize(
-                GetSizeOrDefault(_state.ScriptsWidth, DefaultScriptsWidth),
+            : GetPanelSize(
+                _state.ScriptsWidth,
+                DefaultScriptsWidth,
                 MinScriptsWidth,
                 area.W - MinCentreWidth - (levelCollapsed ? collapsedWidth : minLevelWidth));
         var levelWidth = levelCollapsed
             ? collapsedWidth
-            : ClampSize(GetSizeOrDefault(_state.LevelWidth, minLevelWidth), minLevelWidth, area.W - MinCentreWidth - scriptsWidth);
+            : GetPanelSize(_state.LevelWidth, minLevelWidth, minLevelWidth, area.W - MinCentreWidth - scriptsWidth);
 
         var scripts = area.TakeLeft(scriptsWidth, out var rest);
         var level = rest.TakeRight(levelWidth, out var centre);
@@ -191,18 +192,12 @@ internal sealed partial class ScriptWindow
     }
 
     /// <summary>
-    /// A drag never stores a zero size, which would read as never resized.
+    /// A stored size of zero means the panel was never resized; a drag never stores one. Unlike
+    /// <see cref="Mathf.Clamp(float, float, float)"/>, the minimum wins when there's less room than that.
     /// </summary>
-    private static float GetSizeOrDefault(float size, float defaultSize)
+    private static float GetPanelSize(float stored, float defaultSize, float min, float max)
     {
-        return size > 0 ? size : defaultSize;
-    }
-
-    /// <summary>
-    /// Unlike <see cref="Mathf.Clamp(float, float, float)"/>, the minimum wins when there's less room than that.
-    /// </summary>
-    private static float ClampSize(float size, float min, float max)
-    {
+        var size = stored > 0 ? stored : defaultSize;
         return Mathf.Max(min, Mathf.Min(size, max));
     }
 
@@ -224,11 +219,11 @@ internal sealed partial class ScriptWindow
 
     private static ImRect GetSideBody(ImGui gui, ImRect side)
     {
-        side.TakeTop(GetSideHeaderHeight(gui), out var body);
+        side.TakeTop(GetPanelHeaderHeight(gui), out var body);
         return body;
     }
 
-    private static float GetSideHeaderHeight(ImGui gui)
+    private static float GetPanelHeaderHeight(ImGui gui)
     {
         return gui.GetRowHeight() + (gui.Style.Layout.Spacing * 2);
     }
@@ -240,7 +235,7 @@ internal sealed partial class ScriptWindow
     private static bool DrawSideHeader(ImGui gui, ImRect side, string label, bool collapsed, bool buttonOnRight, bool canToggle)
     {
         var size = gui.GetRowHeight();
-        var row = side.TakeTop(GetSideHeaderHeight(gui)).WithPadding(gui.Style.Layout.Spacing);
+        var row = side.TakeTop(GetPanelHeaderHeight(gui)).WithPadding(gui.Style.Layout.Spacing);
         ImRect labelRect;
         var buttonRect = buttonOnRight ? row.TakeRight(size, out labelRect) : row.TakeLeft(size, out labelRect);
         if (!collapsed)
@@ -280,13 +275,14 @@ internal sealed partial class ScriptWindow
         var spacing = gui.Style.Layout.Spacing;
         var available = gui.Layout.GetAvailableHeight() - (spacing * 2);
         var minFieldHeight = gui.GetRowsHeightWithSpacing(MinFieldRows);
-        var headerHeight = GetSideHeaderHeight(gui);
+        var headerHeight = GetPanelHeaderHeight(gui);
         var minErrorsHeight = gui.GetRowsHeightWithSpacing(MinErrorRows);
         var errorsHeight = headerHeight;
         if (!_state.ErrorsHidden)
         {
-            errorsHeight += ClampSize(
-                GetSizeOrDefault(_state.ErrorsHeight, gui.GetRowsHeightWithSpacing(DefaultErrorRows)),
+            errorsHeight += GetPanelSize(
+                _state.ErrorsHeight,
+                gui.GetRowsHeightWithSpacing(DefaultErrorRows),
                 minErrorsHeight,
                 available - headerHeight - minFieldHeight);
         }
@@ -344,6 +340,18 @@ internal sealed partial class ScriptWindow
         var clicked = gui.Button(_state.ErrorsHidden ? "▲" : "▼", buttonRect);
         gui.TooltipAtLastControl(_state.ErrorsHidden ? "Show the error panel" : "Hide the error panel");
         return clicked;
+    }
+
+    private (string Text, Color32 Color) GetErrorsSummary()
+    {
+        if (HasCurrentErrors)
+        {
+            var count = _check.Errors.Count;
+            return (count == 1 ? "1 error" : $"{count} errors", WindowColors.Error);
+        }
+
+        // A pending check hides the old errors, so the panel doesn't claim the text is fine
+        return (_checkedText == _editor.Text ? "No errors found" : "Checking...", WindowColors.Muted);
     }
 
     /// <summary>

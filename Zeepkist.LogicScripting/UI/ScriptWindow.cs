@@ -256,18 +256,6 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         _editor.SetErrors([]);
     }
 
-    private (string Text, Color32 Color) GetErrorsSummary()
-    {
-        if (HasCurrentErrors)
-        {
-            var count = _check.Errors.Count;
-            return (count == 1 ? "1 error" : $"{count} errors", WindowColors.Error);
-        }
-
-        // A pending check hides the old errors, so the panel doesn't claim the text is fine
-        return (_checkedText == _editor.Text ? "No errors found" : "Checking...", WindowColors.Muted);
-    }
-
     /// <summary>
     /// Every error, not only the first few: the region scrolls.
     /// </summary>
