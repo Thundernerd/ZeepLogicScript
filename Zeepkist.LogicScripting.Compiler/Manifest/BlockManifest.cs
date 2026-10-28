@@ -395,6 +395,14 @@ public static class BlockManifest
         return found;
     }
 
+    /// <summary>
+    /// The type a Placed Block Reference to a block ID has: its manifest type, or <see cref="OtherBlock"/>.
+    /// </summary>
+    public static BlockType GetPlacedType(int blockId)
+    {
+        return TryGetBlock(blockId, out var type, out _) ? type : OtherBlock;
+    }
+
     private static Dictionary<int, (BlockType Type, BlockStyle Style)> ByBlockId()
     {
         Dictionary<int, (BlockType Type, BlockStyle Style)> blocks = [];

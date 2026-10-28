@@ -41,9 +41,7 @@ public static class PlacedBlockReferenceInsert
                 continue;
             }
 
-            var prefix = BlockManifest.TryGetBlock(block.BlockId, out var type, out _)
-                ? type.Function
-                : BlockManifest.OtherBlock.Function;
+            var prefix = BlockManifest.GetPlacedType(block.BlockId).Function;
             var number = 1;
             while (names.Contains($"{prefix}_{number}"))
             {

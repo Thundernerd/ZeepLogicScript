@@ -41,8 +41,8 @@ internal sealed partial class GraphBuilder
             return Fail(uid, $"No block in this level has UID \"{uid.Value}\"");
         }
 
-        if (!BlockManifest.TryGetBlock(placed.BlockId, out var type, out var style))
-            type = BlockManifest.OtherBlock;
+        var type = BlockManifest.GetPlacedType(placed.BlockId);
+        var style = type.Styles.FirstOrDefault(s => s.BlockId == placed.BlockId);
 
         _graph.PlacedBlockReferences.Add(new PlacedBlockReference(call.Position, name, uid.Value, type));
         if (style != null && _disabledBlockIds.Contains(style.BlockId))

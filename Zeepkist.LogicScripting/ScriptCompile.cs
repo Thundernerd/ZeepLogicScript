@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using BepInEx.Logging;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
@@ -50,11 +49,7 @@ internal static class ScriptCompile
             return "Compile failed; level unchanged";
         }
 
-        var wiredBlocks = result.PlacedWires
-            .SelectMany(w => new[] { w.From.Uid, w.To.Uid })
-            .Where(uid => uid != null)
-            .Distinct()
-            .Count();
+        var wiredBlocks = result.WiredPlacedBlockCount;
         return wiredBlocks == 0
             ? $"Placed {result.Blocks.Count} blocks"
             : $"Placed {result.Blocks.Count} blocks, wired to {wiredBlocks} placed blocks";
