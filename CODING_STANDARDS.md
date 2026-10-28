@@ -12,6 +12,12 @@
 - Each nested type gets its own `partial` file of the containing type, named `<Outer>.<Nested>.cs` (e.g. `GraphBuilder.Resolved.cs`; deeper nesting adds a part per level). It keeps its access modifier.
 - The repo's own analyzer (`Zeepkist.LogicScripting.Analyzers`, rule LS0001) enforces this in the build.
 
+## Comments
+
+- Write a comment only for what a reader can't reasonably work out from the code itself: why a decision was made, a constraint or game quirk the code works around, or a pointer to the ADR behind it.
+- Let names and structure explain what the code does. A comment that restates the code is noise; rename or extract instead.
+- This includes `///` doc comments: a member doesn't need one just because it is public or internal. The build doesn't ask for them (CS1591 is off).
+
 ## Harmony patches
 
 - One patch class per patched method, in `Patches/`, named `<Type>_<Method>` (e.g. `LEV_SaveLoad_SaveFile`).
