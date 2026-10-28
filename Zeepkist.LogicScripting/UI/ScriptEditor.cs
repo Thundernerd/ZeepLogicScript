@@ -22,9 +22,6 @@ internal sealed partial class ScriptEditor
     private IReadOnlyList<TextSpan> _errors = [];
     private bool _focusRequested;
 
-    /// <summary>
-    /// Starts with <paramref name="text"/> and nothing to undo.
-    /// </summary>
     public ScriptEditor(string text)
     {
         Text = text;

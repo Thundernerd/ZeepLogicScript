@@ -166,10 +166,10 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             gui.AddSpacingIfLayoutFrameNotEmpty();
             var rect = gui.AddSingleRowRect(default);
             ref readonly var style = ref entry == _current ? ref gui.Style.List.ItemSelected : ref gui.Style.List.ItemNormal;
-            if (gui.Button(gui.GetNextControlId(), GetListLabel(entry), rect, in style, out _))
+            var (glyph, tooltip) = GetMarkText(entry.Mark);
+            if (gui.Button(gui.GetNextControlId(), glyph == null ? entry.Name : $"{glyph} {entry.Name}", rect, in style, out _))
                 clicked = entry;
 
-            var tooltip = GetMarkTooltip(entry.Mark);
             if (tooltip != null)
                 gui.TooltipAtLastControl(tooltip);
 
@@ -210,25 +210,17 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             gui.Text(_listMessage, wrap: true);
     }
 
-    private static string GetListLabel(ScriptEntry entry)
-    {
-        return entry.Mark switch
-        {
-            ScriptMark.NotCompiled => "● " + entry.Name,
-            ScriptMark.CarrierMissing => "! " + entry.Name,
-            ScriptMark.NeverCompiled => "○ " + entry.Name,
-            _ => entry.Name
-        };
-    }
-
-    private static string GetMarkTooltip(ScriptMark mark)
+    /// <summary>
+    /// The font has no ⚠ or ◌, so the carrier-missing and never-compiled marks use ! and ○.
+    /// </summary>
+    private static (string Glyph, string Tooltip) GetMarkText(ScriptMark mark)
     {
         return mark switch
         {
-            ScriptMark.NotCompiled => "Not compiled: the level holds another name or text",
-            ScriptMark.CarrierMissing => "The level has this Script's blocks but not its text; Compile to store it again",
-            ScriptMark.NeverCompiled => "Never compiled: the level doesn't hold this Script",
-            _ => null
+            ScriptMark.NotCompiled => ("●", "Not compiled: the level holds another name or text"),
+            ScriptMark.CarrierMissing => ("!", "The level has this Script's blocks but not its text; Compile to store it again"),
+            ScriptMark.NeverCompiled => ("○", "Never compiled: the level doesn't hold this Script"),
+            _ => (null, null)
         };
     }
 
@@ -434,8 +426,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
                 return;
         }
 
-        var script = new StoredScript(_current.Id, _current.Name, _editor.Text, ScriptCarrier.LanguageVersion);
-        _result = ScriptCompile.Run(script, _startupCheck, _logger);
+        _result = ScriptCompile.Run(_current.ToStored(), _startupCheck, _logger);
 
         // Placing changed the level, so the Placed blocks panel checks again now
         _nextCheckTime = 0;

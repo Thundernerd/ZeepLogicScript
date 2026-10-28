@@ -37,7 +37,7 @@ internal static class ScriptCompile
             return $"No errors, but {StartupCheck.UpdateNeededMessage}; nothing placed";
 
         if (placement.ChangesNothing(result))
-            return $"Nothing to place; {FirstCompilePlacement.NotStoredMessage}";
+            return placement.GetNothingToPlaceLine();
 
         int lostWires;
         try

@@ -11,9 +11,6 @@ namespace TNRD.Zeepkist.LogicScripting;
 /// </summary>
 internal abstract class CompilePlacement
 {
-    /// <summary>
-    /// The blocks the Compile replaces.
-    /// </summary>
     public abstract IReadOnlyList<BlockProperties> Group { get; }
 
     public abstract int QuarterTurns { get; }
@@ -31,6 +28,14 @@ internal abstract class CompilePlacement
     /// Whether placing <paramref name="result"/> would leave the level as it is.
     /// </summary>
     public abstract bool ChangesNothing(CompileResult result);
+
+    /// <summary>
+    /// The result line when <see cref="ChangesNothing"/>.
+    /// </summary>
+    public string GetNothingToPlaceLine()
+    {
+        return $"Nothing to place; {NotStoredNote}";
+    }
 
     /// <summary>
     /// World position of the new group's centre cell.

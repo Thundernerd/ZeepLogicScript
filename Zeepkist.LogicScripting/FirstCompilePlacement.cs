@@ -6,8 +6,6 @@ namespace TNRD.Zeepkist.LogicScripting;
 
 internal sealed class FirstCompilePlacement : CompilePlacement
 {
-    public const string NotStoredMessage = "a Script that places no blocks isn't stored in the level";
-
     private readonly LEV_LevelEditorCentral _central;
 
     public FirstCompilePlacement(LEV_LevelEditorCentral central)
@@ -40,7 +38,7 @@ internal sealed class FirstCompilePlacement : CompilePlacement
             Mathf.Round(point.z / 16) * 16);
     }
 
-    protected override string NotStoredNote => NotStoredMessage;
+    protected override string NotStoredNote => "a Script that places no blocks isn't stored in the level";
 
     protected override string GetPlacedLine(int blockCount)
     {

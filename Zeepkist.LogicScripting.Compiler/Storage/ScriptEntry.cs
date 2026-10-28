@@ -28,10 +28,15 @@ public sealed class ScriptEntry
     /// </summary>
     public StoredScript Stored { get; internal set; }
 
-    /// <summary>
-    /// Whether the level has blocks in this Script's Block Group.
-    /// </summary>
     public bool HasGroup { get; internal set; }
+
+    /// <summary>
+    /// What a Compile stores in the level: the window's name and text.
+    /// </summary>
+    public StoredScript ToStored()
+    {
+        return new StoredScript(Id, Name, Text, ScriptCarrier.LanguageVersion);
+    }
 
     public ScriptMark Mark
     {

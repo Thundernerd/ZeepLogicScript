@@ -80,9 +80,6 @@ public sealed class ScriptList
         return candidate;
     }
 
-    /// <summary>
-    /// For another level.
-    /// </summary>
     public void Clear()
     {
         _entries.Clear();
