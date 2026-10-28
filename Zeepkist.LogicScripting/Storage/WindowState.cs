@@ -2,9 +2,12 @@ namespace TNRD.Zeepkist.LogicScripting.Storage;
 
 /// <summary>
 /// What the Script window looked like when it was last used, as its JSON file holds it. Imui keeps none of this
-/// between sessions. A zero width or height means the window was never placed, and a zero panel size that the panel
-/// was never resized.
+/// between sessions. A zero width or height means the window was never placed.
 /// </summary>
+/// <remarks>
+/// A file saved before the panels had a <see cref="PanelState"/> each has none of their keys, so its panels load with
+/// the default layout.
+/// </remarks>
 internal sealed class WindowState
 {
     public bool Open { get; set; }
@@ -12,16 +15,17 @@ internal sealed class WindowState
     public float Y { get; set; }
     public float Width { get; set; }
     public float Height { get; set; }
-    public bool ScriptsCollapsed { get; set; }
-    public bool LevelCollapsed { get; set; }
-    public float ScriptsWidth { get; set; }
-    public float LevelWidth { get; set; }
-    public float ErrorsHeight { get; set; }
-    public bool ErrorsHidden { get; set; }
+    public PanelState Scripts { get; set; } = new();
+    public PanelState Level { get; set; } = new();
+    public PanelState Errors { get; set; } = new();
 
     public WindowState Copy()
     {
-        return (WindowState)MemberwiseClone();
+        var copy = (WindowState)MemberwiseClone();
+        copy.Scripts = Scripts.Copy();
+        copy.Level = Level.Copy();
+        copy.Errors = Errors.Copy();
+        return copy;
     }
 
     public bool IsSameAs(WindowState other)
@@ -31,11 +35,8 @@ internal sealed class WindowState
             && Y == other.Y
             && Width == other.Width
             && Height == other.Height
-            && ScriptsCollapsed == other.ScriptsCollapsed
-            && LevelCollapsed == other.LevelCollapsed
-            && ScriptsWidth == other.ScriptsWidth
-            && LevelWidth == other.LevelWidth
-            && ErrorsHeight == other.ErrorsHeight
-            && ErrorsHidden == other.ErrorsHidden;
+            && Scripts.IsSameAs(other.Scripts)
+            && Level.IsSameAs(other.Level)
+            && Errors.IsSameAs(other.Errors);
     }
 }
