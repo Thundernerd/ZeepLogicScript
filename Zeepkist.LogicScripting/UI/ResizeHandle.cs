@@ -29,13 +29,15 @@ internal static class ResizeHandle
         ref readonly var evt = ref gui.Input.MouseEvent;
         switch (evt.Type)
         {
+            // The first frame's movement only comes with BeginDrag: Imui sends no Drag for it
             case ImMouseEventType.Down or ImMouseEventType.BeginDrag when evt.LeftButton && hovered:
                 gui.SetActiveControl(id, ImControlFlag.Draggable);
+                dragged = GetDelta(evt, axis);
                 gui.Input.UseMouseEvent();
                 break;
 
             case ImMouseEventType.Drag when active:
-                dragged = axis == ImAxis.Horizontal ? evt.Delta.x : evt.Delta.y;
+                dragged = GetDelta(evt, axis);
                 gui.Input.UseMouseEvent();
                 break;
 
@@ -49,6 +51,11 @@ internal static class ResizeHandle
             gui.Canvas.Rect(Widen(edge, axis, LineSize), gui.Style.Window.ResizeHandleActiveColor);
 
         return dragged;
+    }
+
+    private static float GetDelta(in ImMouseEvent evt, ImAxis axis)
+    {
+        return axis == ImAxis.Horizontal ? evt.Delta.x : evt.Delta.y;
     }
 
     private static ImRect Widen(ImRect edge, ImAxis axis, float size)
