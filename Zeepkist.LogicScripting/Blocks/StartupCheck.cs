@@ -93,11 +93,14 @@ internal sealed class StartupCheck
         if (prefab.blockID != style.BlockId)
             return [$"the game's block {style.BlockId} has ID {prefab.blockID}"];
 
+        // By connection type, not hub class: the Trigger's output is a ConnectorHub_Template, not a ConnectorHub_Logic
         List<GameConnector> connectors = [];
-        foreach (var hub in prefab.GetComponentsInChildren<ConnectorHub_Logic>(true))
+        foreach (var hub in prefab.GetComponentsInChildren<ConnectorHub_Base>(true))
         {
-            var direction = hub.connectionType == ConnectionTypeEnum.Logic_In ? ConnectorDirection.Input : ConnectorDirection.Output;
-            connectors.Add(new GameConnector(hub.GetConnectorID(), direction));
+            if (hub.connectionType == ConnectionTypeEnum.Logic_In)
+                connectors.Add(new GameConnector(hub.GetConnectorID(), ConnectorDirection.Input));
+            else if (hub.connectionType == ConnectionTypeEnum.Logic_Out)
+                connectors.Add(new GameConnector(hub.GetConnectorID(), ConnectorDirection.Output));
         }
 
         return BlockManifestCheck.Compare(type, connectors);
