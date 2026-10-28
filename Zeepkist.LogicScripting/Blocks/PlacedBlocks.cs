@@ -10,21 +10,11 @@ namespace TNRD.Zeepkist.LogicScripting.Blocks;
 internal static class PlacedBlocks
 {
     /// <summary>
-    /// The live block with a UID, or null when the level has none.
-    /// </summary>
-    public static BlockProperties FindLive(LEV_LevelEditorCentral central, string uid)
-    {
-        return uid != null && central.undoRedo.allBlocksDictionary.TryGetValue(uid, out var block) && block != null
-            ? block
-            : null;
-    }
-
-    /// <summary>
     /// What the compiler needs to know about the block with a UID, or null when the level has none.
     /// </summary>
     public static PlacedBlock Find(LEV_LevelEditorCentral central, string uid)
     {
-        var block = FindLive(central, uid);
+        var block = LevelBlocks.Find(central, uid);
         if (block == null)
             return null;
 
@@ -65,7 +55,7 @@ internal static class PlacedBlocks
                     if (!reached.Add(wire.targetUID))
                         continue;
 
-                    var next = FindLive(central, wire.targetUID);
+                    var next = LevelBlocks.Find(central, wire.targetUID);
                     if (next != null
                         && BlockManifest.TryGetBlock(next.blockID, out var nextType, out _)
                         && nextType != BlockManifest.Delay)

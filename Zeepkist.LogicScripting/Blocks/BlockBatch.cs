@@ -38,7 +38,7 @@ internal static partial class BlockBatch
             }
 
             LoadConnectors(added, label);
-            Connect(added, changed, wires, label);
+            Connect(central, added, changed, wires, label);
             RegisterUndo(central, added, changed, label);
             return added;
         }
@@ -115,13 +115,18 @@ internal static partial class BlockBatch
     /// Wires both ends, as the connector tool does; the output end is the drawing leader. Each existing block's JSON
     /// is noted in <paramref name="changed"/> before its first Wire, for undo and for rolling back.
     /// </summary>
-    private static void Connect(List<BlockProperties> added, List<ChangedBlock> changed, IReadOnlyList<BlockWire> wires, string label)
+    private static void Connect(
+        LEV_LevelEditorCentral central,
+        List<BlockProperties> added,
+        List<ChangedBlock> changed,
+        IReadOnlyList<BlockWire> wires,
+        string label)
     {
         HashSet<BlockProperties> touched = [.. added];
         foreach (var wire in wires)
         {
-            var from = GetConnector(wire.FromUid, wire.FromConnector);
-            var to = GetConnector(wire.ToUid, wire.ToConnector);
+            var from = GetConnector(central, wire.FromUid, wire.FromConnector);
+            var to = GetConnector(central, wire.ToUid, wire.ToConnector);
             foreach (var block in new[] { from.GetBlockProperties(), to.GetBlockProperties() })
             {
                 if (touched.Add(block))
@@ -138,10 +143,10 @@ internal static partial class BlockBatch
         }
     }
 
-    private static ConnectorHub_Base GetConnector(string uid, int connector)
+    private static ConnectorHub_Base GetConnector(LEV_LevelEditorCentral central, string uid, int connector)
     {
-        if (!StaticConnectorTracker.allBlocksByUID.TryGetValue(uid, out var block)
-            || !block.allConnectorHubsOnThisBlock.TryGetValue(connector, out var hub))
+        var block = LevelBlocks.Find(central, uid);
+        if (block == null || !block.allConnectorHubsOnThisBlock.TryGetValue(connector, out var hub))
             throw new InvalidOperationException($"Block {uid} has no Connector {connector} to wire");
 
         return hub;
