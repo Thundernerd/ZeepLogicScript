@@ -73,5 +73,5 @@ A Script's latest typed text, kept on the player's own machine. The level only h
 _Avoid_: unsaved text, buffer, autosave
 
 **Placed Block Reference**:
-A Script's pointer to a block the player already placed in the level, written `name = placed("UID")`. It's the only way a Script reaches blocks whose position matters (triggers, sensors, lamps, movers) and Toggler targets; a Script reads their outputs and wires into their inputs, but never changes their Settings.
+A Script's pointer to a block the player already placed in the level, written `name = placed("UID")`. It's the only way a Script reaches blocks whose position matters (triggers, sensors, lamps, movers) and Toggler targets; a Script reads their outputs and wires into their inputs by calling the name (`lamp_1(intensity: x)`), but never changes their Settings. Each input still takes one Wire, counting the ones already in the level.
 _Avoid_: external block, UID literal
