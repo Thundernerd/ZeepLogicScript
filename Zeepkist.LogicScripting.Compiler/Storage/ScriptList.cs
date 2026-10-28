@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -14,11 +15,14 @@ public sealed class ScriptList
 
     /// <summary>
     /// Returns why <paramref name="name"/> can't name a new Script, or the Script with <paramref name="renamedId"/>,
-    /// or null when it can. Trim it first.
+    /// or null when it can. Trim it first. The level's names count too: a Script renamed in the window keeps its old
+    /// name in the level until it's compiled.
     /// </summary>
     public string GetNameError(string name, ScriptId renamedId = null)
     {
-        return ScriptName.GetError(name, _entries.Where(e => e.Id != renamedId).Select(e => e.Name));
+        var others = _entries.Where(e => e.Id != renamedId).ToList();
+        var names = others.Select(e => e.Name).Concat(others.Where(e => e.Stored != null).Select(e => e.Stored.Name));
+        return ScriptName.GetError(name, names);
     }
 
     /// <summary>
@@ -47,7 +51,7 @@ public sealed class ScriptList
         foreach (var script in stored)
         {
             if (Find(script.Id) == null)
-                _entries.Add(new ScriptEntry(script.Id, script.Name, script.Text));
+                _entries.Add(new ScriptEntry(script.Id, GetFreeName(script.Name), script.Text));
         }
 
         foreach (var entry in _entries)
@@ -58,7 +62,26 @@ public sealed class ScriptList
     }
 
     /// <summary>
-    /// Forgets every Script, for another level.
+    /// For a level from another mod version or edited by hand: without its name, or with a name already taken.
+    /// </summary>
+    private string GetFreeName(string name)
+    {
+        var baseName = new string(name.Where(c => !char.IsControl(c)).ToArray()).Trim();
+        if (baseName.Length == 0)
+            baseName = "Script";
+
+        var candidate = baseName;
+        for (var number = 2; GetNameError(candidate) != null && number < 1000; number++)
+        {
+            var suffix = $" {number}";
+            candidate = baseName.Substring(0, Math.Min(baseName.Length, ScriptName.MaxLength - suffix.Length)) + suffix;
+        }
+
+        return candidate;
+    }
+
+    /// <summary>
+    /// For another level.
     /// </summary>
     public void Clear()
     {

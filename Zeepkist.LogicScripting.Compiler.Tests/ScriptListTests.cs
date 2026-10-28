@@ -150,4 +150,55 @@ public class ScriptListTests
 
         Assert.Empty(list.Entries);
     }
+
+    [Fact]
+    public void ANameTheLevelStillHolds_IsAnError()
+    {
+        var list = new ScriptList();
+        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], [_id]);
+        list.Entries[0].Name = "lamps";
+
+        Assert.NotNull(list.GetNameError("doors"));
+    }
+
+    [Fact]
+    public void ARenameBackToTheStoredName_IsFine()
+    {
+        var list = new ScriptList();
+        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], [_id]);
+        list.Entries[0].Name = "lamps";
+
+        Assert.Null(list.GetNameError("doors", _id));
+    }
+
+    [Fact]
+    public void AStoredScriptWithoutAName_GetsOne()
+    {
+        var list = new ScriptList();
+
+        list.Update([new StoredScript(_id, string.Empty, "x = 1", 1)], [_id]);
+
+        Assert.Equal("Script", list.Entries[0].Name);
+    }
+
+    [Fact]
+    public void AStoredScriptWithATakenName_GetsANumber()
+    {
+        var list = new ScriptList();
+        list.Add("doors");
+
+        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], [_id]);
+
+        Assert.Equal("doors 2", list.Entries[1].Name);
+    }
+
+    [Fact]
+    public void AStoredScriptWithATooLongName_IsCut()
+    {
+        var list = new ScriptList();
+
+        list.Update([new StoredScript(_id, new string('a', 50), "x = 1", 1)], [_id]);
+
+        Assert.Null(ScriptName.GetError(list.Entries[0].Name, []));
+    }
 }
