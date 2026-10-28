@@ -81,9 +81,7 @@ internal static class BlockLayout
     /// </summary>
     public static int GetQuarterTurnsFacing(float x, float z)
     {
-        var degrees = Math.Atan2(x, z) * 180 / Math.PI;
-        var turns = (int)Math.Round(degrees / 90);
-        return ((turns % 4) + 4) % 4;
+        return QuarterTurns.FromDegrees(Math.Atan2(x, z) * 180 / Math.PI);
     }
 
     /// <summary>
@@ -91,13 +89,8 @@ internal static class BlockLayout
     /// </summary>
     public static GridCell Rotate(int x, int z, int quarterTurns)
     {
-        return (((quarterTurns % 4) + 4) % 4) switch
-        {
-            1 => new GridCell(z, -x),
-            2 => new GridCell(-x, -z),
-            3 => new GridCell(-z, x),
-            _ => new GridCell(x, z)
-        };
+        var (rotatedX, rotatedZ) = QuarterTurns.Rotate(x, z, quarterTurns);
+        return new GridCell((int)rotatedX, (int)rotatedZ);
     }
 
     private static int[] GetColumns(BlockGraph graph)

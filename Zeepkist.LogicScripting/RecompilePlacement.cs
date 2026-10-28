@@ -3,6 +3,7 @@ using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Layout;
+using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using UnityEngine;
 
 namespace TNRD.Zeepkist.LogicScripting;
@@ -38,13 +39,16 @@ internal sealed class RecompilePlacement : CompilePlacement
     /// </summary>
     public override Vector3 GetOrigin(CompileResult result)
     {
-        var positions = _group.Select(b => b.transform.position).ToList();
-        var (x, z) = BlockGroupPlacement.GetOrigin(
-            positions.Select(p => (p.x, p.z)).ToList(),
-            result.Blocks.Select(b => b.Cell).ToList(),
-            QuarterTurns);
+        var oldBlocks = _group.Select(ToGroupBlock).ToList();
+        var (x, z) = BlockGroupPlacement.GetOrigin(oldBlocks, result.Blocks, QuarterTurns);
+        return new Vector3(x, _group.Min(b => b.transform.position.y), z);
+    }
 
-        return new Vector3(x, positions.Min(p => p.y), z);
+    private static GroupBlock ToGroupBlock(BlockProperties block)
+    {
+        var position = block.transform.position;
+        var style = BlockManifest.TryGetBlock(block.blockID, out _, out var found) ? found : null;
+        return new GroupBlock(position.x, position.z, block.transform.eulerAngles.y, style);
     }
 
     protected override string NotStoredNote => "the Script is no longer stored in the level";

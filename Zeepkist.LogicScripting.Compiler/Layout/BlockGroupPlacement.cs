@@ -19,7 +19,7 @@ public static class BlockGroupPlacement
         var counts = new int[4];
         foreach (var yaw in yaws)
         {
-            counts[Normalize((int)Math.Round(yaw / 90))]++;
+            counts[QuarterTurns.FromDegrees(yaw)]++;
         }
 
         var majority = 0;
@@ -34,44 +34,44 @@ public static class BlockGroupPlacement
 
     /// <summary>
     /// The world position for the new group's cell (0, 0), so its start corner lands on the old group's. Both corners
-    /// are taken from block pivots, in the group's rotation.
+    /// are taken from the blocks' footprints, in the group's rotation, so a block that reaches past its pivot doesn't
+    /// shift the group when it moves on or off the corner's edge.
     /// </summary>
-    /// <param name="oldPositions">World X and Z of each old group block's pivot; at least one.</param>
-    /// <param name="cells">The new group's cells, laid out with <paramref name="quarterTurns"/>.</param>
+    /// <param name="oldBlocks">The old group's blocks; at least one.</param>
+    /// <param name="newBlocks">The new group's blocks, laid out with <paramref name="quarterTurns"/>.</param>
     /// <param name="quarterTurns">The group's yaw in 90° steps.</param>
     public static (float X, float Z) GetOrigin(
-        IReadOnlyCollection<(float X, float Z)> oldPositions,
-        IReadOnlyCollection<GridCell> cells,
+        IReadOnlyCollection<GroupBlock> oldBlocks,
+        IReadOnlyCollection<CompiledBlock> newBlocks,
         int quarterTurns)
     {
-        if (oldPositions.Count == 0)
-            throw new ArgumentException("The old group has no blocks", nameof(oldPositions));
+        if (oldBlocks.Count == 0)
+            throw new ArgumentException("The old group has no blocks", nameof(oldBlocks));
 
-        var undo = 4 - Normalize(quarterTurns);
-        var oldInGroup = oldPositions.Select(p => Rotate(p.X, p.Z, undo)).ToList();
-        var newInGroup = cells.Select(c => Rotate(c.X * GridCell.Size, c.Z * GridCell.Size, undo)).ToList();
+        var oldCorners = oldBlocks.Select(b => GetStartCorner(b, quarterTurns)).ToList();
+        var newCorners = newBlocks
+            .Select(b => new GroupBlock(b.Cell.X * GridCell.Size, b.Cell.Z * GridCell.Size, b.Yaw, b.Style))
+            .Select(b => GetStartCorner(b, quarterTurns))
+            .ToList();
 
-        var originX = oldInGroup.Min(p => p.X) - (newInGroup.Count == 0 ? 0 : newInGroup.Min(p => p.X));
-        var originZ = oldInGroup.Min(p => p.Z) - (newInGroup.Count == 0 ? 0 : newInGroup.Min(p => p.Z));
-        return Rotate(originX, originZ, quarterTurns);
+        var originX = oldCorners.Min(c => c.X) - (newCorners.Count == 0 ? 0 : newCorners.Min(c => c.X));
+        var originZ = oldCorners.Min(c => c.Z) - (newCorners.Count == 0 ? 0 : newCorners.Min(c => c.Z));
+        return QuarterTurns.Rotate(originX, originZ, quarterTurns);
     }
 
     /// <summary>
-    /// Rotates a point about the Y axis the way a block's yaw does: +Z turns towards +X.
+    /// The lowest X and Z of a block's footprint, in the axes of a group turned by <paramref name="quarterTurns"/>.
     /// </summary>
-    private static (float X, float Z) Rotate(float x, float z, int quarterTurns)
+    private static (float X, float Z) GetStartCorner(GroupBlock block, int quarterTurns)
     {
-        return Normalize(quarterTurns) switch
-        {
-            1 => (z, -x),
-            2 => (-x, -z),
-            3 => (-z, x),
-            _ => (x, z)
-        };
-    }
+        var minX = block.Style.MinX * GridCell.Size;
+        var maxX = block.Style.MaxX * GridCell.Size;
+        var maxZ = (block.Style.Length - 1) * GridCell.Size;
 
-    private static int Normalize(int quarterTurns)
-    {
-        return ((quarterTurns % 4) + 4) % 4;
+        var turns = QuarterTurns.FromDegrees(block.Yaw) - quarterTurns;
+        var first = QuarterTurns.Rotate(minX, 0, turns);
+        var last = QuarterTurns.Rotate(maxX, maxZ, turns);
+        var pivot = QuarterTurns.Rotate(block.X, block.Z, -quarterTurns);
+        return (pivot.X + Math.Min(first.X, last.X), pivot.Z + Math.Min(first.Z, last.Z));
     }
 }
