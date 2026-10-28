@@ -22,6 +22,11 @@ internal sealed partial class ScriptEditor
     private IReadOnlyList<TextSpan> _errors = [];
     private bool _focusRequested;
 
+    public ScriptEditor(string text)
+    {
+        Text = text;
+    }
+
     public string Text { get; private set; } = string.Empty;
 
     /// <summary>

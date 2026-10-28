@@ -14,6 +14,7 @@ public class Plugin : BaseUnityPlugin
     private Harmony _harmony;
     private StartupCheck _startupCheck;
     private ScriptWindow _scriptWindow;
+    private bool _returningFromTestMode;
 
     private void Awake()
     {
@@ -22,6 +23,8 @@ public class Plugin : BaseUnityPlugin
 
         _startupCheck = new StartupCheck(Logger);
         LevelEditorApi.EnteredLevelEditor += OnEnteredLevelEditor;
+        LevelEditorApi.EnteredTestMode += OnEnteredTestMode;
+        LevelEditorApi.LevelLoaded += OnLevelLoaded;
 
         _scriptWindow = new ScriptWindow(Logger, _startupCheck);
         UIApi.AddZeepGUIDrawer(_scriptWindow);
@@ -32,6 +35,8 @@ public class Plugin : BaseUnityPlugin
     private void OnDestroy()
     {
         LevelEditorApi.EnteredLevelEditor -= OnEnteredLevelEditor;
+        LevelEditorApi.EnteredTestMode -= OnEnteredTestMode;
+        LevelEditorApi.LevelLoaded -= OnLevelLoaded;
 
         if (_scriptWindow != null)
         {
@@ -42,8 +47,26 @@ public class Plugin : BaseUnityPlugin
         _harmony?.UnpatchSelf();
     }
 
+    /// <summary>
+    /// The window keeps its Scripts through test mode, which reloads the same level; coming from the main menu opens
+    /// another level, or a new one.
+    /// </summary>
     private void OnEnteredLevelEditor()
     {
         _startupCheck.RunOnce();
+        if (!_returningFromTestMode)
+            _scriptWindow.ForgetScripts();
+
+        _returningFromTestMode = false;
+    }
+
+    private void OnEnteredTestMode()
+    {
+        _returningFromTestMode = true;
+    }
+
+    private void OnLevelLoaded()
+    {
+        _scriptWindow.ForgetScripts();
     }
 }

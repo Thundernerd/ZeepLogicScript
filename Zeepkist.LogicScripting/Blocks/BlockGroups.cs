@@ -12,7 +12,7 @@ internal static class BlockGroups
     /// <summary>
     /// The Script whose Block Group the block is in, or null when it's in none.
     /// </summary>
-    public static string GetScriptId(BlockProperties block)
+    public static ScriptId GetScriptId(BlockProperties block)
     {
         var tag = block.customBlockEditProperties?.GetStringDictionaryValue(BlockGroupTag.Key);
         return BlockGroupTag.GetScriptId(tag, block.UID);
@@ -23,7 +23,7 @@ internal static class BlockGroups
         return GetScriptId(block) != null;
     }
 
-    public static bool IsInGroup(LEV_LevelEditorCentral central, string uid, string scriptId)
+    public static bool IsInGroup(LEV_LevelEditorCentral central, string uid, ScriptId scriptId)
     {
         var block = LevelBlocks.Find(central, uid);
         return block != null && GetScriptId(block) == scriptId;
@@ -32,7 +32,7 @@ internal static class BlockGroups
     /// <summary>
     /// Goes through all the level's blocks, so call it on a Compile, not per frame.
     /// </summary>
-    public static List<BlockProperties> Find(LEV_LevelEditorCentral central, string scriptId)
+    public static List<BlockProperties> Find(LEV_LevelEditorCentral central, ScriptId scriptId)
     {
         List<BlockProperties> blocks = [];
         foreach (var block in central.undoRedo.allBlocksDictionary.Values)
@@ -45,10 +45,26 @@ internal static class BlockGroups
     }
 
     /// <summary>
+    /// Makes <paramref name="group"/> the editor's selection, as one undo step like a click selection.
+    /// </summary>
+    public static void Select(LEV_LevelEditorCentral central, List<BlockProperties> group)
+    {
+        var selection = central.selection;
+        var before = central.undoRedo.ConvertSelectionToStringList(selection.list);
+        selection.DeselectAllBlocks(false, nameof(Select));
+        foreach (var block in group)
+        {
+            selection.AddThisBlock(block);
+        }
+
+        selection.RegisterManualSelectionBreakLock(before, central.undoRedo.ConvertSelectionToStringList(selection.list));
+    }
+
+    /// <summary>
     /// How many of the group's Wires to blocks outside it a Replace removes without <paramref name="placedWires"/>
     /// making them again, matched by the outside block's Connector. A hand-made Wire into the group is one of these.
     /// </summary>
-    public static int CountWiresNotRemade(List<BlockProperties> group, IReadOnlyList<BlockWire> placedWires)
+    public static int CountWiresNotRemade(IReadOnlyList<BlockProperties> group, IReadOnlyList<BlockWire> placedWires)
     {
         HashSet<string> groupUids = [.. group.Select(b => b.UID)];
         Dictionary<(string Uid, int Connector), int> remade = [];

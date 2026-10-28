@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
@@ -7,6 +6,7 @@ using Imui.Core;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
+using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 using UnityEngine;
 using ZeepSDK.LevelEditor;
 using ZeepSDK.UI;
@@ -43,11 +43,16 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private readonly ManualLogSource _logger;
     private readonly StartupCheck _startupCheck;
     private readonly PlacedBlockHighlight _highlight = new();
-    private readonly ScriptEditor _editor = new();
+    private readonly ScriptList _scripts = new();
 
-    // One Script per game session until Scripts are stored in the level; its Block Group is found by this id
-    private readonly string _scriptId = Guid.NewGuid().ToString();
+    // One each, so every Script keeps its own caret and undo
+    private readonly Dictionary<ScriptId, ScriptEditor> _editors = [];
+    private readonly NamePrompt _namePrompt = new();
 
+    private ScriptEntry _current;
+    private ScriptEditor _editor;
+    private int? _readLevelChanges;
+    private string _listMessage = string.Empty;
     private string _result = string.Empty;
     private string _insertMessage = string.Empty;
     private CompileResult _check;
@@ -59,7 +64,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private bool _blockingMouse;
     private bool _blockingKeyboard;
 
-    private bool HasCurrentErrors => _check != null && _checkedText == _editor.Text && !_check.Succeeded;
+    private bool HasCurrentErrors => _check != null && _editor != null && _checkedText == _editor.Text && !_check.Succeeded;
 
     public ScriptWindow(ManualLogSource logger, StartupCheck startupCheck)
     {
@@ -75,7 +80,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             return;
         }
 
-        if (!_fieldFocused && Input.GetKeyDown(ToggleKey))
+        if (!_fieldFocused && !_namePrompt.Focused && Input.GetKeyDown(ToggleKey))
             _open = !_open;
 
         if (!_open)
@@ -84,6 +89,10 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             return;
         }
 
+        // Imui never sees clicks that land in the level, so a field would keep focus and keep taking keys
+        if (!_mouseOver && (_fieldFocused || _namePrompt.Focused) && IsAnyMouseButtonDown())
+            gui.ResetActiveControl();
+
         BlockProperties hovered = null;
         if (gui.BeginWindow(
                 "Logic Script",
@@ -91,29 +100,17 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
                 ref _mouseOver,
                 mouseEntered: () => SetMouseBlocked(true),
                 mouseExited: () => SetMouseBlocked(false),
-                size: new ImSize(480, 560)))
+                size: new ImSize(480, 680)))
         {
             DrawStartupCheck(gui);
-            RefreshCheck();
-            var compileRequested = DrawField(gui);
-            DrawErrors(gui);
-
-            if (gui.Button("Insert selected"))
-                InsertSelected(gui);
-
-            if (_insertMessage.Length > 0)
-                gui.Text(_insertMessage, wrap: true);
-
-            if (DrawCompileButton(gui))
-                Compile();
-            else if (compileRequested)
-                CompileFromKeyboard();
-
-            gui.Text(_result, wrap: true);
-            hovered = DrawPlacedBlocks(gui);
+            RefreshScripts();
+            DrawScriptList(gui);
+            if (_current != null)
+                hovered = DrawCurrentScript(gui);
         }
 
         gui.EndWindow();
+        SetKeyboardBlocked(_fieldFocused || _namePrompt.Focused);
         _highlight.Set(ComponentCache.Get<LEV_LevelEditorCentral>(), _open ? hovered : null);
     }
 
@@ -125,8 +122,198 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         _highlight.Set(ComponentCache.Get<LEV_LevelEditorCentral>(), null);
         _mouseOver = false;
         _fieldFocused = false;
+        _namePrompt.Focused = false;
         SetMouseBlocked(false);
         SetKeyboardBlocked(false);
+    }
+
+    /// <summary>
+    /// Drops every Script, so the next level's come from that level. Scripts the level doesn't hold are lost.
+    /// </summary>
+    public void ForgetScripts()
+    {
+        _scripts.Clear();
+        _editors.Clear();
+        _namePrompt.Close();
+        _listMessage = string.Empty;
+        _readLevelChanges = null;
+        Select(null);
+    }
+
+    /// <summary>
+    /// Reads the level's Scripts again after the level changed, but not while a level is still loading, when the old
+    /// level's blocks are still there.
+    /// </summary>
+    private void RefreshScripts()
+    {
+        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        if (central == null || central.saveload.isLoading || _readLevelChanges == LevelChanges.Count)
+            return;
+
+        var (stored, groupIds) = LevelScripts.Find(central);
+        _scripts.Update(stored, groupIds);
+        _readLevelChanges = LevelChanges.Count;
+        if (_current == null && _scripts.Entries.Count > 0)
+            Select(_scripts.Entries[0]);
+    }
+
+    private void DrawScriptList(ImGui gui)
+    {
+        gui.Text("Scripts");
+        ScriptEntry clicked = null;
+        foreach (var entry in _scripts.Entries)
+        {
+            gui.AddSpacingIfLayoutFrameNotEmpty();
+            var rect = gui.AddSingleRowRect(default);
+            ref readonly var style = ref entry == _current ? ref gui.Style.List.ItemSelected : ref gui.Style.List.ItemNormal;
+            var (glyph, tooltip) = GetMarkText(entry.Mark);
+            if (gui.Button(gui.GetNextControlId(), glyph == null ? entry.Name : $"{glyph} {entry.Name}", rect, in style, out _))
+                clicked = entry;
+
+            if (tooltip != null)
+                gui.TooltipAtLastControl(tooltip);
+
+            if (gui.BeginContextMenu(rect))
+            {
+                if (gui.Menu("Rename"))
+                    _namePrompt.OpenRename(entry);
+
+                if (gui.Menu("Select group"))
+                    SelectGroup(entry);
+
+                gui.EndContextMenu();
+            }
+        }
+
+        if (_scripts.Entries.Count == 0)
+            gui.Text("None yet in this level", wrap: true);
+
+        if (gui.Button("New Script"))
+            _namePrompt.OpenNew();
+
+        if (clicked != null && clicked != _current)
+            Select(clicked);
+
+        var named = _namePrompt.Draw(gui, _scripts);
+        if (named != null)
+        {
+            _listMessage = string.Empty;
+            if (_namePrompt.Renamed == null)
+                Select(_scripts.Add(named));
+            else
+                _namePrompt.Renamed.Name = named;
+
+            _namePrompt.Close();
+        }
+
+        if (_listMessage.Length > 0)
+            gui.Text(_listMessage, wrap: true);
+    }
+
+    /// <summary>
+    /// The font has no ⚠ or ◌, so the carrier-missing and never-compiled marks use ! and ○.
+    /// </summary>
+    private static (string Glyph, string Tooltip) GetMarkText(ScriptMark mark)
+    {
+        return mark switch
+        {
+            ScriptMark.NotCompiled => ("●", "Not compiled: the level holds another name or text"),
+            ScriptMark.CarrierMissing => ("!", "The level has this Script's blocks but not its text; Compile to store it again"),
+            ScriptMark.NeverCompiled => ("○", "Never compiled: the level doesn't hold this Script"),
+            _ => (null, null)
+        };
+    }
+
+    private void SelectGroup(ScriptEntry entry)
+    {
+        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        if (central == null)
+            return;
+
+        // The selection's undo step isn't registered while grabbing
+        if (central.gizmos.isGrabbing)
+        {
+            _listMessage = "Let go of the grabbed blocks first";
+            return;
+        }
+
+        var group = BlockGroups.Find(central, entry.Id);
+        if (group.Count == 0)
+        {
+            _listMessage = $"\"{entry.Name}\" has no blocks in the level";
+            return;
+        }
+
+        BlockGroups.Select(central, group);
+        _listMessage = $"Selected {group.Count} blocks of \"{entry.Name}\"";
+    }
+
+    /// <summary>
+    /// The result line, errors and checks belong to the Script they were made for.
+    /// </summary>
+    private void Select(ScriptEntry entry)
+    {
+        _current = entry;
+        _editor = entry == null ? null : GetEditor(entry);
+        _fieldFocused = false;
+        _result = string.Empty;
+        _insertMessage = string.Empty;
+        _check = null;
+        _checkedText = null;
+        _nextCheckTime = 0;
+        _editor?.SetErrors([]);
+    }
+
+    private ScriptEditor GetEditor(ScriptEntry entry)
+    {
+        if (!_editors.TryGetValue(entry.Id, out var editor))
+        {
+            editor = new ScriptEditor(entry.Text);
+            _editors.Add(entry.Id, editor);
+        }
+
+        return editor;
+    }
+
+    /// <summary>
+    /// Returns the block under the hovered row of the Placed blocks panel, or null.
+    /// </summary>
+    private BlockProperties DrawCurrentScript(ImGui gui)
+    {
+        gui.Text(_current.Mark == ScriptMark.NotCompiled ? $"{_current.Name} ● not compiled" : _current.Name);
+        DrawStorageWarning(gui);
+        RefreshCheck();
+        var compileRequested = DrawField(gui);
+        DrawErrors(gui);
+
+        if (gui.Button("Insert selected"))
+            InsertSelected(gui);
+
+        if (_insertMessage.Length > 0)
+            gui.Text(_insertMessage, wrap: true);
+
+        if (DrawCompileButton(gui))
+            Compile();
+        else if (compileRequested)
+            CompileFromKeyboard();
+
+        gui.Text(_result, wrap: true);
+        return DrawPlacedBlocks(gui);
+    }
+
+    /// <summary>
+    /// Stays up while the level is missing the Script's text: leaving the editor can't be cancelled to save it.
+    /// </summary>
+    private void DrawStorageWarning(ImGui gui)
+    {
+        if (_current.Mark == ScriptMark.CarrierMissing)
+        {
+            gui.Text("The level has this Script's blocks but not its text, likely because a block holding it was deleted. Compile to store it again.", _errorColor, wrap: true);
+        }
+        else if (_current.Mark == ScriptMark.NeverCompiled && _current.Text.Length > 0)
+        {
+            gui.Text("Not stored in the level yet: Compile to store it. Until then, loading a level or going back to the main menu loses it.", _errorColor, wrap: true);
+        }
     }
 
     private void DrawStartupCheck(ImGui gui)
@@ -146,10 +333,6 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         gui.AddSpacingIfLayoutFrameNotEmpty();
         var rect = gui.Layout.AddRect(gui.GetLayoutWidth(), FieldHeight);
 
-        // Imui never sees clicks that land in the level, so the field would keep focus and keep taking keys
-        if (!_mouseOver && gui.IsControlActive(_editor.Id) && IsAnyMouseButtonDown())
-            gui.ResetActiveControl();
-
         if (_editor.Draw(gui, rect, out var compileRequested))
             OnEdited();
 
@@ -160,7 +343,6 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             _fieldFocused = false;
         }
 
-        SetKeyboardBlocked(_fieldFocused);
         return compileRequested;
     }
 
@@ -169,6 +351,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     /// </summary>
     private void OnEdited()
     {
+        _current.Text = _editor.Text;
         _result = string.Empty;
         _insertMessage = string.Empty;
         _nextCheckTime = Time.unscaledTime + CheckDelay;
@@ -243,7 +426,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
                 return;
         }
 
-        _result = ScriptCompile.Run(_editor.Text, _scriptId, _startupCheck, _logger);
+        _result = ScriptCompile.Run(_current.ToStored(), _startupCheck, _logger);
 
         // Placing changed the level, so the Placed blocks panel checks again now
         _nextCheckTime = 0;
@@ -328,7 +511,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             return;
 
         var text = _editor.Text;
-        _check = ScriptCompile.Check(text, _scriptId, _startupCheck);
+        _check = ScriptCompile.Check(text, _current.Id, _startupCheck);
         _checkedText = text;
         _nextCheckTime = Time.unscaledTime + CheckInterval;
         _editor.SetErrors(_check == null ? [] : ScriptText.GetErrorSpans(text, _check.Errors.Select(e => e.Position)));
