@@ -172,14 +172,17 @@ internal sealed partial class ScriptWindow
 
         if (!scriptsCollapsed)
         {
-            var dragged = ResizeHandle.Draw(gui, gui.GetControlId("scripts edge"), scriptsEdge, ImAxis.Horizontal);
+            // Each grab strip lies right of its edge, off the scrollbar of the region on the left
+            var grab = ResizeHandle.GrabRightOf(scriptsEdge);
+            var dragged = ResizeHandle.Draw(gui, gui.GetControlId("scripts edge"), scriptsEdge, grab, ImAxis.Horizontal);
             if (dragged != 0)
                 _state.ScriptsWidth = Mathf.Max(MinScriptsWidth, scriptsWidth + dragged);
         }
 
         if (!levelCollapsed)
         {
-            var dragged = ResizeHandle.Draw(gui, gui.GetControlId("level edge"), levelEdge, ImAxis.Horizontal);
+            var grab = ResizeHandle.GrabRightOf(levelEdge);
+            var dragged = ResizeHandle.Draw(gui, gui.GetControlId("level edge"), levelEdge, grab, ImAxis.Horizontal);
             if (dragged != 0)
                 _state.LevelWidth = Mathf.Max(minLevelWidth, levelWidth - dragged);
         }
@@ -315,9 +318,10 @@ internal sealed partial class ScriptWindow
 
         WindowRegion.End(gui);
 
-        // Halfway into the gap above the panel, so it doesn't take clicks from the editor's edge
+        // Centred in the gap above the panel, so the grab strip takes as little as it can of the editor's edge
         var edge = new ImRect(errors.X, errors.Top + (spacing / 2), errors.W, 0);
-        var dragged = ResizeHandle.Draw(gui, gui.GetControlId("errors edge"), edge, ImAxis.Vertical);
+        var grab = ResizeHandle.GrabAround(edge, ImAxis.Vertical);
+        var dragged = ResizeHandle.Draw(gui, gui.GetControlId("errors edge"), edge, grab, ImAxis.Vertical);
         if (dragged != 0)
             _state.ErrorsHeight = Mathf.Max(minErrorsHeight, body.H + dragged);
     }

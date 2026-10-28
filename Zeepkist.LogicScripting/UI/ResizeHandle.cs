@@ -17,10 +17,10 @@ internal static class ResizeHandle
     private const float LineSize = 2;
 
     /// <summary>
-    /// Takes the edge's line, as thin as it's drawn, and the axis it moves along. Returns how far it was dragged this
-    /// frame: along x for a vertical edge, along y (up is positive) for a horizontal one.
+    /// Returns how far the edge was dragged this frame: along x for a vertical edge, along y (up is positive) for a
+    /// horizontal one. The edge is highlighted while the grab strip is hovered or dragged.
     /// </summary>
-    public static float Draw(ImGui gui, uint id, ImRect edge, ImAxis axis)
+    public static float Draw(ImGui gui, uint id, ImRect edge, ImRect grab, ImAxis axis)
     {
         var hovered = gui.IsControlHovered(id);
         var active = gui.IsControlActive(id);
@@ -46,11 +46,24 @@ internal static class ResizeHandle
                 break;
         }
 
-        gui.RegisterControl(id, Widen(edge, axis, GrabSize));
+        gui.RegisterControl(id, grab);
         if (hovered || active)
             gui.Canvas.Rect(Widen(edge, axis, LineSize), gui.Style.Window.ResizeHandleActiveColor);
 
         return dragged;
+    }
+
+    public static ImRect GrabAround(ImRect edge, ImAxis axis)
+    {
+        return Widen(edge, axis, GrabSize);
+    }
+
+    /// <summary>
+    /// For a vertical edge with something on its left, like a scrollbar, that must keep its clicks.
+    /// </summary>
+    public static ImRect GrabRightOf(ImRect edge)
+    {
+        return new ImRect(edge.X, edge.Y, GrabSize, edge.H);
     }
 
     private static float GetDelta(in ImMouseEvent evt, ImAxis axis)
