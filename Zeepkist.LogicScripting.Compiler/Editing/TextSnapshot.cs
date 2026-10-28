@@ -7,14 +7,17 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 /// </summary>
 public readonly struct TextSnapshot : IEquatable<TextSnapshot>
 {
+    private readonly string _text;
+
     public TextSnapshot(string text, int caret, int selection = 0)
     {
-        Text = text ?? string.Empty;
+        _text = text;
         Caret = caret;
         Selection = selection;
     }
 
-    public string Text { get; }
+    // Also covers default(TextSnapshot), which skips the constructor
+    public string Text => _text ?? string.Empty;
     public int Caret { get; }
 
     /// <summary>
