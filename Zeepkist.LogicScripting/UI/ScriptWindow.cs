@@ -262,14 +262,8 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     private void DrawErrors(ImGui gui)
     {
         if (!HasCurrentErrors)
-        {
-            // A pending check hides the old errors, so the list doesn't claim the text is fine
-            gui.Text(_checkedText == _editor.Text ? "No errors. Checked as you type." : "Checking...", WindowColors.Muted);
             return;
-        }
 
-        var count = _check.Errors.Count;
-        gui.Text(count == 1 ? "1 error" : $"{count} errors", WindowColors.Error);
         foreach (var error in _check.Errors)
         {
             if (gui.Button(error.ToString()))

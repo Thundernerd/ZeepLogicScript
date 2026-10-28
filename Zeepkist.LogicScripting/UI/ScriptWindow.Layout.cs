@@ -10,8 +10,9 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
 /// The window itself: three regions side by side, Scripts on the left, the current Script in the centre and the
-/// level on the right, whose sides collapse to a strip. Open state, size, position and collapsed sides are kept in
-/// the <see cref="WindowState"/>.
+/// level on the right, whose sides collapse to a strip. The sides and the error panel under the editor are resized by
+/// dragging their inner edge, and the error panel hides to its header. Open state, size, position, panel sizes and
+/// collapsed panels are kept in the <see cref="WindowState"/>.
 /// </summary>
 internal sealed partial class ScriptWindow
 {
@@ -19,7 +20,8 @@ internal sealed partial class ScriptWindow
     private const string CompileLabel = "Compile (Ctrl+Enter)";
     private const float DefaultWidth = 1120;
     private const float DefaultHeight = 640;
-    private const float ScriptsWidth = 220;
+    private const float DefaultScriptsWidth = 220;
+    private const float MinScriptsWidth = 140;
     private const float MinLevelWidth = 300;
     private const string PlacedBlocksTab = "Placed blocks";
     private const string ReferenceTab = "Reference";
@@ -29,7 +31,13 @@ internal sealed partial class ScriptWindow
     /// </summary>
     private const float MinCentreWidth = 280;
 
-    private const int ProblemRows = 5;
+    private const int DefaultErrorRows = 5;
+    private const int MinErrorRows = 1;
+    private const int MinFieldRows = 3;
+
+    private readonly ResizeHandle _scriptsEdge = new(ImAxis.Horizontal, 1);
+    private readonly ResizeHandle _levelEdge = new(ImAxis.Horizontal, -1);
+    private readonly ResizeHandle _errorsEdge = new(ImAxis.Vertical, 1);
 
     private WindowState _savedState;
     private bool _showReference;
@@ -113,19 +121,40 @@ internal sealed partial class ScriptWindow
     private BlockProperties DrawRegions(ImGui gui)
     {
         var area = gui.Layout.AddRect(gui.GetLayoutWidth(), gui.GetLayoutHeight());
-        var collapsedWidth = GetSideHeaderHeight(gui);
-        var levelWidth = GetLevelWidth(gui);
+        var collapsedWidth = GetPanelHeaderHeight(gui);
+        var minLevelWidth = GetMinLevelWidth(gui);
 
         // The Level side gives way first; the Scripts side only when the centre still doesn't fit without both
-        var levelFits = area.W - ScriptsWidth - levelWidth >= MinCentreWidth;
-        var scriptsFits = area.W - ScriptsWidth - collapsedWidth >= MinCentreWidth;
+        var levelFits = area.W - (_state.ScriptsCollapsed ? collapsedWidth : MinScriptsWidth) - minLevelWidth >= MinCentreWidth;
+        var scriptsFits = area.W - MinScriptsWidth - collapsedWidth >= MinCentreWidth;
         var scriptsCollapsed = _state.ScriptsCollapsed || !scriptsFits;
         var levelCollapsed = _state.LevelCollapsed || !levelFits;
 
-        var scripts = area.TakeLeft(scriptsCollapsed ? collapsedWidth : ScriptsWidth, out var rest);
-        var level = rest.TakeRight(levelCollapsed ? collapsedWidth : levelWidth, out var centre);
-        DrawDivider(gui, scripts.Right - 1, area);
-        DrawDivider(gui, level.X, area);
+        // Before collapsing, the sides shrink to make room for the centre, the Level side first. The state keeps the
+        // size they were given, so they grow back when the window does.
+        var maxScriptsWidth = area.W - MinCentreWidth - (levelCollapsed ? collapsedWidth : minLevelWidth);
+        var scriptsWidth = scriptsCollapsed
+            ? collapsedWidth
+            : GetPanelSize(_state.ScriptsWidth, DefaultScriptsWidth, MinScriptsWidth, maxScriptsWidth);
+        var maxLevelWidth = area.W - MinCentreWidth - scriptsWidth;
+        var levelWidth = levelCollapsed
+            ? collapsedWidth
+            : GetPanelSize(_state.LevelWidth, minLevelWidth, minLevelWidth, maxLevelWidth);
+
+        var scriptsEdgeId = gui.GetControlId("scripts edge");
+        var levelEdgeId = gui.GetControlId("level edge");
+        if (!scriptsCollapsed && _scriptsEdge.Drag(gui, scriptsEdgeId, scriptsWidth) is { } draggedScriptsWidth)
+            _state.ScriptsWidth = ClampSize(draggedScriptsWidth, MinScriptsWidth, maxScriptsWidth);
+
+        if (!levelCollapsed && _levelEdge.Drag(gui, levelEdgeId, levelWidth) is { } draggedLevelWidth)
+            _state.LevelWidth = ClampSize(draggedLevelWidth, minLevelWidth, maxLevelWidth);
+
+        var scripts = area.TakeLeft(scriptsWidth, out var rest);
+        var level = rest.TakeRight(levelWidth, out var centre);
+        var scriptsEdge = new ImRect(scripts.Right - 1, area.Y, 1, area.H);
+        var levelEdge = new ImRect(level.X, area.Y, 1, area.H);
+        DrawDivider(gui, scriptsEdge);
+        DrawDivider(gui, levelEdge);
 
         // Imui numbers controls in drawing order, so each region gets its own scope: a new error row in the centre
         // must not change the ids, and so the focus and state, of the controls drawn after it
@@ -151,13 +180,38 @@ internal sealed partial class ScriptWindow
 
         var hovered = levelCollapsed ? null : DrawLevelTabs(gui, GetSideBody(gui, level));
         gui.PopId();
+
+        // Each grab strip lies right of its edge, off the scrollbar of the region on the left
+        if (!scriptsCollapsed)
+            _scriptsEdge.Draw(gui, scriptsEdgeId, scriptsEdge, ResizeHandle.GrabRightOf(scriptsEdge));
+
+        if (!levelCollapsed)
+            _levelEdge.Draw(gui, levelEdgeId, levelEdge, ResizeHandle.GrabRightOf(levelEdge));
+
         return hovered;
+    }
+
+    /// <summary>
+    /// A stored size of zero means the panel was never resized. A drag never stores one: it stores the size it shows,
+    /// clamped with <see cref="ClampSize"/>.
+    /// </summary>
+    private static float GetPanelSize(float stored, float defaultSize, float min, float max)
+    {
+        return ClampSize(stored > 0 ? stored : defaultSize, min, max);
+    }
+
+    /// <summary>
+    /// Unlike <see cref="Mathf.Clamp(float, float, float)"/>, the minimum wins when there's less room than that.
+    /// </summary>
+    private static float ClampSize(float size, float min, float max)
+    {
+        return Mathf.Max(min, Mathf.Min(size, max));
     }
 
     /// <summary>
     /// Wide enough for both tabs, each half the strip, to show their whole label in the theme's font.
     /// </summary>
-    private static float GetLevelWidth(ImGui gui)
+    private static float GetMinLevelWidth(ImGui gui)
     {
         var settings = ImTabsPane.GetTextSettings(gui);
         var widestLabel = Mathf.Max(gui.MeasureTextSize(PlacedBlocksTab, settings).x, gui.MeasureTextSize(ReferenceTab, settings).x);
@@ -165,18 +219,18 @@ internal sealed partial class ScriptWindow
         return Mathf.Max(MinLevelWidth, (tabWidth * 2) + (gui.Style.Layout.Spacing * 4));
     }
 
-    private static void DrawDivider(ImGui gui, float x, ImRect area)
+    private static void DrawDivider(ImGui gui, ImRect edge)
     {
-        gui.Canvas.Rect(new ImRect(x, area.Y, 1, area.H), gui.Style.Window.Box.BorderColor);
+        gui.Canvas.Rect(edge, gui.Style.Window.Box.BorderColor);
     }
 
     private static ImRect GetSideBody(ImGui gui, ImRect side)
     {
-        side.TakeTop(GetSideHeaderHeight(gui), out var body);
+        side.TakeTop(GetPanelHeaderHeight(gui), out var body);
         return body;
     }
 
-    private static float GetSideHeaderHeight(ImGui gui)
+    private static float GetPanelHeaderHeight(ImGui gui)
     {
         return gui.GetRowHeight() + (gui.Style.Layout.Spacing * 2);
     }
@@ -188,7 +242,7 @@ internal sealed partial class ScriptWindow
     private static bool DrawSideHeader(ImGui gui, ImRect side, string label, bool collapsed, bool buttonOnRight, bool canToggle)
     {
         var size = gui.GetRowHeight();
-        var row = side.TakeTop(GetSideHeaderHeight(gui)).WithPadding(gui.Style.Layout.Spacing);
+        var row = side.TakeTop(GetPanelHeaderHeight(gui)).WithPadding(gui.Style.Layout.Spacing);
         ImRect labelRect;
         var buttonRect = buttonOnRight ? row.TakeRight(size, out labelRect) : row.TakeLeft(size, out labelRect);
         if (!collapsed)
@@ -206,8 +260,9 @@ internal sealed partial class ScriptWindow
     }
 
     /// <summary>
-    /// The header with Compile, the warnings, the editor, then the error list and result line in a region of their
-    /// own, so a long list scrolls instead of pushing the editor away.
+    /// The header with Compile, the warnings, the editor, then the error panel: a header with the error count, and the
+    /// error list and result line in a region of their own, so a long list scrolls instead of pushing the editor away.
+    /// The editor takes the height the panel doesn't.
     /// </summary>
     private void DrawCentre(ImGui gui, ImRect rect)
     {
@@ -225,8 +280,20 @@ internal sealed partial class ScriptWindow
         RefreshCheck();
 
         var spacing = gui.Style.Layout.Spacing;
-        var problemsHeight = gui.GetRowsHeightWithSpacing(ProblemRows);
-        var fieldHeight = Mathf.Max(gui.GetRowsHeightWithSpacing(3), gui.Layout.GetAvailableHeight() - problemsHeight - (spacing * 2));
+        var available = gui.Layout.GetAvailableHeight() - (spacing * 2);
+        var minFieldHeight = gui.GetRowsHeightWithSpacing(MinFieldRows);
+        var headerHeight = GetPanelHeaderHeight(gui);
+        var defaultErrorsHeight = gui.GetRowsHeightWithSpacing(DefaultErrorRows);
+        var minErrorsHeight = gui.GetRowsHeightWithSpacing(MinErrorRows);
+        var maxErrorsHeight = available - headerHeight - minFieldHeight;
+        var errorsBodyHeight = GetPanelSize(_state.ErrorsHeight, defaultErrorsHeight, minErrorsHeight, maxErrorsHeight);
+        var errorsHeight = headerHeight + (_state.ErrorsHidden ? 0 : errorsBodyHeight);
+
+        var errorsEdgeId = gui.GetControlId("errors edge");
+        if (!_state.ErrorsHidden && _errorsEdge.Drag(gui, errorsEdgeId, errorsBodyHeight) is { } draggedErrorsHeight)
+            _state.ErrorsHeight = ClampSize(draggedErrorsHeight, minErrorsHeight, maxErrorsHeight);
+
+        var fieldHeight = Mathf.Max(minFieldHeight, available - errorsHeight);
         var compileRequested = DrawField(gui, gui.AddLayoutRectWithSpacing(gui.GetLayoutWidth(), fieldHeight));
 
         if (compileClicked)
@@ -234,16 +301,60 @@ internal sealed partial class ScriptWindow
         else if (compileRequested)
             CompileFromKeyboard();
 
-        var problems = gui.AddLayoutRectWithSpacing(gui.GetLayoutWidth(), Mathf.Max(0, gui.Layout.GetAvailableHeight() - spacing));
+        var errors = gui.AddLayoutRectWithSpacing(gui.GetLayoutWidth(), Mathf.Max(0, gui.Layout.GetAvailableHeight() - spacing));
         gui.Layout.Pop();
 
-        gui.Box(problems, in gui.Style.List.Box);
-        WindowRegion.Begin(gui, problems);
+        gui.Box(errors, in gui.Style.List.Box);
+        var header = errors.TakeTop(headerHeight, out var body);
+        if (DrawErrorsHeader(gui, header))
+            _state.ErrorsHidden = !_state.ErrorsHidden;
+
+        // A window too short for the editor's minimum leaves no room under the header
+        if (_state.ErrorsHidden || body.H <= 0)
+            return;
+
+        WindowRegion.Begin(gui, body);
         DrawErrors(gui);
         if (_result.Length > 0)
             gui.Text(_result, wrap: true);
 
         WindowRegion.End(gui);
+
+        // Centred in the gap above the panel, so the grab strip takes as little as it can of the editor's edge
+        var edge = new ImRect(errors.X, errors.Top + (spacing / 2), errors.W, 0);
+        _errorsEdge.Draw(gui, errorsEdgeId, edge, _errorsEdge.GrabAround(edge));
+    }
+
+    /// <summary>
+    /// Returns whether the hide button was clicked. A hidden panel is only this row, which shows the result line in
+    /// place of the error count while there is one, as the list it's drawn under isn't shown.
+    /// </summary>
+    private bool DrawErrorsHeader(ImGui gui, ImRect header)
+    {
+        var row = header.WithPadding(gui.Style.Layout.Spacing);
+        var buttonRect = row.TakeRight(gui.GetRowHeight(), gui.Style.Layout.Spacing, out var labelRect);
+
+        var (text, color) = _state.ErrorsHidden && _result.Length > 0 ? (_result, gui.Style.Text.Color) : GetErrorsSummary();
+        var settings = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f, overflow: ImTextOverflow.Ellipsis);
+        gui.Text(text, settings, color, labelRect);
+        if (labelRect.Contains(gui.Input.MousePosition) && gui.MeasureTextSize(text, settings).x > labelRect.W)
+            gui.Tooltip(text, labelRect);
+
+        var clicked = gui.Button(_state.ErrorsHidden ? "▲" : "▼", buttonRect);
+        gui.TooltipAtLastControl(_state.ErrorsHidden ? "Show the error panel" : "Hide the error panel");
+        return clicked;
+    }
+
+    private (string Text, Color32 Color) GetErrorsSummary()
+    {
+        if (HasCurrentErrors)
+        {
+            var count = _check.Errors.Count;
+            return (count == 1 ? "1 error" : $"{count} errors", WindowColors.Error);
+        }
+
+        // A pending check hides the old errors, so the panel doesn't claim the text is fine
+        return (_checkedText == _editor.Text ? "No errors found" : "Checking...", WindowColors.Muted);
     }
 
     /// <summary>
