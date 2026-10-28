@@ -24,7 +24,7 @@ public static partial class EditCommands
         List<Change> changes = [];
         for (var line = first; line <= last; line++)
         {
-            if (GetLineEnd(lineStarts, text.Length, line) > lineStarts[line])
+            if (ScriptText.GetLineEnd(lineStarts, text.Length, line) > lineStarts[line])
                 changes.Add(new Change(lineStarts[line], 0, new string(' ', IndentSize)));
         }
 
@@ -50,7 +50,7 @@ public static partial class EditCommands
             }
             else
             {
-                var lineEnd = GetLineEnd(lineStarts, text.Length, line);
+                var lineEnd = ScriptText.GetLineEnd(lineStarts, text.Length, line);
                 while (length < IndentSize && lineStart + length < lineEnd && text[lineStart + length] == ' ')
                 {
                     length++;

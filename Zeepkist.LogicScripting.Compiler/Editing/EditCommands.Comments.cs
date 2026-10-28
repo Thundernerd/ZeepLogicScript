@@ -21,7 +21,7 @@ public static partial class EditCommands
         for (var line = first; line <= last; line++)
         {
             var indentEnd = SkipIndentation(text, lineStarts[line]);
-            if (indentEnd == GetLineEnd(lineStarts, text.Length, line))
+            if (indentEnd == ScriptText.GetLineEnd(lineStarts, text.Length, line))
                 continue;
 
             lines.Add(line);

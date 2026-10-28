@@ -10,9 +10,6 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 /// </summary>
 public static partial class EditCommands
 {
-    /// <summary>
-    /// The spaces one indentation level is.
-    /// </summary>
     public const int IndentSize = 4;
 
     /// <summary>
@@ -124,11 +121,6 @@ public static partial class EditCommands
     {
         var found = lineStarts.BinarySearch(index);
         return found >= 0 ? found : ~found - 1;
-    }
-
-    private static int GetLineEnd(List<int> lineStarts, int textLength, int line)
-    {
-        return line + 1 < lineStarts.Count ? lineStarts[line + 1] - 1 : textLength;
     }
 
     private static int GetLineStart(string text, int index)

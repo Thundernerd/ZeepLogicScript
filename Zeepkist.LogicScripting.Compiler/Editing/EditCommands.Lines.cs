@@ -17,7 +17,7 @@ public static partial class EditCommands
             return snapshot;
 
         var blockStart = lineStarts[first];
-        var blockEnd = GetLineEnd(lineStarts, text.Length, last);
+        var blockEnd = ScriptText.GetLineEnd(lineStarts, text.Length, last);
         var block = text.Substring(blockStart, blockEnd - blockStart);
         if (direction < 0)
         {
@@ -29,7 +29,7 @@ public static partial class EditCommands
         else
         {
             var belowStart = blockEnd + 1;
-            var belowEnd = GetLineEnd(lineStarts, text.Length, last + 1);
+            var belowEnd = ScriptText.GetLineEnd(lineStarts, text.Length, last + 1);
             var below = text.Substring(belowStart, belowEnd - belowStart);
             var moved = text.Substring(0, blockStart) + below + "\n" + block + text.Substring(belowEnd);
 
@@ -49,8 +49,9 @@ public static partial class EditCommands
         var text = snapshot.Text;
         if (snapshot.Selection != 0)
         {
+            var start = GetSelectionStart(snapshot);
             var end = GetSelectionEnd(snapshot);
-            var copy = text.Substring(GetSelectionStart(snapshot), end - GetSelectionStart(snapshot));
+            var copy = text.Substring(start, end - start);
             return new TextSnapshot(text.Insert(end, copy), snapshot.Caret + copy.Length, snapshot.Selection);
         }
 
@@ -72,7 +73,7 @@ public static partial class EditCommands
         var column = snapshot.Caret - lineStarts[GetLine(lineStarts, snapshot.Caret)];
 
         var start = lineStarts[first];
-        var end = GetLineEnd(lineStarts, text.Length, last);
+        var end = ScriptText.GetLineEnd(lineStarts, text.Length, last);
         if (end < text.Length)
             end++;
         else if (start > 0)

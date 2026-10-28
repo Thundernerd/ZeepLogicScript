@@ -9,8 +9,8 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal sealed partial class ScriptEditor
 {
     /// <summary>
-    /// Handles this frame's keys: undo and redo, Ctrl+Enter, the editor's own shortcuts, then Imui's text editing. Every edit is recorded in
-    /// the history; a caret move without an edit ends the current typing step.
+    /// Handles this frame's keys: undo and redo, Ctrl+Enter, the editor's own shortcuts, then Imui's text editing.
+    /// Every edit is recorded in the history; a caret move without an edit ends the current typing step.
     /// </summary>
     private bool HandleKeyboard(ImGui gui, ref ImTextEditBuffer buffer, ImRect textRect, bool editable, out bool compileRequested)
     {
@@ -115,10 +115,10 @@ internal sealed partial class ScriptEditor
     {
         var shift = (evt.Modifiers & EventModifiers.Shift) != 0;
         var alt = (evt.Modifiers & EventModifiers.Alt) != 0;
-        var control = (evt.Modifiers & (EventModifiers.Control | EventModifiers.Command)) != 0;
+        var controlOrCommand = (evt.Modifiers & (EventModifiers.Control | EventModifiers.Command)) != 0;
         var command = IsCommand(evt);
         var mac = SystemInfo.operatingSystemFamily == OperatingSystemFamily.MacOSX;
-        var wordDelete = editable && (mac ? alt && !control : command);
+        var wordDelete = editable && (mac ? alt && !controlOrCommand : command);
         return evt.Key switch
         {
             KeyCode.Home when command => EditCommands.MoveTo(before, 0, shift),
@@ -127,16 +127,16 @@ internal sealed partial class ScriptEditor
             KeyCode.End => EditCommands.End(before, shift),
             KeyCode.UpArrow when mac && command => EditCommands.MoveTo(before, 0, shift),
             KeyCode.DownArrow when mac && command => EditCommands.MoveTo(before, before.Text.Length, shift),
-            KeyCode.UpArrow when editable && alt && !control && !shift => EditCommands.MoveLines(before, -1),
-            KeyCode.DownArrow when editable && alt && !control && !shift => EditCommands.MoveLines(before, 1),
+            KeyCode.UpArrow when editable && alt && !controlOrCommand && !shift => EditCommands.MoveLines(before, -1),
+            KeyCode.DownArrow when editable && alt && !controlOrCommand && !shift => EditCommands.MoveLines(before, 1),
             KeyCode.Backspace when wordDelete => DeleteWord(before, buffer, -1),
             KeyCode.Delete when wordDelete => DeleteWord(before, buffer, 1),
             KeyCode.D when editable && command && !shift => EditCommands.Duplicate(before),
             KeyCode.K when editable && command && shift => EditCommands.DeleteLines(before),
             KeyCode.Slash or KeyCode.KeypadDivide when editable && command => EditCommands.ToggleComment(before),
-            KeyCode.Tab when editable && !control && !alt => shift ? EditCommands.Outdent(before) : EditCommands.Indent(before),
+            KeyCode.Tab when editable && !controlOrCommand && !alt => shift ? EditCommands.Outdent(before) : EditCommands.Indent(before),
             _ when evt.Char == '\t' => before,
-            _ when editable && evt.Char == '\n' && !control => EditCommands.NewLine(before),
+            _ when editable && evt.Char == '\n' && !controlOrCommand => EditCommands.NewLine(before),
             _ => null,
         };
     }

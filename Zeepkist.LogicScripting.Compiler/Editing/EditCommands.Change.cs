@@ -2,9 +2,6 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
 public static partial class EditCommands
 {
-    /// <summary>
-    /// Replaces <see cref="Length"/> characters at <see cref="Index"/> with <see cref="Text"/>.
-    /// </summary>
     private readonly struct Change
     {
         public Change(int index, int length, string text)
