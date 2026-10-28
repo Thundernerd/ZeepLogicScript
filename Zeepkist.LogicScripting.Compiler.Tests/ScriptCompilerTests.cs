@@ -49,7 +49,7 @@ public class ScriptCompilerTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(4, result.Blocks.Count);
-        Assert.Equal(2, result.Wires.Count(w => w.From == 1 && w.FromConnector == 3));
+        Assert.Equal(2, result.Wires.Count(w => w.From.Block == 1 && w.FromConnector == 3));
     }
 
     [Fact]

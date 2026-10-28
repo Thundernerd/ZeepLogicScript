@@ -202,7 +202,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
                 continue;
 
             var name = reference.Name ?? "(unnamed)";
-            var block = reference.Type == null ? null : PlacedBlocks.FindLive(central, reference.Uid);
+            var block = reference.Type == null ? null : LevelBlocks.Find(central, reference.Uid);
             if (block == null)
             {
                 gui.Text($"{name}: no block with UID \"{reference.Uid}\"", _missingColor);

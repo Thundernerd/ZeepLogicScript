@@ -28,3 +28,8 @@
 ## Names
 
 Use the domain terms from `CONTEXT.md` in type, member, and file names, so the code reads in the same language as the design notes.
+
+## Comments about the game
+
+- The repo is public and the game's source isn't. A comment may name the game types and members the mod calls or mirrors, since they're in the game's own libraries, and say what the mod relies on them to do.
+- Don't retell how the game's own features are written, such as which steps a tool takes or what it records; say what the mod does and why.

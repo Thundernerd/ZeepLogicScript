@@ -21,20 +21,20 @@ internal static class BlockTree
 
         var lastWired = compiled.Type.Inputs
             .Select((input, i) => (input, i))
-            .Where(x => result.Wires.Any(w => w.To == block && w.ToConnector == x.input.Index))
+            .Where(x => result.Wires.Any(w => w.To.Block == block && w.ToConnector == x.input.Index))
             .Select(x => x.i + 1)
             .DefaultIfEmpty(0)
             .Max();
 
         var inputs = compiled.Type.Inputs.Take(lastWired).Select(input =>
         {
-            var wire = result.Wires.FirstOrDefault(w => w.To == block && w.ToConnector == input.Index);
+            var wire = result.Wires.FirstOrDefault(w => w.To.Block == block && w.ToConnector == input.Index);
             if (wire == null)
                 return "_";
 
-            var source = result.Blocks[wire.From];
+            var source = result.Blocks[wire.From.Block];
             var output = source.Type.Outputs.Count > 1 ? "." + source.Type.Outputs.First(o => o.Index == wire.FromConnector).Name : string.Empty;
-            return Render(result, wire.From) + output;
+            return Render(result, wire.From.Block) + output;
         });
 
         return $"{compiled.Type.Function}{settings}({string.Join(", ", inputs)})";
@@ -46,7 +46,7 @@ internal static class BlockTree
     public static string RenderLast(CompileResult result)
     {
         var last = result.Blocks.Count - 1;
-        var wire = result.Wires.Single(w => w.To == last);
-        return Render(result, wire.From);
+        var wire = result.Wires.Single(w => w.To.Block == last);
+        return Render(result, wire.From.Block);
     }
 }

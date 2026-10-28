@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 
@@ -6,10 +7,11 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 internal sealed class BlockNode
 {
     private readonly List<Setting> _settings;
+    private readonly int _index;
 
     public BlockNode(int index, BlockType type, BlockStyle style, IEnumerable<Setting> settings)
     {
-        Index = index;
+        _index = index;
         Type = type;
         Style = style;
         _settings = [.. settings];
@@ -20,16 +22,18 @@ internal sealed class BlockNode
     /// A block already in the level, reached through a Placed Block Reference.
     /// </summary>
     public BlockNode(string uid, BlockType type, BlockStyle style, PlacedBlock placed)
-        : this(-1, type, style, placed.Settings)
+        : this(0, type, style, placed.Settings)
     {
         Uid = uid;
         Placed = placed;
     }
 
     /// <summary>
-    /// Position in the graph; blocks are added in Script line order. -1 for a placed block, which isn't laid out.
+    /// Position in the graph; blocks are added in Script line order. A placed block isn't laid out, so it has none.
     /// </summary>
-    public int Index { get; }
+    public int Index => IsPlaced
+        ? throw new InvalidOperationException($"Block {Uid} is already in the level, so it has no index")
+        : _index;
 
     /// <summary>
     /// The placed block's UID, or null for a block the Compile places.

@@ -42,7 +42,7 @@ internal static class CompiledBlockJson
 
         foreach (var wire in result.Wires)
         {
-            AddWire(jsons[wire.From], wire.FromConnector, jsons[wire.To], wire.ToConnector);
+            AddWire(jsons[wire.From.Block], wire.FromConnector, jsons[wire.To.Block], wire.ToConnector);
         }
 
         return jsons;

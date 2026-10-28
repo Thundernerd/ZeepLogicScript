@@ -17,8 +17,8 @@ public class DefinitionTests
             result.Blocks.Select(b => b.Type));
 
         // The Delay feeds its own XOR, which feeds the Delay
-        Assert.Contains(result.Wires, w => (w.From, w.FromConnector, w.To, w.ToConnector) == (2, 1, 1, 0));
-        Assert.Contains(result.Wires, w => (w.From, w.FromConnector, w.To, w.ToConnector) == (1, 3, 2, 0));
+        Assert.Contains(result.Wires, w => (w.From.Block, w.FromConnector, w.To.Block, w.ToConnector) == (2, 1, 1, 0));
+        Assert.Contains(result.Wires, w => (w.From.Block, w.FromConnector, w.To.Block, w.ToConnector) == (1, 3, 2, 0));
         Assert.Equal("ldl", Assert.Single(result.Blocks[2].Settings).Key);
     }
 
@@ -28,7 +28,7 @@ public class DefinitionTests
         var result = ScriptCompiler.Compile("a = delay(b, ticks: 2)\nb = a | 1\np = player_input()\nc = delay(p.horn, ticks: 1)", 0);
 
         Assert.True(result.Succeeded, string.Join("\n", result.Errors));
-        Assert.Contains(result.Wires, w => (w.From, w.To, w.ToConnector) == (2, 0, 0));
+        Assert.Contains(result.Wires, w => (w.From.Block, w.To.Block, w.ToConnector) == (2, 0, 0));
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class DefinitionTests
 
         Assert.True(result.Succeeded, string.Join("\n", result.Errors));
         var wire = Assert.Single(result.Wires);
-        Assert.Equal((1, 6, 0, 0), (wire.From, wire.FromConnector, wire.To, wire.ToConnector));
+        Assert.Equal((1, 6, 0, 0), (wire.From.Block, wire.FromConnector, wire.To.Block, wire.ToConnector));
     }
 
     [Fact]

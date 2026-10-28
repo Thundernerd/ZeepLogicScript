@@ -208,13 +208,8 @@ public class PlacedTests
         return result.Errors.Select(e => $"{e.Position} {e.Message}");
     }
 
-    private static string Describe(PlacedWire wire)
+    private static string Describe(CompiledWire wire)
     {
-        return $"{Describe(wire.From)}.{wire.FromConnector} -> {Describe(wire.To)}.{wire.ToConnector}";
-    }
-
-    private static string Describe(WireEnd end)
-    {
-        return end.IsPlaced ? end.Uid : end.Block.ToString();
+        return $"{wire.From}.{wire.FromConnector} -> {wire.To}.{wire.ToConnector}";
     }
 }

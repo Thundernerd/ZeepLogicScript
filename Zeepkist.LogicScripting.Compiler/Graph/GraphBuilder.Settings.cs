@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -10,10 +9,10 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 internal sealed partial class GraphBuilder
 {
     /// <summary>
-    /// A Setting's value is written out in the call itself: a number, true / false, or an option word. Targets have
-    /// several values; see <see cref="GetTargets"/>.
+    /// The values a named argument gives a Setting, written out in the call itself: a number, true / false, an option
+    /// word, or for Targets one per block (see <see cref="GetTargets"/>). Null after reporting why the value is wrong.
     /// </summary>
-    private Setting GetSettingValue(BlockSetting setting, NamedArgument argument)
+    private IReadOnlyList<Setting> GetSettingValues(BlockSetting setting, NamedArgument argument)
     {
         switch (setting.Type)
         {
@@ -36,11 +35,11 @@ internal sealed partial class GraphBuilder
                     return null;
                 }
 
-                return Setting.Text(setting.Key, literal.Value.ToString(CultureInfo.InvariantCulture));
+                return [Setting.Text(setting.Key, literal.Value.ToString(CultureInfo.InvariantCulture))];
 
             case SettingType.Bool:
                 if (argument.Value is NameExpression { Name: "true" or "false" } word)
-                    return Setting.Int(setting.Key, word.Name == "true" ? 1 : 0);
+                    return [Setting.Int(setting.Key, word.Name == "true" ? 1 : 0)];
 
                 ValueError(argument, $"{setting.Name} takes true or false");
                 return null;
@@ -60,10 +59,10 @@ internal sealed partial class GraphBuilder
                     return null;
                 }
 
-                return setting.Choose(player);
+                return [setting.Choose(player)];
 
             case SettingType.Targets:
-                throw new ArgumentException($"{setting.Name} is stored under several keys", nameof(setting));
+                return GetTargets(setting, argument);
 
             default:
                 var options = string.Join(", ", setting.Options);
@@ -79,7 +78,7 @@ internal sealed partial class GraphBuilder
                     return null;
                 }
 
-                return setting.Choose(option.Name);
+                return [setting.Choose(option.Name)];
         }
     }
 

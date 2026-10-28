@@ -38,14 +38,14 @@ internal static partial class BlockBatch
             }
 
             LoadConnectors(added, label);
-            Connect(added, changed, wires, label);
+            Connect(central, added, changed, wires, label);
             RegisterUndo(central, added, changed, label);
             return added;
         }
         catch
         {
             Remove(central, added);
-            Restore(changed, label);
+            Restore(central, changed, label);
             throw;
         }
     }
@@ -68,7 +68,7 @@ internal static partial class BlockBatch
 
     /// <summary>
     /// Paint is stored per renderer material slot as n["p{index}"]; a missing key loads as material 0.
-    /// Mirrors Properties_RoadPainter.SavePaintProperties, which only runs from the CreateBlock step GenerateNewBlock skips.
+    /// Writes the default paint that Properties_RoadPainter.SavePaintProperties would, which GenerateNewBlock leaves out.
     /// </summary>
     private static void AddDefaultPaint(BlockProperties prefab, BlockPropertyJSON json)
     {
@@ -91,8 +91,8 @@ internal static partial class BlockBatch
     }
 
     /// <summary>
-    /// Second pass, like the level loader: LoadProperties_v15 skips Connector scripts, and a Wire only resolves once
-    /// the block at its other end is tracked.
+    /// Second pass: LoadProperties_v15 leaves the Connector scripts out, and a Wire only resolves once the block at its
+    /// other end exists.
     /// </summary>
     private static void LoadConnectors(List<BlockProperties> blocks, string label)
     {
@@ -112,16 +112,21 @@ internal static partial class BlockBatch
     }
 
     /// <summary>
-    /// Wires both ends, as the connector tool does; the output end is the drawing leader. Each existing block's JSON
+    /// Wires both ends; the output end is the drawing leader. Each existing block's JSON
     /// is noted in <paramref name="changed"/> before its first Wire, for undo and for rolling back.
     /// </summary>
-    private static void Connect(List<BlockProperties> added, List<ChangedBlock> changed, IReadOnlyList<BlockWire> wires, string label)
+    private static void Connect(
+        LEV_LevelEditorCentral central,
+        List<BlockProperties> added,
+        List<ChangedBlock> changed,
+        IReadOnlyList<BlockWire> wires,
+        string label)
     {
         HashSet<BlockProperties> touched = [.. added];
         foreach (var wire in wires)
         {
-            var from = GetConnector(wire.FromUid, wire.FromConnector);
-            var to = GetConnector(wire.ToUid, wire.ToConnector);
+            var from = GetConnector(central, wire.FromUid, wire.FromConnector);
+            var to = GetConnector(central, wire.ToUid, wire.ToConnector);
             foreach (var block in new[] { from.GetBlockProperties(), to.GetBlockProperties() })
             {
                 if (touched.Add(block))
@@ -138,18 +143,18 @@ internal static partial class BlockBatch
         }
     }
 
-    private static ConnectorHub_Base GetConnector(string uid, int connector)
+    private static ConnectorHub_Base GetConnector(LEV_LevelEditorCentral central, string uid, int connector)
     {
-        if (!StaticConnectorTracker.allBlocksByUID.TryGetValue(uid, out var block)
-            || !block.allConnectorHubsOnThisBlock.TryGetValue(connector, out var hub))
+        var block = LevelBlocks.Find(central, uid);
+        if (block == null || !block.allConnectorHubsOnThisBlock.TryGetValue(connector, out var hub))
             throw new InvalidOperationException($"Block {uid} has no Connector {connector} to wire");
 
         return hub;
     }
 
     /// <summary>
-    /// Added blocks are before = null / after = JSON, as the gizmo's paste does; changed blocks are JSON / JSON, as
-    /// the gizmo's delete records the blocks wired to deleted ones. Taken after wiring, so redo restores the Wires.
+    /// Added blocks are recorded as before = null / after = JSON and changed blocks as JSON / JSON, the shapes the
+    /// editor's own undo steps use. Taken after wiring, so redo restores the Wires.
     /// </summary>
     private static void RegisterUndo(LEV_LevelEditorCentral central, List<BlockProperties> added, List<ChangedBlock> changed, string label)
     {
@@ -175,24 +180,39 @@ internal static partial class BlockBatch
     }
 
     /// <summary>
-    /// Puts each changed block's Settings and Wires back as they were, the way undo reloads a block's Connectors.
-    /// Call after removing the added blocks, so nothing redraws a Wire to them.
+    /// Puts each changed block's Settings and Wires back as they were, then reloads and redraws every block wired to
+    /// one of them, so they show the restored Wires. Call after removing the added blocks, so nothing redraws a Wire to
+    /// them.
     /// </summary>
-    private static void Restore(List<ChangedBlock> changed, string label)
+    private static void Restore(LEV_LevelEditorCentral central, List<ChangedBlock> changed, string label)
     {
+        HashSet<string> reloaded = [];
+        HashSet<string> affected = [];
         foreach (var change in changed)
         {
             change.Block.customBlockEditProperties = LEV_UndoRedo.GetJSONblock(change.Before).d?.Clone() ?? new PropertyDictionariesJSON();
+            reloaded.Add(change.Block.UID);
             foreach (var blockEdit in change.Block.GetAllBlockEditV18sFromThisBlock())
             {
-                if (blockEdit.HasConnectors())
-                    blockEdit.GetBlockEditV18ConnectionBase().LoadProperties();
+                if (!blockEdit.HasConnectors())
+                    continue;
+
+                var connections = blockEdit.GetBlockEditV18ConnectionBase();
+                connections.LoadProperties();
+                affected.UnionWith(connections.GetAllConnectedUIDsOnEntireBlockEdit_ButAlsoYourOwnBlockUID());
             }
         }
 
-        foreach (var change in changed)
+        foreach (var uid in affected)
         {
-            RedrawWires(change.Block, label);
+            var block = LevelBlocks.Find(central, uid);
+            if (block == null)
+                continue;
+
+            if (!reloaded.Contains(uid))
+                block.LoadOnlyPropertyScripts();
+
+            RedrawWires(block, label);
         }
     }
 

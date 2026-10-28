@@ -51,16 +51,21 @@ public static class ScriptCompiler
         List<CompiledWire> wires = [];
         foreach (var wire in graph.Wires)
         {
-            wires.Add(new CompiledWire(wire.From.Index, wire.FromConnector, wire.To.Index, wire.ToConnector));
+            wires.Add(ToCompiledWire(wire));
         }
 
-        List<PlacedWire> placedWires = [];
+        List<CompiledWire> placedWires = [];
         foreach (var wire in graph.PlacedWires)
         {
-            placedWires.Add(new PlacedWire(GetEnd(wire.From), wire.FromConnector, GetEnd(wire.To), wire.ToConnector));
+            placedWires.Add(ToCompiledWire(wire));
         }
 
         return new CompileResult([], blocks, wires, placedWires, references);
+    }
+
+    private static CompiledWire ToCompiledWire(GraphWire wire)
+    {
+        return new CompiledWire(GetEnd(wire.From), wire.FromConnector, GetEnd(wire.To), wire.ToConnector);
     }
 
     private static WireEnd GetEnd(BlockNode block)

@@ -133,10 +133,7 @@ internal sealed partial class GraphBuilder
             return;
         }
 
-        if (blockSetting.Type == SettingType.Targets)
-            check.GiveSettings(blockSetting, GetTargets(blockSetting, argument));
-        else
-            check.GiveSetting(blockSetting, GetSettingValue(blockSetting, argument));
+        check.GiveSettings(blockSetting, GetSettingValues(blockSetting, argument));
     }
 
     /// <summary>
