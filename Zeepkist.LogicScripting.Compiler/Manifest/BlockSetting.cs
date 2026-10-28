@@ -13,7 +13,14 @@ public sealed class BlockSetting
     /// </summary>
     public static readonly BlockSetting Hide = Bool("hide", "lbhd");
 
-    private BlockSetting(string name, string key, SettingType type, IReadOnlyList<string> options, bool isRequired, long minimum, long maximum)
+    private BlockSetting(
+        string name,
+        string key,
+        SettingType type,
+        IReadOnlyList<string> options,
+        bool isRequired,
+        long minimum = long.MinValue,
+        long maximum = long.MaxValue)
     {
         Name = name;
         Key = key;
@@ -62,12 +69,12 @@ public sealed class BlockSetting
 
     public static BlockSetting Bool(string name, string key)
     {
-        return new BlockSetting(name, key, SettingType.Bool, [], false, 0, 0);
+        return new BlockSetting(name, key, SettingType.Bool, [], false);
     }
 
     public static BlockSetting Option(string name, string key, params string[] options)
     {
-        return new BlockSetting(name, key, SettingType.Option, options, false, 0, 0);
+        return new BlockSetting(name, key, SettingType.Option, options, false);
     }
 
     /// <summary>
@@ -77,7 +84,7 @@ public sealed class BlockSetting
     public static BlockSetting Player(string key, bool hasEveryone)
     {
         string[] options = hasEveryone ? ["all", "1", "2", "3", "4"] : ["1", "2", "3", "4"];
-        return new BlockSetting("player", key, SettingType.Player, options, false, 0, 0);
+        return new BlockSetting("player", key, SettingType.Player, options, false);
     }
 
     /// <summary>
@@ -85,7 +92,7 @@ public sealed class BlockSetting
     /// </summary>
     public static BlockSetting Targets(string name, string keyPrefix)
     {
-        return new BlockSetting(name, keyPrefix, SettingType.Targets, [], true, 0, 0);
+        return new BlockSetting(name, keyPrefix, SettingType.Targets, [], true);
     }
 
     /// <summary>
