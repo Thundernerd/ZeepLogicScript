@@ -1,4 +1,3 @@
-using System.Linq;
 using Imui.Controls;
 using Imui.Core;
 using Imui.Rendering;
@@ -38,15 +37,15 @@ internal sealed partial class ScriptWindow
     }
 
     /// <summary>
-    /// Writes the <see cref="WindowState"/> if it changed since it was last written. Call when the mod unloads.
+    /// Call when the mod unloads.
     /// </summary>
     public void SaveState()
     {
-        if (IsSame(_state, _savedState))
+        if (_state.IsSameAs(_savedState))
             return;
 
         _stateStore.Save(_state);
-        _savedState = Copy(_state);
+        _savedState = _state.Copy();
     }
 
     /// <summary>
@@ -56,31 +55,6 @@ internal sealed partial class ScriptWindow
     {
         if (!Input.GetMouseButton(0))
             SaveState();
-    }
-
-    private static WindowState Copy(WindowState state)
-    {
-        return new WindowState
-        {
-            Open = state.Open,
-            X = state.X,
-            Y = state.Y,
-            Width = state.Width,
-            Height = state.Height,
-            ScriptsCollapsed = state.ScriptsCollapsed,
-            LevelCollapsed = state.LevelCollapsed
-        };
-    }
-
-    private static bool IsSame(WindowState a, WindowState b)
-    {
-        return a.Open == b.Open
-            && a.X == b.X
-            && a.Y == b.Y
-            && a.Width == b.Width
-            && a.Height == b.Height
-            && a.ScriptsCollapsed == b.ScriptsCollapsed
-            && a.LevelCollapsed == b.LevelCollapsed;
     }
 
     /// <summary>
@@ -258,24 +232,13 @@ internal sealed partial class ScriptWindow
         var buttonWidth = gui.MeasureTextSize(CompileLabel).x + (gui.Style.Layout.Indent * 2);
         var buttonRect = row.TakeRight(buttonWidth, gui.Style.Layout.Spacing, out var nameRect);
 
-        var (glyph, tooltip) = ScriptListPanel.GetMarkText(_current.Mark);
+        var (glyph, label, tooltip) = ScriptMarkText.Get(_current.Mark);
         var settings = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f, overflow: ImTextOverflow.Ellipsis);
-        gui.Text(glyph == null ? _current.Name : $"{_current.Name}  {glyph} {GetMarkLabel(_current.Mark)}", settings, nameRect);
+        gui.Text(glyph == null ? _current.Name : $"{_current.Name}  {glyph} {label}", settings, nameRect);
         if (tooltip != null && nameRect.Contains(gui.Input.MousePosition))
             gui.Tooltip(tooltip, nameRect);
 
         return DrawCompileButton(gui, buttonRect);
-    }
-
-    private static string GetMarkLabel(ScriptMark mark)
-    {
-        return mark switch
-        {
-            ScriptMark.NotCompiled => "not compiled",
-            ScriptMark.CarrierMissing => "text missing from the level",
-            ScriptMark.NeverCompiled => "never compiled",
-            _ => string.Empty
-        };
     }
 
     /// <summary>
@@ -302,15 +265,11 @@ internal sealed partial class ScriptWindow
             gui.Text($"Turned off for this game version: {string.Join(", ", _startupCheck.DisabledBlocks)}", WindowColors.Error, wrap: true);
     }
 
-    /// <summary>
-    /// Returns the block under the hovered row of the Placed blocks tab, or null.
-    /// </summary>
     private BlockProperties DrawLevelTabs(ImGui gui, ImRect rect)
     {
         BlockProperties hovered = null;
         gui.BeginTabsPane(rect.WithPadding(gui.Style.Layout.Spacing));
-        // A block referred to twice is one row
-        var count = _check?.PlacedBlockReferences.Select(r => r.Uid).Distinct().Count() ?? 0;
+        var count = PlacedBlocksPanel.CountRows(_check);
         if (gui.BeginTab(count == 0 ? "Placed blocks" : $"Placed blocks ({count})"))
         {
             if (_current == null)

@@ -47,20 +47,6 @@ internal sealed class ScriptListPanel
     }
 
     /// <summary>
-    /// The font has no ⚠ or ◌, so the carrier-missing and never-compiled marks use ! and ○.
-    /// </summary>
-    public static (string Glyph, string Tooltip) GetMarkText(ScriptMark mark)
-    {
-        return mark switch
-        {
-            ScriptMark.NotCompiled => ("●", "Not compiled: the level holds another name or text"),
-            ScriptMark.CarrierMissing => ("!", "The level has this Script's blocks but not its text; Compile to store it again"),
-            ScriptMark.NeverCompiled => ("○", "Never compiled: the level doesn't hold this Script"),
-            _ => (null, null)
-        };
-    }
-
-    /// <summary>
     /// Returns the Script the player clicked or made, or null.
     /// </summary>
     public ScriptEntry Draw(ImGui gui, ScriptEntry current)
@@ -71,7 +57,7 @@ internal sealed class ScriptListPanel
             gui.AddSpacingIfLayoutFrameNotEmpty();
             var rect = gui.AddSingleRowRect(default);
             ref readonly var style = ref entry == current ? ref gui.Style.List.ItemSelected : ref gui.Style.List.ItemNormal;
-            var (glyph, tooltip) = GetMarkText(entry.Mark);
+            var (glyph, _, tooltip) = ScriptMarkText.Get(entry.Mark);
             if (gui.Button(gui.GetNextControlId(), glyph == null ? entry.Name : $"{glyph} {entry.Name}", rect, in style, out _) && entry != current)
                 selected = entry;
 

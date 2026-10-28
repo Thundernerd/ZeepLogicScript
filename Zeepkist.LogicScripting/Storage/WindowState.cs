@@ -13,4 +13,20 @@ internal sealed class WindowState
     public float Height { get; set; }
     public bool ScriptsCollapsed { get; set; }
     public bool LevelCollapsed { get; set; }
+
+    public WindowState Copy()
+    {
+        return (WindowState)MemberwiseClone();
+    }
+
+    public bool IsSameAs(WindowState other)
+    {
+        return Open == other.Open
+            && X == other.X
+            && Y == other.Y
+            && Width == other.Width
+            && Height == other.Height
+            && ScriptsCollapsed == other.ScriptsCollapsed
+            && LevelCollapsed == other.LevelCollapsed;
+    }
 }

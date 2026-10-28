@@ -76,7 +76,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         _drafts = drafts;
         _stateStore = stateStore;
         _state = stateStore.Load();
-        _savedState = Copy(_state);
+        _savedState = _state.Copy();
         _toggleKey = toggleKey;
         _draftSaver = new DraftSaver(drafts, _scripts);
         _scriptListPanel = new ScriptListPanel(logger, _scripts, _draftSaver, OnScriptDeleted);

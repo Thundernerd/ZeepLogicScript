@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Imui.Controls;
 using Imui.Core;
 using TNRD.Zeepkist.LogicScripting.Blocks;
@@ -13,6 +14,14 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal sealed class PlacedBlocksPanel
 {
     private string _insertMessage = string.Empty;
+
+    /// <summary>
+    /// A block referred to more than once is one row.
+    /// </summary>
+    public static int CountRows(CompileResult check)
+    {
+        return check == null ? 0 : GetRows(check).Count;
+    }
 
     public void ClearMessage()
     {
@@ -42,12 +51,8 @@ internal sealed class PlacedBlocksPanel
         }
 
         BlockProperties hovered = null;
-        HashSet<string> shown = [];
-        foreach (var reference in check.PlacedBlockReferences)
+        foreach (var reference in GetRows(check))
         {
-            if (!shown.Add(reference.Uid))
-                continue;
-
             var name = reference.Name ?? "(unnamed)";
             var block = reference.Type == null ? null : LevelBlocks.Find(central, reference.Uid);
             if (block == null)
@@ -68,6 +73,12 @@ internal sealed class PlacedBlocksPanel
         }
 
         return hovered;
+    }
+
+    private static List<PlacedBlockReference> GetRows(CompileResult check)
+    {
+        HashSet<string> shown = [];
+        return check.PlacedBlockReferences.Where(r => shown.Add(r.Uid)).ToList();
     }
 
     private bool InsertSelected(ImGui gui, LEV_LevelEditorCentral central, ScriptEditor editor)
