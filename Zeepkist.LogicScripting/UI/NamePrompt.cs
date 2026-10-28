@@ -50,7 +50,7 @@ internal sealed class NamePrompt
             return null;
         }
 
-        gui.Text(Renamed == null ? "Name of the new Script" : $"New name for \"{Renamed.Name}\"");
+        gui.Text(Renamed == null ? "Name of the new Script" : $"New name for \"{Renamed.Name}\"", wrap: true);
         gui.AddSpacingIfLayoutFrameNotEmpty();
         var rect = gui.AddSingleRowRect(default);
         var id = gui.GetNextControlId();
