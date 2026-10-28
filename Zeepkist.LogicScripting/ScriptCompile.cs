@@ -5,6 +5,7 @@ using BepInEx.Logging;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Layout;
+using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using UnityEngine;
 using ZeepSDK.Utilities;
 
@@ -97,13 +98,16 @@ internal static class ScriptCompile
     /// </summary>
     private static Vector3 GetGroupOrigin(List<BlockProperties> group, CompileResult result, int quarterTurns)
     {
-        var positions = group.Select(b => b.transform.position).ToList();
-        var (x, z) = BlockGroupPlacement.GetOrigin(
-            positions.Select(p => (p.x, p.z)).ToList(),
-            result.Blocks.Select(b => b.Cell).ToList(),
-            quarterTurns);
+        var oldBlocks = group.Select(ToGroupBlock).ToList();
+        var (x, z) = BlockGroupPlacement.GetOrigin(oldBlocks, result.Blocks, quarterTurns);
+        return new Vector3(x, group.Min(b => b.transform.position.y), z);
+    }
 
-        return new Vector3(x, positions.Min(p => p.y), z);
+    private static GroupBlock ToGroupBlock(BlockProperties block)
+    {
+        var position = block.transform.position;
+        var style = BlockManifest.TryGetBlock(block.blockID, out _, out var found) ? found : null;
+        return new GroupBlock(position.x, position.z, block.transform.eulerAngles.y, style);
     }
 
     private static string FormatErrors(CompileResult result)
