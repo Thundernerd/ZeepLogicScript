@@ -65,6 +65,38 @@ public class SettingTests
         AssertSingleError(text, line, column, message);
     }
 
+    [Theory]
+    [InlineData("random(1, min: 5, max: 5)", "xv1=5, xv2=5")]
+    [InlineData("random(1, min: -5)", "xv1=-5")]
+    [InlineData("random(1, max: -5, min: -9)", "xv1=-9, xv2=-5")]
+    [InlineData("random(1, 2, min: 10, max: 1)", "xv1=10, xv2=1")]
+    [InlineData("random(1, max_in: 2, min: 10)", "xv1=10")]
+    public void Random_AcceptsMinUpToMax_OrAnyWithMaxInWired(string call, string settings)
+    {
+        var result = ScriptCompiler.Compile(call, 0);
+
+        Assert.True(result.Succeeded, string.Join("\n", result.Errors));
+        Assert.Equal(settings, Render(result.Blocks.Last()));
+    }
+
+    [Theory]
+    [InlineData("random(1, min: 10, max: 1)", 1, 25, "max must be at least min (10)")]
+    [InlineData("random(1, max: 1, min: 10)", 1, 16, "max must be at least min (10)")]
+    [InlineData("random(1, max: -1)", 1, 16, "max must be at least min (0)")]
+    [InlineData("random(1, min: 5)", 1, 16, "min must be at most max, which is 0 unless given")]
+    public void Random_MinAboveMax_IsAnError(string text, int line, int column, string message)
+    {
+        AssertSingleError(text, line, column, message);
+    }
+
+    [Theory]
+    [InlineData("random(1, min: 5, max: x)", 1, 24, "max takes a whole number, like max: 5")]
+    [InlineData("random(1, min: 5, mx: 1)", 1, 19, "'random' has no input or Setting 'mx'; did you mean max?")]
+    public void Random_MaxWithoutAValue_IsNotAlsoARangeError(string text, int line, int column, string message)
+    {
+        AssertSingleError(text, line, column, message);
+    }
+
     [Fact]
     public void Style_PicksTheBlock()
     {

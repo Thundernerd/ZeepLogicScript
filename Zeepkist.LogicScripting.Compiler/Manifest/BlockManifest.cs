@@ -42,6 +42,9 @@ public static class BlockManifest
         "xbs",
         "basic", "local_velocity", "global_velocity");
 
+    public static readonly BlockSetting RandomMinimum = BlockSetting.Number("min", "xv1");
+    public static readonly BlockSetting RandomMaximum = BlockSetting.Number("max", "xv2");
+
     public static readonly BlockType Generator = new(
         "generator",
         2414,
@@ -121,14 +124,15 @@ public static class BlockManifest
         [new BlockConnector("out", 1)],
         BlockSetting.Option("mode", "xpl", "rise", "fall", "any_rise", "any_fall", "increased", "decreased"));
 
+    // The block rolls from min to max, both included; with min above max + 1 it swaps them, so min: 10, max: 1 rolls
+    // 2 to 9
     public static readonly BlockType Random = new(
         "random",
-        2425,
-        1,
+        [new BlockStyle(null, 2425, 1)],
         Numbered(0, "trigger", "max_in"),
         [new BlockConnector("out", 2)],
-        BlockSetting.Number("min", "xv1"),
-        BlockSetting.Number("max", "xv2"));
+        [RandomMinimum, RandomMaximum],
+        range: new BlockRange(RandomMinimum, RandomMaximum, "max_in"));
 
     public static readonly BlockType Ticker = new(
         "ticker",

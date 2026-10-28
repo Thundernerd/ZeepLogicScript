@@ -39,6 +39,7 @@ internal sealed partial class GraphBuilder
         LeaveArguments(type);
 
         check.CheckRequiredSettings();
+        check.CheckRange();
         if (check.Failed)
             return null;
 

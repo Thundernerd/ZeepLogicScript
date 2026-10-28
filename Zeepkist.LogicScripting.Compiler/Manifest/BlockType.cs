@@ -33,7 +33,8 @@ public sealed class BlockType
         IReadOnlyList<BlockConnector> outputs,
         IReadOnlyList<BlockSetting> settings = null,
         BlockModes modes = null,
-        bool isPlacedOnly = false)
+        bool isPlacedOnly = false,
+        BlockRange range = null)
     {
         Function = function;
         Styles = styles;
@@ -42,6 +43,7 @@ public sealed class BlockType
         Settings = settings ?? [];
         Modes = modes;
         IsPlacedOnly = isPlacedOnly;
+        Range = range;
     }
 
     /// <summary>
@@ -83,6 +85,11 @@ public sealed class BlockType
     /// A block whose position matters: Scripts only reach it through a Placed Block Reference, never place it.
     /// </summary>
     public bool IsPlacedOnly { get; }
+
+    /// <summary>
+    /// Two of <see cref="Settings"/> whose minimum must not be above the maximum, or null.
+    /// </summary>
+    public BlockRange Range { get; }
 
     /// <summary>
     /// The position of the named input in <see cref="Inputs"/>, or -1.
