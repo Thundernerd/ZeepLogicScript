@@ -61,7 +61,8 @@ internal sealed partial class GraphBuilder
 
     /// <summary>
     /// Reports what's wrong in a named argument's value when there's no type to tell a Setting from an input. A bare
-    /// word may be a Setting's option (<c>op: and</c>), so it isn't looked up as a name.
+    /// word may be a Setting's option (<c>op: and</c>), so it isn't looked up as a name; the items of a list are, as
+    /// only a Toggler's targets take one.
     /// </summary>
     private void CheckUntypedValue(Expression value)
     {
@@ -79,7 +80,9 @@ internal sealed partial class GraphBuilder
                 return;
 
             default:
-                Evaluate(value);
+                if (_delayDepth == 0 || !IsForwardReference(value))
+                    Evaluate(value);
+
                 return;
         }
     }

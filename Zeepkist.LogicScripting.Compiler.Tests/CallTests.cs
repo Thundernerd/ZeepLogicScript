@@ -74,6 +74,15 @@ public class CallTests
     }
 
     [Fact]
+    public void UnknownCallsInADelay_MayReferAheadInTheirNamedValues()
+    {
+        var result = ScriptCompiler.Compile("x = delay(lump(a: later.x), ticks: 1)\nlater = logic(1, 1)", 0);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("'lump' isn't a Block Function", error.Message);
+    }
+
+    [Fact]
     public void UnknownCalls_DontLookUpBareWords()
     {
         var result = ScriptCompiler.Compile("lump(1, op: and)", 0);
