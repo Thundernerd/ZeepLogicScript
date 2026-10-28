@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Layout;
+using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 using UnityEngine;
 
 namespace TNRD.Zeepkist.LogicScripting.Blocks;
@@ -11,8 +12,8 @@ internal static class CompiledBlockJson
 
     /// <param name="result">A successful Compile.</param>
     /// <param name="origin">World position of the group's centre cell.</param>
-    /// <param name="scriptId">The Script whose Block Group the blocks join.</param>
-    public static List<BlockPropertyJSON> Create(CompileResult result, Vector3 origin, string scriptId)
+    /// <param name="script">The Script whose Block Group the blocks join; the first block carries it.</param>
+    public static List<BlockPropertyJSON> Create(CompileResult result, Vector3 origin, StoredScript script)
     {
         List<BlockPropertyJSON> jsons = [];
         foreach (var block in result.Blocks)
@@ -27,7 +28,7 @@ internal static class CompiledBlockJson
                 d = new PropertyDictionariesJSON()
             };
 
-            json.d.SetStringDictionaryValue(BlockGroupTag.Key, BlockGroupTag.Create(scriptId, json.u));
+            json.d.SetStringDictionaryValue(BlockGroupTag.Key, BlockGroupTag.Create(script.Id, json.u));
 
             foreach (var setting in block.Settings)
             {
@@ -39,6 +40,9 @@ internal static class CompiledBlockJson
 
             jsons.Add(json);
         }
+
+        if (jsons.Count > 0)
+            LevelScripts.Write(jsons[0].d, script);
 
         foreach (var wire in result.Wires)
         {

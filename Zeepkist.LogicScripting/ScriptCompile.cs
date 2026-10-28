@@ -5,6 +5,7 @@ using BepInEx.Logging;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Layout;
+using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 using UnityEngine;
 using ZeepSDK.Utilities;
 
@@ -12,17 +13,21 @@ namespace TNRD.Zeepkist.LogicScripting;
 
 /// <summary>
 /// Compiles a Script and places its blocks in the open level: a first Compile in front of the camera, a recompile in
-/// place of the Script's Block Group.
+/// place of the Script's Block Group. The Script's name and text go into the level with its blocks, in the same undo
+/// step (ADR 0006).
 /// </summary>
 internal static class ScriptCompile
 {
     private const string UndoLabel = "Logic Scripting Compile";
 
+    // Its text is stored on one of its blocks
+    private const string NotStoredMessage = "a Script that places no blocks isn't stored in the level";
+
     /// <summary>
-    /// Returns the result to show in the window: one line, or the error list. The new blocks replace the Block Group
-    /// of the Script with <paramref name="scriptId"/>.
+    /// Returns the result to show in the window: one line, or the error list. The new blocks replace the Script's Block
+    /// Group.
     /// </summary>
-    public static string Run(string text, string scriptId, StartupCheck check, ManualLogSource logger)
+    public static string Run(StoredScript script, StartupCheck check, ManualLogSource logger)
     {
         var central = ComponentCache.Get<LEV_LevelEditorCentral>();
         if (central == null)
@@ -31,13 +36,13 @@ internal static class ScriptCompile
         if (central.gizmos.isGrabbing)
             return "Let go of the grabbed blocks to compile";
 
-        var group = BlockGroups.Find(central, scriptId);
+        var group = BlockGroups.Find(central, script.Id);
         var right = central.cam.cameraTransform.right;
         var quarterTurns = group.Count > 0
             ? BlockGroupPlacement.GetMajorityQuarterTurns(group.Select(b => b.transform.eulerAngles.y))
             : ScriptCompiler.GetQuarterTurnsFacing(right.x, right.z);
 
-        var result = Check(central, text, scriptId, check, quarterTurns);
+        var result = Check(central, script.Text, script.Id, check, quarterTurns);
         if (!result.Succeeded)
             return FormatErrors(result);
 
@@ -45,13 +50,13 @@ internal static class ScriptCompile
             return $"No errors, but {StartupCheck.UpdateNeededMessage}; nothing placed";
 
         if (result.Blocks.Count == 0 && result.PlacedWires.Count == 0 && group.Count == 0)
-            return "Nothing to place";
+            return $"Nothing to place; {NotStoredMessage}";
 
         int lostWires;
         try
         {
             var origin = group.Count > 0 ? GetGroupOrigin(group, result, quarterTurns) : GetPlacementPoint(central);
-            var jsons = CompiledBlockJson.Create(result, origin, scriptId);
+            var jsons = CompiledBlockJson.Create(result, origin, script);
             var placedWires = CompiledBlockJson.CreatePlacedWires(result, jsons);
             lostWires = BlockGroups.CountWiresNotRemade(group, placedWires);
             BlockBatch.Apply(central, jsons, group, placedWires, UndoLabel);
@@ -69,6 +74,9 @@ internal static class ScriptCompile
         var wiredBlocks = result.WiredPlacedBlockCount;
         if (wiredBlocks > 0)
             line += $", wired to {wiredBlocks} placed blocks";
+
+        if (result.Blocks.Count == 0)
+            line += group.Count > 0 ? "; the Script is no longer stored in the level" : $"; {NotStoredMessage}";
 
         if (lostWires > 0)
             line += $"\nRemoved {lostWires} Wires between the group and other blocks that this Compile doesn't make again; to keep a hand-made one, wire the block in the Script with placed(...)";

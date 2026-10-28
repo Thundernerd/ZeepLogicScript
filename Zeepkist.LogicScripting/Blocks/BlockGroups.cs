@@ -45,6 +45,22 @@ internal static class BlockGroups
     }
 
     /// <summary>
+    /// Makes <paramref name="group"/> the editor's selection, as one undo step like a click selection.
+    /// </summary>
+    public static void Select(LEV_LevelEditorCentral central, List<BlockProperties> group)
+    {
+        var selection = central.selection;
+        var before = central.undoRedo.ConvertSelectionToStringList(selection.list);
+        selection.DeselectAllBlocks(false, nameof(Select));
+        foreach (var block in group)
+        {
+            selection.AddThisBlock(block);
+        }
+
+        selection.RegisterManualSelectionBreakLock(before, central.undoRedo.ConvertSelectionToStringList(selection.list));
+    }
+
+    /// <summary>
     /// How many of the group's Wires to blocks outside it a Replace removes without <paramref name="placedWires"/>
     /// making them again, matched by the outside block's Connector. A hand-made Wire into the group is one of these.
     /// </summary>
