@@ -39,37 +39,40 @@ internal sealed class OrphanedGroupsPanel
             return null;
         }
 
-        gui.Text("Orphaned Groups");
+        gui.Text("Orphaned Groups", wrap: true);
         gui.Text("Blocks of Scripts whose text the level no longer holds. They can't be recompiled.", wrap: true);
 
         OrphanedGroup restored = null;
         foreach (var orphan in orphanedGroups)
         {
             var name = orphan.Draft?.Name ?? "Unnamed";
-            gui.Text(orphan.BlockCount == 1 ? $"{name}, 1 block" : $"{name}, {orphan.BlockCount} blocks");
+            gui.Text(orphan.BlockCount == 1 ? $"{name}, 1 block" : $"{name}, {orphan.BlockCount} blocks", wrap: true);
+
+            // Three short buttons share a row and the long one gets its own, so both fit the narrow Scripts side
             gui.AddSpacingIfLayoutFrameNotEmpty();
-            gui.BeginHorizontal();
-            if (gui.Button("Delete", ImSizeMode.Fit))
+            var row = gui.AddSingleRowRect(default);
+            var third = (row.W - (gui.Style.Layout.Spacing * 2)) / 3;
+            var deleteRect = row.TakeLeft(third, gui.Style.Layout.Spacing, out var rest);
+            var untagRect = rest.TakeLeft(third, gui.Style.Layout.Spacing, out var selectRect);
+            if (gui.Button("Delete", deleteRect))
                 Edit(orphan, "Deleted", BlockGroupEdits.Delete);
 
-            if (gui.Button("Untag", ImSizeMode.Fit))
+            if (gui.Button("Untag", untagRect))
                 Edit(orphan, "Untagged", BlockGroupEdits.Untag);
 
             gui.TooltipAtLastControl("Keep the blocks as plain Logic Blocks");
 
-            if (gui.Button("Select", ImSizeMode.Fit))
+            if (gui.Button("Select", selectRect))
                 Select(orphan);
 
             gui.BeginReadOnly(orphan.Draft == null);
-            if (gui.Button("Restore from Draft", ImSizeMode.Fit) && orphan.Draft != null)
+            if (gui.Button("Restore from Draft") && orphan.Draft != null)
                 restored = orphan;
 
             gui.EndReadOnly();
             gui.TooltipAtLastControl(orphan.Draft == null
                 ? "This machine has no Draft of this Script"
                 : "Bring the Script back from this machine's Draft; Compile to store it in the level again");
-
-            gui.EndHorizontal();
         }
 
         if (_message.Length > 0)
