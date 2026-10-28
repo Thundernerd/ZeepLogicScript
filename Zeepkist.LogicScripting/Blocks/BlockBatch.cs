@@ -14,8 +14,9 @@ internal static partial class BlockBatch
     private const string KeyPaintBase = "p";
 
     /// <summary>
-    /// Wires between <paramref name="adds"/> go in their JSON; each of <paramref name="wires"/> has at least one end on
-    /// a block already in the level. Blocks that stay are recorded as changed when they lose a Wire to a removed block
+    /// Registers everything as one undo step named <paramref name="label"/>. Wires between
+    /// <paramref name="adds"/> go in their JSON; each of <paramref name="wires"/> has at least one end on a block
+    /// already in the level. Blocks that stay are recorded as changed when they lose a Wire to a removed block
     /// or gain one of <paramref name="wires"/>, so undo restores them exactly. If anything throws, the added blocks are
     /// removed again, the removed ones come back, the changed ones get their old state back, no undo step is registered
     /// and the exception is rethrown.

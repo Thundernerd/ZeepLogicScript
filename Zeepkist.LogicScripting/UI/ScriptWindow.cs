@@ -118,7 +118,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     }
 
     /// <summary>
-    /// Call when the mod unloads too, or the level editor's input stays blocked.
+    /// Also call when the mod unloads, or the level editor's input stays blocked.
     /// </summary>
     public void ReleaseInput()
     {

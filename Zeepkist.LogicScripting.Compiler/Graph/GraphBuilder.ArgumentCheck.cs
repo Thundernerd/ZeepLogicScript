@@ -32,7 +32,7 @@ internal sealed partial class GraphBuilder
         public WiredInput?[] Inputs { get; }
 
         /// <summary>
-        /// Several stored Settings for a Toggler's targets.
+        /// The stored Settings per Setting given; several for a Toggler's targets.
         /// </summary>
         public Dictionary<BlockSetting, IReadOnlyList<Setting>> Settings { get; } = [];
 
@@ -115,7 +115,7 @@ internal sealed partial class GraphBuilder
         }
 
         /// <summary>
-        /// A required Setting a misspelt name was probably meant as has already been reported.
+        /// Skips a required Setting that a misspelt name was probably meant as; that name was already reported.
         /// </summary>
         public void CheckRequiredSettings()
         {

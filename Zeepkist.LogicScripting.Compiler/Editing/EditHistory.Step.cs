@@ -9,16 +9,13 @@ public sealed partial class EditHistory
             Kind = kind;
             Before = before;
             After = after;
-            Time = time;
+            LastChanged = time;
         }
 
         public StepKind Kind { get; }
         public TextSnapshot Before { get; }
         public TextSnapshot After { get; set; }
 
-        /// <summary>
-        /// When the step last changed.
-        /// </summary>
-        public double Time { get; set; }
+        public double LastChanged { get; set; }
     }
 }

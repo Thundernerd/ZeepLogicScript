@@ -101,14 +101,14 @@ internal static class Lexer
         }
 
         tokens.Add(new Token(TokenKind.End, string.Empty, CurrentPosition()));
-        return JoinBracketedLines(tokens);
+        return JoinParenthesizedLines(tokens);
     }
 
     /// <summary>
     /// Drops the line breaks inside each matched pair of parentheses and flags opening ones that are never closed. An
     /// unclosed parenthesis doesn't swallow the lines after it, so they're still checked on their own.
     /// </summary>
-    private static List<Token> JoinBracketedLines(List<Token> tokens)
+    private static List<Token> JoinParenthesizedLines(List<Token> tokens)
     {
         Stack<int> open = new();
         var matched = new bool[tokens.Count];
