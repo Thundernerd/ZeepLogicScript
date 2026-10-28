@@ -105,6 +105,9 @@ internal sealed class ScriptListPanel
             _namePrompt.OpenNew();
         }
 
+        if (_scripts.Entries.Count > 0)
+            gui.Text("Right-click a Script to rename it, select its blocks or delete it", WindowColors.Muted, wrap: true);
+
         var named = _namePrompt.Draw(gui, _scripts);
         if (named != null)
         {
