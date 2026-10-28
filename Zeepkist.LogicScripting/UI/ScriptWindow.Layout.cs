@@ -111,8 +111,8 @@ internal sealed partial class ScriptWindow
     }
 
     /// <summary>
-    /// Imui only takes this rect when it shows the window again, so it's where the window last was, kept on screen in
-    /// case the resolution changed since.
+    /// Imui only takes this rect when it first makes the window and keeps its own rect after that, through test mode
+    /// too. So it's where the window was in an earlier session, kept on screen in case the resolution changed since.
     /// </summary>
     private ImRect GetInitialRect(ImGui gui)
     {
@@ -136,17 +136,20 @@ internal sealed partial class ScriptWindow
     private BlockProperties DrawRegions(ImGui gui)
     {
         var area = gui.Layout.AddRect(gui.GetLayoutWidth(), gui.GetLayoutHeight());
-        var collapsedWidth = gui.GetRowHeight() + (gui.Style.Layout.Spacing * 2);
-        var fits = area.W - ScriptsWidth - LevelWidth >= MinCentreWidth;
-        var scriptsCollapsed = _state.ScriptsCollapsed || !fits;
-        var levelCollapsed = _state.LevelCollapsed || !fits;
+        var collapsedWidth = GetSideHeaderHeight(gui);
+
+        // The Level side gives way first; the Scripts side only when the centre still doesn't fit without both
+        var levelFits = area.W - ScriptsWidth - LevelWidth >= MinCentreWidth;
+        var scriptsFits = area.W - ScriptsWidth - collapsedWidth >= MinCentreWidth;
+        var scriptsCollapsed = _state.ScriptsCollapsed || !scriptsFits;
+        var levelCollapsed = _state.LevelCollapsed || !levelFits;
 
         var scripts = area.TakeLeft(scriptsCollapsed ? collapsedWidth : ScriptsWidth, out var rest);
         var level = rest.TakeRight(levelCollapsed ? collapsedWidth : LevelWidth, out var centre);
         DrawDivider(gui, scripts.Right - 1, area);
         DrawDivider(gui, level.X, area);
 
-        if (DrawSideHeader(gui, scripts, "Scripts", scriptsCollapsed, buttonOnRight: true) && fits)
+        if (DrawSideHeader(gui, scripts, "Scripts", scriptsCollapsed, buttonOnRight: true, canToggle: scriptsFits))
             _state.ScriptsCollapsed = !_state.ScriptsCollapsed;
 
         if (!scriptsCollapsed)
@@ -158,7 +161,7 @@ internal sealed partial class ScriptWindow
 
         DrawCentre(gui, centre);
 
-        if (DrawSideHeader(gui, level, "Level", levelCollapsed, buttonOnRight: false) && fits)
+        if (DrawSideHeader(gui, level, "Level", levelCollapsed, buttonOnRight: false, canToggle: levelFits))
             _state.LevelCollapsed = !_state.LevelCollapsed;
 
         return levelCollapsed ? null : DrawLevelTabs(gui, GetSideBody(gui, level));
@@ -181,9 +184,10 @@ internal sealed partial class ScriptWindow
     }
 
     /// <summary>
-    /// Returns whether the collapse button was clicked. A collapsed side is only that button.
+    /// Returns whether the collapse button was clicked. A collapsed side is only that button, which is greyed out while
+    /// the window is too narrow to show the side.
     /// </summary>
-    private static bool DrawSideHeader(ImGui gui, ImRect side, string label, bool collapsed, bool buttonOnRight)
+    private static bool DrawSideHeader(ImGui gui, ImRect side, string label, bool collapsed, bool buttonOnRight, bool canToggle)
     {
         var size = gui.GetRowHeight();
         var row = side.TakeTop(GetSideHeaderHeight(gui)).WithPadding(gui.Style.Layout.Spacing);
@@ -192,8 +196,14 @@ internal sealed partial class ScriptWindow
         if (!collapsed)
             gui.Text(label, new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f), labelRect);
 
-        var clicked = gui.Button(collapsed == buttonOnRight ? "»" : "«", buttonRect);
-        gui.TooltipAtLastControl(collapsed ? $"Show the {label} panel" : $"Hide the {label} panel");
+        gui.BeginReadOnly(!canToggle);
+        var clicked = gui.Button(collapsed == buttonOnRight ? "»" : "«", buttonRect) && canToggle;
+        gui.EndReadOnly();
+        if (!canToggle)
+            gui.TooltipAtLastControl($"Make the window wider to show the {label} panel");
+        else
+            gui.TooltipAtLastControl(collapsed ? $"Show the {label} panel" : $"Hide the {label} panel");
+
         return clicked;
     }
 
