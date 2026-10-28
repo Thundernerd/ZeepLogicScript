@@ -64,9 +64,9 @@ public static class BlockGroupPlacement
     /// </summary>
     private static (float X, float Z) GetStartCorner(GroupBlock block, int quarterTurns)
     {
-        var minX = (block.Style?.MinX ?? 0) * GridCell.Size;
-        var maxX = (block.Style?.MaxX ?? 0) * GridCell.Size;
-        var maxZ = ((block.Style?.Length ?? 1) - 1) * GridCell.Size;
+        var minX = block.Style.MinX * GridCell.Size;
+        var maxX = block.Style.MaxX * GridCell.Size;
+        var maxZ = (block.Style.Length - 1) * GridCell.Size;
 
         var turns = QuarterTurns.FromDegrees(block.Yaw) - quarterTurns;
         var first = QuarterTurns.Rotate(minX, 0, turns);

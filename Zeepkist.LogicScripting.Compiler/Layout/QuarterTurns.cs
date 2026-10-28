@@ -7,17 +7,11 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Layout;
 /// </summary>
 internal static class QuarterTurns
 {
-    /// <summary>
-    /// The same turn as 0 to 3 quarter turns.
-    /// </summary>
     public static int Normalize(int quarterTurns)
     {
         return ((quarterTurns % 4) + 4) % 4;
     }
 
-    /// <summary>
-    /// The nearest number of quarter turns to a yaw in degrees, from 0 to 3.
-    /// </summary>
     public static int FromDegrees(double degrees)
     {
         return Normalize((int)Math.Round(degrees / 90));
