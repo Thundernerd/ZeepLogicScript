@@ -27,8 +27,8 @@ internal sealed class ReferencePanel
     }
 
     /// <summary>
-    /// Kept out of the scrolling entries, so dragging to scroll can't take the click, and named, so its id doesn't
-    /// depend on what was drawn before it.
+    /// Named, so its id can't match a scroll area's numbered one: a scroll area whose id is active takes it back on
+    /// mouse up, which is how the field lost every click while it was the first control in a tab.
     /// </summary>
     public void DrawFilter(ImGui gui, ImRect rect)
     {

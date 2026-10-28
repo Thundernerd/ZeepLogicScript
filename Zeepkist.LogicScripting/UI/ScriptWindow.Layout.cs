@@ -304,8 +304,11 @@ internal sealed partial class ScriptWindow
             _showReference = true;
 
         gui.Box(content, in gui.Style.Tabs.ContainerBox);
+
+        // A scope per tab, so their scroll areas don't share one id, and with it one scroll position
         if (_showReference)
         {
+            gui.PushId(ReferenceTab);
             var spacing = gui.Style.Layout.Spacing;
             var filter = content.WithPadding(spacing).TakeTop(gui.GetRowHeight(), out _);
             content.TakeTop(gui.GetRowHeight() + spacing, out var entries);
@@ -313,9 +316,11 @@ internal sealed partial class ScriptWindow
             WindowRegion.Begin(gui, entries);
             _referencePanel.DrawEntries(gui);
             WindowRegion.End(gui);
+            gui.PopId();
             return null;
         }
 
+        gui.PushId(PlacedBlocksTab);
         BlockProperties hovered = null;
         WindowRegion.Begin(gui, content);
         if (_current == null)
@@ -330,6 +335,7 @@ internal sealed partial class ScriptWindow
         }
 
         WindowRegion.End(gui);
+        gui.PopId();
         return hovered;
     }
 }
