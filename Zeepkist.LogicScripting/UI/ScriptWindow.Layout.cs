@@ -30,6 +30,7 @@ internal sealed partial class ScriptWindow
     private const int ProblemRows = 5;
 
     private WindowState _savedState;
+    private bool _showReference;
 
     public void SetOpen(bool open)
     {
@@ -123,6 +124,9 @@ internal sealed partial class ScriptWindow
         DrawDivider(gui, scripts.Right - 1, area);
         DrawDivider(gui, level.X, area);
 
+        // Imui numbers controls in drawing order, so each region gets its own scope: a new error row in the centre
+        // must not change the ids, and so the focus and state, of the controls drawn after it
+        gui.PushId("scripts");
         if (DrawSideHeader(gui, scripts, "Scripts", scriptsCollapsed, buttonOnRight: true, canToggle: scriptsFits))
             _state.ScriptsCollapsed = !_state.ScriptsCollapsed;
 
@@ -133,12 +137,18 @@ internal sealed partial class ScriptWindow
             WindowRegion.End(gui);
         }
 
+        gui.PopId();
+        gui.PushId("centre");
         DrawCentre(gui, centre);
+        gui.PopId();
 
+        gui.PushId("level");
         if (DrawSideHeader(gui, level, "Level", levelCollapsed, buttonOnRight: false, canToggle: levelFits))
             _state.LevelCollapsed = !_state.LevelCollapsed;
 
-        return levelCollapsed ? null : DrawLevelTabs(gui, GetSideBody(gui, level));
+        var hovered = levelCollapsed ? null : DrawLevelTabs(gui, GetSideBody(gui, level));
+        gui.PopId();
+        return hovered;
     }
 
     private static void DrawDivider(ImGui gui, float x, ImRect area)
@@ -265,34 +275,40 @@ internal sealed partial class ScriptWindow
             gui.Text($"Turned off for this game version: {string.Join(", ", _startupCheck.DisabledBlocks)}", WindowColors.Error, wrap: true);
     }
 
+    /// <summary>
+    /// The window keeps which tab is shown rather than Imui's tabs pane, whose choice is lost when the Level side is
+    /// collapsed and doesn't draw it.
+    /// </summary>
     private BlockProperties DrawLevelTabs(ImGui gui, ImRect rect)
     {
-        BlockProperties hovered = null;
-        gui.BeginTabsPane(rect.WithPadding(gui.Style.Layout.Spacing));
+        var bar = rect.WithPadding(gui.Style.Layout.Spacing).TakeTop(ImTabsPane.GetTabBarHeight(gui), out var content);
+        var placedRect = bar.TakeLeft(bar.W / 2, out var referenceRect);
         var count = PlacedBlocksPanel.CountRows(_check);
-        if (gui.BeginTab(count == 0 ? "Placed blocks" : $"Placed blocks ({count})"))
-        {
-            if (_current == null)
-            {
-                gui.Text("No Script selected", wrap: true);
-            }
-            else
-            {
-                hovered = _placedBlocksPanel.Draw(gui, _check, _editor, out var edited);
-                if (edited)
-                    OnEdited();
-            }
+        if (ImTabsPane.TabBarButton(gui, gui.GetNextControlId(), !_showReference, count == 0 ? "Placed blocks" : $"Placed blocks ({count})", placedRect))
+            _showReference = false;
 
-            gui.EndTab();
-        }
+        if (ImTabsPane.TabBarButton(gui, gui.GetNextControlId(), _showReference, "Reference", referenceRect))
+            _showReference = true;
 
-        if (gui.BeginTab("Reference"))
+        gui.Box(content, in gui.Style.Tabs.ContainerBox);
+        BlockProperties hovered = null;
+        WindowRegion.Begin(gui, content);
+        if (_showReference)
         {
             _referencePanel.Draw(gui);
-            gui.EndTab();
+        }
+        else if (_current == null)
+        {
+            gui.Text("No Script selected", wrap: true);
+        }
+        else
+        {
+            hovered = _placedBlocksPanel.Draw(gui, _check, _editor, out var edited);
+            if (edited)
+                OnEdited();
         }
 
-        gui.EndTabsPane();
+        WindowRegion.End(gui);
         return hovered;
     }
 }
