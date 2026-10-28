@@ -5,7 +5,7 @@ using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
 /// <summary>
-/// Colours a Script with the compiler's own lexer, so the editor and Compile read the text the same way.
+/// Colors a Script with the compiler's own lexer, so the editor and Compile read the text the same way.
 /// </summary>
 public static class ScriptHighlighter
 {

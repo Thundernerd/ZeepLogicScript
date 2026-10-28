@@ -22,7 +22,7 @@ public sealed class CompiledBlock
     public IReadOnlyList<Setting> Settings { get; }
 
     /// <summary>
-    /// The block's pivot cell, in world axes, relative to the group's centre.
+    /// The block's pivot cell, in world axes, relative to the group's center.
     /// </summary>
     public GridCell Cell { get; }
 

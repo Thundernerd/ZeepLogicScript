@@ -3,7 +3,7 @@ using UnityEngine;
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// The few colours the window adds to the ZeepSDK theme.
+/// The few colors the window adds to the ZeepSDK theme.
 /// </summary>
 internal static class WindowColors
 {

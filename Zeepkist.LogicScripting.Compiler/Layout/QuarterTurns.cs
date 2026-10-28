@@ -18,7 +18,7 @@ internal static class QuarterTurns
     }
 
     /// <summary>
-    /// Rotates a point about the Y axis the way a block's yaw does: +Z turns towards +X.
+    /// Rotates a point about the Y axis the way a block's yaw does: +Z turns toward +X.
     /// </summary>
     public static (float X, float Z) Rotate(float x, float z, int quarterTurns)
     {

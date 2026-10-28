@@ -31,6 +31,10 @@
 - Subscribe to events in `Awake`/`Start` and unsubscribe from every one of them in `OnDestroy`.
 - Keep scene searches (`FindObjectOfType` and friends) out of `Update`, other per-frame methods, and loops. Look things up once and cache the result.
 
+## Spelling
+
+Write American English in code, comments, docs and UI text (`color`, `center`, `canceled`). Names the game or a library defines keep their own spelling.
+
 ## Names
 
 Use the domain terms from `CONTEXT.md` in type, member, and file names, so the code reads in the same language as the design notes.

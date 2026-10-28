@@ -3,7 +3,7 @@ using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// How the Script list and the centre header show a <see cref="ScriptMark"/>.
+/// How the Script list and the center header show a <see cref="ScriptMark"/>.
 /// </summary>
 internal static class ScriptMarkText
 {

@@ -5,7 +5,7 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal sealed partial class ScriptEditor
 {
     /// <summary>
-    /// A piece of one line drawn in one colour.
+    /// A piece of one line drawn in one color.
     /// </summary>
     private readonly struct TextRun
     {

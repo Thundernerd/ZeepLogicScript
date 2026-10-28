@@ -271,7 +271,7 @@ public static class BlockManifest
         [],
         PlayerOrEveryone);
 
-    // Slightly over two cells wide, centred on its pivot, so it reaches into the cells on both sides
+    // Slightly over two cells wide, centered on its pivot, so it reaches into the cells on both sides
     public static readonly BlockType ForceGiver = new(
         "force_giver",
         [new BlockStyle(null, 2446, 3, minX: -1, maxX: 1)],

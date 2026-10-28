@@ -7,7 +7,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Tests;
 public class ScriptHighlighterTests
 {
     [Fact]
-    public void EachToken_GetsTheColourOfItsKind()
+    public void EachToken_GetsTheColorOfItsKind()
     {
         const string Text = "x = logic(a, 12) & placed(\"U\")";
 

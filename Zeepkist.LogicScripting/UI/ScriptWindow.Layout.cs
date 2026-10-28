@@ -9,7 +9,7 @@ using UnityEngine;
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// The window itself: three regions side by side, Scripts on the left, the current Script in the centre and the
+/// The window itself: three regions side by side, Scripts on the left, the current Script in the center and the
 /// level on the right, whose sides collapse to a strip. The sides and the error panel under the editor are resized by
 /// dragging their inner edge, and the error panel hides to its header. Open state, size, position, panel sizes and
 /// collapsed panels are kept in the <see cref="WindowState"/>.
@@ -29,7 +29,7 @@ internal sealed partial class ScriptWindow
     /// <summary>
     /// Narrower than this, the sides draw collapsed whatever the state says, so the editor stays usable.
     /// </summary>
-    private const float MinCentreWidth = 280;
+    private const float MinCenterWidth = 280;
 
     private const int DefaultErrorRows = 5;
     private const int MinErrorRows = 1;
@@ -124,19 +124,19 @@ internal sealed partial class ScriptWindow
         var collapsedWidth = GetPanelHeaderHeight(gui);
         var minLevelWidth = GetMinLevelWidth(gui);
 
-        // The Level side gives way first; the Scripts side only when the centre still doesn't fit without both
-        var levelFits = area.W - (_state.ScriptsCollapsed ? collapsedWidth : MinScriptsWidth) - minLevelWidth >= MinCentreWidth;
-        var scriptsFits = area.W - MinScriptsWidth - collapsedWidth >= MinCentreWidth;
+        // The Level side gives way first; the Scripts side only when the center still doesn't fit without both
+        var levelFits = area.W - (_state.ScriptsCollapsed ? collapsedWidth : MinScriptsWidth) - minLevelWidth >= MinCenterWidth;
+        var scriptsFits = area.W - MinScriptsWidth - collapsedWidth >= MinCenterWidth;
         var scriptsCollapsed = _state.ScriptsCollapsed || !scriptsFits;
         var levelCollapsed = _state.LevelCollapsed || !levelFits;
 
-        // Before collapsing, the sides shrink to make room for the centre, the Level side first. The state keeps the
+        // Before collapsing, the sides shrink to make room for the center, the Level side first. The state keeps the
         // size they were given, so they grow back when the window does.
-        var maxScriptsWidth = area.W - MinCentreWidth - (levelCollapsed ? collapsedWidth : minLevelWidth);
+        var maxScriptsWidth = area.W - MinCenterWidth - (levelCollapsed ? collapsedWidth : minLevelWidth);
         var scriptsWidth = scriptsCollapsed
             ? collapsedWidth
             : GetPanelSize(_state.ScriptsWidth, DefaultScriptsWidth, MinScriptsWidth, maxScriptsWidth);
-        var maxLevelWidth = area.W - MinCentreWidth - scriptsWidth;
+        var maxLevelWidth = area.W - MinCenterWidth - scriptsWidth;
         var levelWidth = levelCollapsed
             ? collapsedWidth
             : GetPanelSize(_state.LevelWidth, minLevelWidth, minLevelWidth, maxLevelWidth);
@@ -150,13 +150,13 @@ internal sealed partial class ScriptWindow
             _state.LevelWidth = ClampSize(draggedLevelWidth, minLevelWidth, maxLevelWidth);
 
         var scripts = area.TakeLeft(scriptsWidth, out var rest);
-        var level = rest.TakeRight(levelWidth, out var centre);
+        var level = rest.TakeRight(levelWidth, out var center);
         var scriptsEdge = new ImRect(scripts.Right - 1, area.Y, 1, area.H);
         var levelEdge = new ImRect(level.X, area.Y, 1, area.H);
         DrawDivider(gui, scriptsEdge);
         DrawDivider(gui, levelEdge);
 
-        // Imui numbers controls in drawing order, so each region gets its own scope: a new error row in the centre
+        // Imui numbers controls in drawing order, so each region gets its own scope: a new error row in the center
         // must not change the ids, and so the focus and state, of the controls drawn after it
         gui.PushId("scripts");
         if (DrawSideHeader(gui, scripts, "Scripts", scriptsCollapsed, buttonOnRight: true, canToggle: scriptsFits))
@@ -170,8 +170,8 @@ internal sealed partial class ScriptWindow
         }
 
         gui.PopId();
-        gui.PushId("centre");
-        DrawCentre(gui, centre);
+        gui.PushId("center");
+        DrawCenter(gui, center);
         gui.PopId();
 
         gui.PushId("level");
@@ -236,7 +236,7 @@ internal sealed partial class ScriptWindow
     }
 
     /// <summary>
-    /// Returns whether the collapse button was clicked. A collapsed side is only that button, which is greyed out while
+    /// Returns whether the collapse button was clicked. A collapsed side is only that button, which is grayed out while
     /// the window is too narrow to show the side.
     /// </summary>
     private static bool DrawSideHeader(ImGui gui, ImRect side, string label, bool collapsed, bool buttonOnRight, bool canToggle)
@@ -264,7 +264,7 @@ internal sealed partial class ScriptWindow
     /// error list and result line in a region of their own, so a long list scrolls instead of pushing the editor away.
     /// The editor takes the height the panel doesn't.
     /// </summary>
-    private void DrawCentre(ImGui gui, ImRect rect)
+    private void DrawCenter(ImGui gui, ImRect rect)
     {
         gui.Layout.Push(ImAxis.Vertical, rect.WithPadding(gui.Style.Layout.Spacing));
         DrawStartupCheck(gui);
@@ -320,7 +320,7 @@ internal sealed partial class ScriptWindow
 
         WindowRegion.End(gui);
 
-        // Centred in the gap above the panel, so the grab strip takes as little as it can of the editor's edge
+        // Centered in the gap above the panel, so the grab strip takes as little as it can of the editor's edge
         var edge = new ImRect(errors.X, errors.Top + (spacing / 2), errors.W, 0);
         _errorsEdge.Draw(gui, errorsEdgeId, edge, _errorsEdge.GrabAround(edge));
     }
@@ -377,7 +377,7 @@ internal sealed partial class ScriptWindow
     }
 
     /// <summary>
-    /// Stays up while the level is missing the Script's text: leaving the editor can't be cancelled to save it.
+    /// Stays up while the level is missing the Script's text: leaving the editor can't be canceled to save it.
     /// </summary>
     private void DrawStorageWarning(ImGui gui)
     {
