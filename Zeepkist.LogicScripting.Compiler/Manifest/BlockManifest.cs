@@ -191,19 +191,17 @@ public static class BlockManifest
 
     public static readonly BlockType DateTimer = new(
         "date_timer",
-        2430,
-        3,
+        [new BlockStyle(null, 2430, 3, maxX: 1)],
         [],
         Numbered(0, "year", "month", "day", "hour", "minute", "second"),
-        BlockSetting.Bool("utc", "utc"));
+        [BlockSetting.Bool("utc", "utc")]);
 
     public static readonly BlockType PlayerInput = new(
         "player_input",
-        2438,
-        2,
+        [new BlockStyle(null, 2438, 2, minX: -1)],
         [],
         Numbered(0, "arms_up", "brake", "left", "right", "analog_left", "analog_right", "horn"),
-        OnePlayer);
+        [OnePlayer]);
 
     public static readonly BlockType SimpleTelemetry = new(
         "simple_telemetry",
@@ -219,12 +217,10 @@ public static class BlockManifest
 
     public static readonly BlockType WheelTelemetry = new(
         "wheel_telemetry",
-        2441,
-        3,
+        [new BlockStyle(null, 2441, 3, minX: -1)],
         [],
         Numbered(0, "all", "any", "lf", "rf", "lr", "rr"),
-        OnePlayer,
-        BlockSetting.Option("mode", "xbs", "grounded", "slipping", "surface", "physics_material"));
+        [OnePlayer, BlockSetting.Option("mode", "xbs", "grounded", "slipping", "surface", "physics_material")]);
 
     public static readonly BlockType Passthrough = new(
         "passthrough",
@@ -275,16 +271,18 @@ public static class BlockManifest
         [],
         PlayerOrEveryone);
 
+    // Slightly over two cells wide, centred on its pivot, so it reaches into the cells on both sides
     public static readonly BlockType ForceGiver = new(
         "force_giver",
-        2446,
-        3,
+        [new BlockStyle(null, 2446, 3, minX: -1, maxX: 1)],
         Numbered(0, "enable", "x", "y", "z"),
         [],
-        PlayerOrEveryone,
-        BlockSetting.Option("force_mode", "xfm", "acceleration", "force", "impulse", "velocity_change"),
-        BlockSetting.Option("space", "xco", "local", "global", "follow_velocity", "local_rotation", "global_rotation"),
-        BlockSetting.Option("particles", "xpt", "none", "booster", "slowster", "feather", "flying", "fan"));
+        [
+            PlayerOrEveryone,
+            BlockSetting.Option("force_mode", "xfm", "acceleration", "force", "impulse", "velocity_change"),
+            BlockSetting.Option("space", "xco", "local", "global", "follow_velocity", "local_rotation", "global_rotation"),
+            BlockSetting.Option("particles", "xpt", "none", "booster", "slowster", "feather", "flying", "fan")
+        ]);
 
     // Its ~59 multipliers come later
     public static readonly BlockType PropertyMultiplier = new(
