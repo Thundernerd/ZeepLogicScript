@@ -88,7 +88,10 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     public void OnZeepGUI(ImGui gui)
     {
         // Outside the editor nothing changes the Scripts any more, so waiting longer could only lose the last edits
-        _draftSaver.Update(now: !LevelEditorApi.IsInLevelEditor);
+        if (LevelEditorApi.IsInLevelEditor)
+            _draftSaver.Update();
+        else
+            _draftSaver.SavePending();
         SaveStateWhenSettled();
 
         // Hidden, not closed: the window comes back where it was after test mode
@@ -236,12 +239,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
             OnEdited();
         }
 
-        _fieldFocused = gui.IsControlActive(_editor.Id);
-        if (_fieldFocused && Input.GetKeyDown(KeyCode.Escape))
-        {
-            gui.ResetActiveControl();
-            _fieldFocused = false;
-        }
+        _fieldFocused = FieldFocus.Update(gui, _editor.Id);
 
         return compileRequested;
     }

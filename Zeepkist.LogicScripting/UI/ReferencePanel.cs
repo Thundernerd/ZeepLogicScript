@@ -1,7 +1,6 @@
 using Imui.Controls;
 using Imui.Core;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
-using UnityEngine;
 
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
@@ -28,12 +27,7 @@ internal sealed class ReferencePanel
         var id = gui.GetNextControlId();
         ref var state = ref gui.Storage.Get<ImTextEditState>(id);
         gui.TextEdit(id, ref _filter, ref state, rect, false);
-        FilterFocused = gui.IsControlActive(id);
-        if (FilterFocused && Input.GetKeyDown(KeyCode.Escape))
-        {
-            gui.ResetActiveControl();
-            FilterFocused = false;
-        }
+        FilterFocused = FieldFocus.Update(gui, id);
 
         if (_filter.Length == 0)
             gui.TooltipAtLastControl("Filter by name, input, output or option");

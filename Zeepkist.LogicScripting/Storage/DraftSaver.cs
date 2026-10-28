@@ -28,11 +28,20 @@ internal sealed class DraftSaver
     }
 
     /// <summary>
-    /// Call every frame; <paramref name="now"/> saves a pending change without waiting.
+    /// Call every frame.
     /// </summary>
-    public void Update(bool now)
+    public void Update()
     {
-        if (_saveTime != null && (now || Time.unscaledTime >= _saveTime))
+        if (_saveTime != null && Time.unscaledTime >= _saveTime)
+            Save();
+    }
+
+    /// <summary>
+    /// Saves a requested change without waiting for the delay.
+    /// </summary>
+    public void SavePending()
+    {
+        if (_saveTime != null)
             Save();
     }
 
