@@ -36,11 +36,6 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private const float CheckDelay = 0.4f;
 
     /// <summary>
-    /// Seconds after the last change before the Drafts are saved, so they aren't written on every key while typing.
-    /// </summary>
-    private const float DraftDelay = 1;
-
-    /// <summary>
     /// The underlines still show every error.
     /// </summary>
     private const int MaxListedErrors = 8;
@@ -52,7 +47,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private readonly PlacedBlockHighlight _highlight = new();
     private readonly ScriptList _scripts = new();
     private readonly DraftStore _drafts;
-    private readonly DraftChanges _draftChanges = new();
+    private readonly DraftSaver _draftSaver;
 
     // One each, so every Script keeps its own caret and undo
     private readonly Dictionary<ScriptId, ScriptEditor> _editors = [];
@@ -69,7 +64,6 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private CompileResult _check;
     private string _checkedText;
     private float _nextCheckTime;
-    private float? _draftSaveTime;
     private bool _open;
     private bool _mouseOver;
     private bool _fieldFocused;
@@ -83,14 +77,14 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         _logger = logger;
         _startupCheck = startupCheck;
         _drafts = drafts;
+        _draftSaver = new DraftSaver(drafts, _scripts);
         _orphanedGroupsPanel = new OrphanedGroupsPanel(logger);
     }
 
     public void OnZeepGUI(ImGui gui)
     {
         // Outside the editor nothing changes the Scripts any more, so waiting longer could only lose the last edits
-        if (_draftSaveTime != null && (Time.unscaledTime >= _draftSaveTime || !LevelEditorApi.IsInLevelEditor))
-            SaveDrafts();
+        _draftSaver.Update(now: !LevelEditorApi.IsInLevelEditor);
 
         if (!LevelEditorApi.IsInLevelEditor || LevelEditorApi.IsTestingLevel)
         {
@@ -150,11 +144,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     /// </summary>
     public void SaveDrafts()
     {
-        _draftSaveTime = null;
-        foreach (var draft in _draftChanges.TakeChanged(_scripts.Entries, _drafts.Find))
-        {
-            _drafts.Save(draft);
-        }
+        _draftSaver.Save();
     }
 
     /// <summary>
@@ -189,7 +179,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         _readLevelChanges = LevelChanges.Count;
 
         // A Compile or undo changes the text a Draft is based on
-        RequestDraftSave();
+        _draftSaver.Request();
         if (_current == null && _scripts.Entries.Count > 0)
             Select(_scripts.Entries[0]);
     }
@@ -250,7 +240,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
                 _namePrompt.Renamed.Name = named;
 
             _namePrompt.Close();
-            RequestDraftSave();
+            _draftSaver.Request();
         }
 
         var deleteChoice = _deletePrompt.Draw(gui);
@@ -270,7 +260,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             var restored = _scripts.Restore(orphan);
             _orphanedGroupsPanel.ShowRestored(restored);
             Select(restored);
-            RequestDraftSave();
+            _draftSaver.Request();
         }
     }
 
@@ -316,11 +306,6 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             _listMessage = $"Deleted \"{entry.Name}\" and kept its {count} blocks as plain Logic Blocks";
         else
             _listMessage = $"Deleted \"{entry.Name}\" and its {count} blocks";
-    }
-
-    private void RequestDraftSave()
-    {
-        _draftSaveTime = Time.unscaledTime + DraftDelay;
     }
 
     /// <summary>
@@ -465,7 +450,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private void OnEdited()
     {
         _current.Text = _editor.Text;
-        RequestDraftSave();
+        _draftSaver.Request();
         _result = string.Empty;
         _insertMessage = string.Empty;
         _nextCheckTime = Time.unscaledTime + CheckDelay;
