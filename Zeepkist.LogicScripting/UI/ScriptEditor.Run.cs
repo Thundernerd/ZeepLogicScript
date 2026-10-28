@@ -1,0 +1,34 @@
+using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
+
+namespace TNRD.Zeepkist.LogicScripting.UI;
+
+internal sealed partial class ScriptEditor
+{
+    /// <summary>
+    /// A piece of one line drawn in one colour.
+    /// </summary>
+    private readonly struct Run
+    {
+        public Run(int line, int offset, string text, HighlightKind? kind)
+        {
+            Line = line;
+            Offset = offset;
+            Text = text;
+            Kind = kind;
+        }
+
+        public int Line { get; }
+
+        /// <summary>
+        /// Where the piece starts on its line, in characters.
+        /// </summary>
+        public int Offset { get; }
+
+        public string Text { get; }
+
+        /// <summary>
+        /// Null for text the lexer gave no kind.
+        /// </summary>
+        public HighlightKind? Kind { get; }
+    }
+}
