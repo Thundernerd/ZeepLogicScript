@@ -119,6 +119,7 @@ public class EditCommandsTests
 
     [Theory]
     [InlineData("a|b", "# a|b")]
+    [InlineData("|ab", "# |ab")]
     [InlineData("# a|b", "a|b")]
     [InlineData("#a|b", "a|b")]
     [InlineData("^  a\n\n    b|", "^  # a\n\n  #   b|")]

@@ -78,21 +78,23 @@ public static partial class EditCommands
         }
 
         builder.Append(text, copied, text.Length - copied);
-        var caret = Map(text, changes, snapshot.Caret);
-        var anchor = Map(text, changes, GetAnchor(snapshot));
+        var start = snapshot.Selection != 0 ? GetSelectionStart(snapshot) : -1;
+        var caret = Map(text, changes, snapshot.Caret, snapshot.Caret == start);
+        var anchor = Map(text, changes, GetAnchor(snapshot), GetAnchor(snapshot) == start);
         return new TextSnapshot(builder.ToString(), caret, anchor - caret);
     }
 
     /// <summary>
     /// Where <paramref name="index"/> ends up after <paramref name="changes"/>. Text inserted at the start of a line goes
-    /// after an index there, so a selection of whole lines takes in their new indentation.
+    /// after a <paramref name="selectionStart"/> there, so a selection of whole lines takes in their new indentation.
     /// </summary>
-    private static int Map(string text, List<Change> changes, int index)
+    private static int Map(string text, List<Change> changes, int index, bool selectionStart)
     {
         var shift = 0;
         foreach (var change in changes)
         {
-            if (index < change.Index || (index == change.Index && change.Length == 0 && IsLineStart(text, index)))
+            var staysBefore = selectionStart && change.Length == 0 && IsLineStart(text, index);
+            if (index < change.Index || (index == change.Index && staysBefore))
                 break;
 
             if (index < change.Index + change.Length)
