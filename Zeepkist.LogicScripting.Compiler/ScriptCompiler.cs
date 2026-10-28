@@ -31,7 +31,7 @@ public static class ScriptCompiler
         var tokens = Lexer.Tokenize(text ?? string.Empty, diagnostics);
         var statements = Parser.Parse(tokens, diagnostics);
         var graph = GraphBuilder.Build(statements, diagnostics, disabledBlockIds ?? [], findPlacedBlock ?? (_ => null));
-        var references = graph.PlacedReferences.OrderBy(r => r.Position).ToList();
+        var references = graph.PlacedBlockReferences.OrderBy(r => r.Position).ToList();
 
         if (diagnostics.Count > 0)
         {

@@ -9,7 +9,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler;
 /// Writes a Placed Block Reference for each selected block into a Script: <c>&lt;type&gt;_&lt;n&gt; = placed("UID")</c>,
 /// with <c>block_&lt;n&gt;</c> for a block that can only be a Toggler target.
 /// </summary>
-public static class PlacedReferenceInsert
+public static class PlacedBlockReferenceInsert
 {
     /// <summary>
     /// Inserts one line per selected block the Script doesn't refer to yet, as whole lines at the caret: where the

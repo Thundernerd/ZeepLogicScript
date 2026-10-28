@@ -1,7 +1,7 @@
 namespace TNRD.Zeepkist.LogicScripting.Compiler;
 
 /// <summary>
-/// A block selected in the level, for <see cref="PlacedReferenceInsert"/>.
+/// A block selected in the level, for <see cref="PlacedBlockReferenceInsert"/>.
 /// </summary>
 public sealed class SelectedBlock
 {

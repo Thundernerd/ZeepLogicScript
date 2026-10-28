@@ -9,13 +9,13 @@ public sealed class CompileResult
         IReadOnlyList<CompiledBlock> blocks,
         IReadOnlyList<CompiledWire> wires,
         IReadOnlyList<PlacedWire> placedWires,
-        IReadOnlyList<PlacedReference> placedReferences)
+        IReadOnlyList<PlacedBlockReference> placedBlockReferences)
     {
         Errors = errors;
         Blocks = blocks;
         Wires = wires;
         PlacedWires = placedWires;
-        PlacedReferences = placedReferences;
+        PlacedBlockReferences = placedBlockReferences;
     }
 
     /// <summary>
@@ -38,7 +38,7 @@ public sealed class CompileResult
     /// <summary>
     /// Every <c>placed("UID")</c> the Script could be read far enough to find, errors or not, in Script order.
     /// </summary>
-    public IReadOnlyList<PlacedReference> PlacedReferences { get; }
+    public IReadOnlyList<PlacedBlockReference> PlacedBlockReferences { get; }
 
     public bool Succeeded => Errors.Count == 0;
 }

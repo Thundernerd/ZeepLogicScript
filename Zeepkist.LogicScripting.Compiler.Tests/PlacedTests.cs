@@ -62,7 +62,7 @@ public class PlacedTests
 
         Assert.Equal(
             ["1:10 lamp_1 L lamp", "2:21 - DOOR block", "3:5 x NOPE -"],
-            result.PlacedReferences.Select(r => $"{r.Position} {r.Name ?? "-"} {r.Uid} {r.Type?.Function ?? "-"}"));
+            result.PlacedBlockReferences.Select(r => $"{r.Position} {r.Name ?? "-"} {r.Uid} {r.Type?.Function ?? "-"}"));
     }
 
     [Fact]

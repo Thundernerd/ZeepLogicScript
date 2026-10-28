@@ -22,7 +22,9 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private const KeyCode ToggleKey = KeyCode.F9;
     private const float FieldHeight = 240;
 
-    // The panel rechecks the Script when it changes, and this often in case blocks were added or deleted
+    /// <summary>
+    /// Seconds between checks of an unchanged Script for the Placed blocks panel, in case blocks were added or deleted.
+    /// </summary>
     private const float CheckInterval = 1;
 
     private static readonly Color32 _missingColor = new(230, 90, 90, 255);
@@ -166,14 +168,14 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
 
         // Clicking the button took focus from the field, but its state still holds the caret
         ref var state = ref gui.Storage.Get<ImTextEditState>(_fieldId);
-        var insert = PlacedReferenceInsert.Insert(_text, state.Caret, selected);
+        var insert = PlacedBlockReferenceInsert.Insert(_text, state.Caret, selected);
         _text = insert.Text;
         state.Caret = insert.Caret;
         state.Selection = 0;
 
-        _insertMessage = insert.Skipped == 0
-            ? $"Inserted {insert.Inserted} placed blocks"
-            : $"Inserted {insert.Inserted} placed blocks; skipped {insert.Skipped} the Script already refers to";
+        _insertMessage = insert.SkippedCount == 0
+            ? $"Inserted {insert.InsertedCount} placed blocks"
+            : $"Inserted {insert.InsertedCount} placed blocks; skipped {insert.SkippedCount} the Script already refers to";
     }
 
     /// <summary>
@@ -186,7 +188,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         gui.Text("Placed blocks");
 
         var central = ComponentCache.Get<LEV_LevelEditorCentral>();
-        if (central == null || _check == null || _check.PlacedReferences.Count == 0)
+        if (central == null || _check == null || _check.PlacedBlockReferences.Count == 0)
         {
             gui.Text("None yet; select blocks in the level and press Insert selected", wrap: true);
             return null;
@@ -194,7 +196,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
 
         BlockProperties hovered = null;
         HashSet<string> shown = [];
-        foreach (var reference in _check.PlacedReferences)
+        foreach (var reference in _check.PlacedBlockReferences)
         {
             if (!shown.Add(reference.Uid))
                 continue;

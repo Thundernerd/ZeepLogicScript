@@ -182,8 +182,8 @@ public sealed class BlockType
     }
 
     /// <summary>
-    /// The given Settings, each stored under one or more keys, in the order <see cref="Settings"/> declares them, <c>hide:</c> last, whatever order they
-    /// were given in.
+    /// The given Settings, each stored under one or more keys, in the order <see cref="Settings"/> declares them,
+    /// <c>hide:</c> last, whatever order they were given in.
     /// </summary>
     public Setting[] OrderSettings(IReadOnlyDictionary<BlockSetting, IReadOnlyList<Setting>> settings)
     {

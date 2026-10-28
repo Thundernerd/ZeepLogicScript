@@ -3,7 +3,7 @@ using Xunit;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Tests;
 
-public class PlacedReferenceInsertTests
+public class PlacedBlockReferenceInsertTests
 {
     private static readonly SelectedBlock _lamp = new("L", BlockManifest.Lamp.DefaultStyle.BlockId);
     private static readonly SelectedBlock _otherLamp = new("L2", BlockManifest.Lamp.DefaultStyle.BlockId);
@@ -12,17 +12,17 @@ public class PlacedReferenceInsertTests
     [Fact]
     public void EachBlock_GetsALineNamedAfterItsType()
     {
-        var result = PlacedReferenceInsert.Insert(string.Empty, 0, [_lamp, _otherLamp, _door]);
+        var result = PlacedBlockReferenceInsert.Insert(string.Empty, 0, [_lamp, _otherLamp, _door]);
 
         Assert.Equal("lamp_1 = placed(\"L\")\nlamp_2 = placed(\"L2\")\nblock_1 = placed(\"D\")", result.Text);
         Assert.Equal(result.Text.Length, result.Caret);
-        Assert.Equal((3, 0), (result.Inserted, result.Skipped));
+        Assert.Equal((3, 0), (result.InsertedCount, result.SkippedCount));
     }
 
     [Fact]
     public void Names_SkipNumbersAlreadyDefined()
     {
-        var result = PlacedReferenceInsert.Insert("lamp_1 = placed(\"X\")\n", 21, [_lamp]);
+        var result = PlacedBlockReferenceInsert.Insert("lamp_1 = placed(\"X\")\n", 21, [_lamp]);
 
         Assert.Equal("lamp_1 = placed(\"X\")\nlamp_2 = placed(\"L\")", result.Text);
     }
@@ -30,10 +30,10 @@ public class PlacedReferenceInsertTests
     [Fact]
     public void BlocksTheScriptAlreadyRefersTo_AreSkipped()
     {
-        var result = PlacedReferenceInsert.Insert("x = placed(\"L\")", 0, [_lamp, _lamp]);
+        var result = PlacedBlockReferenceInsert.Insert("x = placed(\"L\")", 0, [_lamp, _lamp]);
 
         Assert.Equal("x = placed(\"L\")", result.Text);
-        Assert.Equal((0, 2), (result.Inserted, result.Skipped));
+        Assert.Equal((0, 2), (result.InsertedCount, result.SkippedCount));
     }
 
     [Theory]
@@ -43,7 +43,7 @@ public class PlacedReferenceInsertTests
     [InlineData("a = 1", 99, "a = 1\nlamp_1 = placed(\"L\")", 26)]
     public void Lines_GoInWholeAtTheCaret(string text, int caret, string expected, int expectedCaret)
     {
-        var result = PlacedReferenceInsert.Insert(text, caret, [_lamp]);
+        var result = PlacedBlockReferenceInsert.Insert(text, caret, [_lamp]);
 
         Assert.Equal(expected, result.Text);
         Assert.Equal(expectedCaret, result.Caret);

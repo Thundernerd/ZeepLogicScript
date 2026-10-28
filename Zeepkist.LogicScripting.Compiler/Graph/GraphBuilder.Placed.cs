@@ -37,14 +37,14 @@ internal sealed partial class GraphBuilder
         var placed = _findPlacedBlock(uid.Value);
         if (placed == null)
         {
-            _graph.PlacedReferences.Add(new PlacedReference(call.Position, name, uid.Value, null));
+            _graph.PlacedBlockReferences.Add(new PlacedBlockReference(call.Position, name, uid.Value, null));
             return Fail(uid, $"No block in this level has UID \"{uid.Value}\"");
         }
 
         if (!BlockManifest.TryGetBlock(placed.BlockId, out var type, out var style))
             type = BlockManifest.OtherBlock;
 
-        _graph.PlacedReferences.Add(new PlacedReference(call.Position, name, uid.Value, type));
+        _graph.PlacedBlockReferences.Add(new PlacedBlockReference(call.Position, name, uid.Value, type));
         if (style != null && _disabledBlockIds.Contains(style.BlockId))
             return Fail(call, $"'{type.Describe(style)}' doesn't match this game version and is turned off");
 

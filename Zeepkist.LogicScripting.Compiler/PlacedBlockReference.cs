@@ -5,9 +5,9 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler;
 /// <summary>
 /// One <c>placed("UID")</c> in a Script.
 /// </summary>
-public sealed class PlacedReference
+public sealed class PlacedBlockReference
 {
-    public PlacedReference(Position position, string name, string uid, BlockType type)
+    public PlacedBlockReference(Position position, string name, string uid, BlockType type)
     {
         Position = position;
         Name = name;

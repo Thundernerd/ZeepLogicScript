@@ -44,6 +44,7 @@ internal sealed class BlockNode
     public bool IsPlaced => Placed != null;
 
     public BlockType Type { get; }
+
     /// <summary>
     /// Null for a placed block the Block Manifest doesn't describe.
     /// </summary>

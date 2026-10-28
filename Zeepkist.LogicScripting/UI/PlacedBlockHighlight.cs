@@ -26,12 +26,17 @@ internal sealed class PlacedBlockHighlight
             return;
         }
 
-        if (_block != null && !central.selection.list.Contains(_block))
+        if (IsUnselected(central, _block))
             central.selection.RestorePaint(_block);
 
         _block = block;
-        if (_block != null && !central.selection.list.Contains(_block))
+        if (IsUnselected(central, _block))
             central.selection.SelectionPaint(_block);
+    }
+
+    private static bool IsUnselected(LEV_LevelEditorCentral central, BlockProperties block)
+    {
+        return block != null && !central.selection.list.Contains(block);
     }
 
     /// <summary>

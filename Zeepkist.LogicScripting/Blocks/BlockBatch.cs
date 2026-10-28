@@ -120,8 +120,8 @@ internal static partial class BlockBatch
         HashSet<BlockProperties> touched = [.. added];
         foreach (var wire in wires)
         {
-            var from = GetHub(wire.FromUid, wire.FromConnector);
-            var to = GetHub(wire.ToUid, wire.ToConnector);
+            var from = GetConnector(wire.FromUid, wire.FromConnector);
+            var to = GetConnector(wire.ToUid, wire.ToConnector);
             foreach (var block in new[] { from.GetBlockProperties(), to.GetBlockProperties() })
             {
                 if (touched.Add(block))
@@ -138,7 +138,7 @@ internal static partial class BlockBatch
         }
     }
 
-    private static ConnectorHub_Base GetHub(string uid, int connector)
+    private static ConnectorHub_Base GetConnector(string uid, int connector)
     {
         if (!StaticConnectorTracker.allBlocksByUID.TryGetValue(uid, out var block)
             || !block.allConnectorHubsOnThisBlock.TryGetValue(connector, out var hub))

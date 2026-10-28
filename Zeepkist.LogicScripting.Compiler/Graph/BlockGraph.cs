@@ -23,7 +23,10 @@ internal sealed class BlockGraph
     /// </summary>
     public List<GraphWire> PlacedWires { get; } = [];
 
-    public List<PlacedReference> PlacedReferences { get; } = [];
+    /// <summary>
+    /// Every <c>placed("UID")</c> the Script was read far enough to find.
+    /// </summary>
+    public List<PlacedBlockReference> PlacedBlockReferences { get; } = [];
 
     public BlockNode AddBlock(BlockType type, BlockStyle style, params Setting[] settings)
     {
