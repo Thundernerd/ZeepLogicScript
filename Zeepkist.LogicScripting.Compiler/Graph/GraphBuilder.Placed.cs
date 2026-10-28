@@ -45,6 +45,8 @@ internal sealed partial class GraphBuilder
             type = BlockManifest.OtherBlock;
 
         _graph.PlacedReferences.Add(new PlacedReference(call.Position, name, uid.Value, type));
+        if (style != null && _disabledBlockIds.Contains(style.BlockId))
+            return Fail(call, $"'{type.Describe(style)}' doesn't match this game version and is turned off");
 
         if (!_placedNodes.TryGetValue(uid.Value, out var block))
         {

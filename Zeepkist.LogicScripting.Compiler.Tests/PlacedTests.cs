@@ -116,6 +116,20 @@ public class PlacedTests
         Assert.Equal([error], Errors(Compile(script)));
     }
 
+    [Theory]
+    [InlineData("l = placed(\"L\")", "1:5 'lamp' doesn't match this game version and is turned off")]
+    [InlineData("toggler(1, targets: placed(\"L\"))", "1:21 'lamp' doesn't match this game version and is turned off")]
+    public void AReferenceToATurnedOffBlock_IsAnError(string script, string error)
+    {
+        var result = ScriptCompiler.Compile(
+            script,
+            0,
+            [BlockManifest.Lamp.DefaultStyle.BlockId],
+            uid => _level.GetValueOrDefault(uid));
+
+        Assert.Equal([error], Errors(result));
+    }
+
     [Fact]
     public void AFailedReference_IsReportedOnce()
     {
