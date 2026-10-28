@@ -35,6 +35,17 @@ public class BlockManifestTests
     }
 
     [Fact]
+    public void Ranges_NameTheirTypesSettingsAndInput()
+    {
+        foreach (var type in BlockManifest.All.Where(t => t.Range != null))
+        {
+            Assert.Contains(type.Range.Minimum, type.Settings);
+            Assert.Contains(type.Range.Maximum, type.Settings);
+            Assert.True(type.IndexOfInput(type.Range.MaximumInput) >= 0, type.Function);
+        }
+    }
+
+    [Fact]
     public void Connectors_AreUniquePerBlock()
     {
         foreach (var type in BlockManifest.All)

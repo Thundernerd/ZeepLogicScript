@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -151,6 +152,60 @@ internal sealed partial class GraphBuilder
                         : $"'{Call.Function}' needs {blockSetting.Name}:, like {blockSetting.Name}: 1");
                 }
             }
+        }
+
+        /// <summary>
+        /// Reports a <see cref="BlockType.Range"/> whose minimum is above its maximum, unless the input that replaces
+        /// the maximum is wired, or a misspelt name was probably meant as it. An omitted Setting counts as 0, the
+        /// fresh block's value; one whose value was invalid, or a misspelt name was probably meant as, has already
+        /// been reported.
+        /// </summary>
+        public void CheckRange()
+        {
+            var range = Type.Range;
+            if (range == null || Inputs[Type.IndexOfInput(range.MaximumInput)] != null || IsGivenOrMeant(range.MaximumInput))
+                return;
+
+            if (!TryGetNumber(range.Minimum, out var minimum) || !TryGetNumber(range.Maximum, out var maximum))
+                return;
+
+            if (minimum <= maximum)
+                return;
+
+            var maximumArgument = FindArgument(range.Maximum.Name);
+            if (maximumArgument != null)
+            {
+                ReportAndFail(maximumArgument.Value, $"{range.Maximum.Name} must be at least {range.Minimum.Name} ({minimum})");
+            }
+            else
+            {
+                ReportAndFail(
+                    FindArgument(range.Minimum.Name).Value,
+                    $"{range.Minimum.Name} must be at most {range.Maximum.Name}, which is 0 unless given");
+            }
+        }
+
+        /// <summary>
+        /// A Number Setting's value, 0 when the call leaves it out; false when it was given or meant but has no value.
+        /// </summary>
+        private bool TryGetNumber(BlockSetting blockSetting, out long value)
+        {
+            value = 0;
+            if (Settings.TryGetValue(blockSetting, out var stored))
+                return long.TryParse(stored[0].TextValue, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value);
+
+            return !IsGivenOrMeant(blockSetting.Name);
+        }
+
+        private NamedArgument FindArgument(string name)
+        {
+            foreach (var argument in Call.NamedArguments)
+            {
+                if (argument.Name == name)
+                    return argument;
+            }
+
+            return null;
         }
 
         private bool IsGivenOrMeant(string name)
