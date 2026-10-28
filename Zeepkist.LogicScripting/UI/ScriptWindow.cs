@@ -34,6 +34,11 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     /// </summary>
     private const float CheckDelay = 0.4f;
 
+    /// <summary>
+    /// The most errors listed under the field; the underlines still show every one.
+    /// </summary>
+    private const int MaxListedErrors = 8;
+
     private static readonly Color32 _errorColor = new(230, 90, 90, 255);
 
     private readonly ManualLogSource _logger;
@@ -51,6 +56,11 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private bool _fieldFocused;
     private bool _blockingMouse;
     private bool _blockingKeyboard;
+
+    /// <summary>
+    /// Whether the latest check is of the text as it is now, and found errors.
+    /// </summary>
+    private bool HasCurrentErrors => _check != null && _checkedText == _editor.Text && !_check.Succeeded;
 
     public ScriptWindow(ManualLogSource logger, StartupCheck startupCheck)
     {
@@ -174,15 +184,19 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     /// </summary>
     private void DrawErrors(ImGui gui)
     {
-        if (_check == null || _checkedText != _editor.Text || _check.Succeeded)
+        if (!HasCurrentErrors)
             return;
 
-        gui.Text(_check.Errors.Count == 1 ? "1 error" : $"{_check.Errors.Count} errors", _errorColor);
-        foreach (var error in _check.Errors)
+        var count = _check.Errors.Count;
+        gui.Text(count == 1 ? "1 error" : $"{count} errors", _errorColor);
+        foreach (var error in _check.Errors.Take(MaxListedErrors))
         {
             if (gui.Button(error.ToString()))
                 _editor.JumpTo(error.Position);
         }
+
+        if (count > MaxListedErrors)
+            gui.Text($"and {count - MaxListedErrors} more", _errorColor);
     }
 
     /// <summary>
@@ -206,7 +220,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     /// </summary>
     private string GetCompileBlocker()
     {
-        if (_check != null && _checkedText == _editor.Text && !_check.Succeeded)
+        if (HasCurrentErrors)
             return "Fix the errors first";
 
         var central = ComponentCache.Get<LEV_LevelEditorCentral>();
@@ -225,8 +239,20 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             _result = blocker;
     }
 
+    /// <summary>
+    /// Checks a Script edited since the last check first, so errors typed just now show in the list, not in the
+    /// result line.
+    /// </summary>
     private void Compile()
     {
+        if (_checkedText != _editor.Text)
+        {
+            _nextCheckTime = 0;
+            RefreshCheck();
+            if (HasCurrentErrors)
+                return;
+        }
+
         _result = ScriptCompile.Run(_editor.Text, _startupCheck, _logger);
 
         // Placing changed the level, so the Placed blocks panel checks again now
