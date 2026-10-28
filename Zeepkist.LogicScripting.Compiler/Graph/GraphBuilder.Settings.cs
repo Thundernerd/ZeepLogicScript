@@ -97,9 +97,15 @@ internal sealed partial class GraphBuilder
             return null;
         }
 
+        var failed = false;
+        if (items.Count > BlockSetting.MaxTargets)
+        {
+            Error(items[BlockSetting.MaxTargets], $"A Toggler switches at most {BlockSetting.MaxTargets} blocks");
+            failed = true;
+        }
+
         List<Setting> targets = [];
         HashSet<string> uids = [];
-        var failed = false;
         foreach (var item in items)
         {
             var value = Evaluate(item);
@@ -121,12 +127,6 @@ internal sealed partial class GraphBuilder
             {
                 targets.Add(Setting.Text(setting.Key + uids.Count.ToString(CultureInfo.InvariantCulture), value.Value.Block.Uid));
             }
-        }
-
-        if (items.Count > BlockSetting.MaxTargets)
-        {
-            Error(items[BlockSetting.MaxTargets], $"A Toggler switches at most {BlockSetting.MaxTargets} blocks");
-            return null;
         }
 
         return failed ? null : targets;
