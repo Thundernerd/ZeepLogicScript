@@ -24,7 +24,7 @@ public class DraftTests
     public void ADraftOfAStoredScript_IsBasedOnItsText()
     {
         var list = new ScriptList();
-        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], new Dictionary<ScriptId, int>(), _ => null);
+        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], new Dictionary<ScriptId, int>(), NoDraft);
         list.Entries[0].Text = "x = 2";
 
         var draft = Draft.For(list.Entries[0]);
@@ -49,14 +49,14 @@ public class DraftTests
         var entry = list.Add("doors");
         var changes = new DraftChanges();
 
-        Assert.Single(changes.TakeChanged(list.Entries));
-        Assert.Empty(changes.TakeChanged(list.Entries));
+        Assert.Single(changes.TakeChanged(list.Entries, NoDraft));
+        Assert.Empty(changes.TakeChanged(list.Entries, NoDraft));
 
         entry.Text = "x = 1";
-        Assert.Equal("x = 1", Assert.Single(changes.TakeChanged(list.Entries)).Text);
+        Assert.Equal("x = 1", Assert.Single(changes.TakeChanged(list.Entries, NoDraft)).Text);
 
         entry.Name = "lamps";
-        Assert.Equal("lamps", Assert.Single(changes.TakeChanged(list.Entries)).Name);
+        Assert.Equal("lamps", Assert.Single(changes.TakeChanged(list.Entries, NoDraft)).Name);
     }
 
     [Fact]
@@ -65,23 +65,48 @@ public class DraftTests
         var list = new ScriptList();
         var entry = list.Add("doors");
         var changes = new DraftChanges();
-        changes.TakeChanged(list.Entries);
+        changes.TakeChanged(list.Entries, NoDraft);
 
-        list.Update([new StoredScript(entry.Id, "doors", string.Empty, 1)], new Dictionary<ScriptId, int>(), _ => null);
+        list.Update([new StoredScript(entry.Id, "doors", string.Empty, 1)], new Dictionary<ScriptId, int>(), NoDraft);
 
-        Assert.NotNull(Assert.Single(changes.TakeChanged(list.Entries)).BaseHash);
+        Assert.NotNull(Assert.Single(changes.TakeChanged(list.Entries, NoDraft)).BaseHash);
     }
 
     [Fact]
-    public void AForgottenDraft_IsReturnedAgain()
+    public void ASavedDraftWithTheSameContent_IsNotWrittenAgain()
     {
         var list = new ScriptList();
         var entry = list.Add("doors");
+        var saved = Draft.For(entry);
+
+        Assert.Empty(new DraftChanges().TakeChanged(list.Entries, _ => saved));
+    }
+
+    [Fact]
+    public void ADraftTypedOverOtherText_IsKeptUntilTheScriptIsEdited()
+    {
+        var list = new ScriptList();
+        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], new Dictionary<ScriptId, int>(), NoDraft);
+        var stale = new Draft(_id, "doors", "x = 5", Draft.HashOf("x = 4"));
         var changes = new DraftChanges();
-        changes.TakeChanged(list.Entries);
 
-        changes.Forget(entry.Id);
+        Assert.Empty(changes.TakeChanged(list.Entries, _ => stale));
 
-        Assert.Single(changes.TakeChanged(list.Entries));
+        list.Entries[0].Text = "x = 2";
+        Assert.Equal("x = 2", Assert.Single(changes.TakeChanged(list.Entries, _ => stale)).Text);
+    }
+
+    [Fact]
+    public void AnUnsavedScript_IsWritten()
+    {
+        var list = new ScriptList();
+        list.Update([new StoredScript(_id, "doors", "x = 1", 1)], new Dictionary<ScriptId, int>(), NoDraft);
+
+        Assert.Single(new DraftChanges().TakeChanged(list.Entries, NoDraft));
+    }
+
+    private static Draft NoDraft(ScriptId id)
+    {
+        return null;
     }
 }

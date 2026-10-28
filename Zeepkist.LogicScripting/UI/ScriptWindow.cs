@@ -151,7 +151,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     public void SaveDrafts()
     {
         _draftSaveTime = null;
-        foreach (var draft in _draftChanges.TakeChanged(_scripts.Entries))
+        foreach (var draft in _draftChanges.TakeChanged(_scripts.Entries, _drafts.Find))
         {
             _drafts.Save(draft);
         }
@@ -272,8 +272,8 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     }
 
     /// <summary>
-    /// Removes the Script's blocks or untags them as one undo step, then drops the Script and its Draft. Undo brings
-    /// back the blocks and the Script's text in the level, so the Script comes back as it was last compiled.
+    /// Removes the Script's blocks or untags them as one undo step, then drops the Script from the window. Its Draft
+    /// stays, so undo brings the Script back with the text typed since its last Compile.
     /// </summary>
     private void DeleteScript(ScriptEntry entry, DeleteChoice choice)
     {
@@ -304,8 +304,6 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
 
         _scripts.Remove(entry.Id);
         _editors.Remove(entry.Id);
-        _drafts.Delete(entry.Id);
-        _draftChanges.Forget(entry.Id);
         if (entry == _current)
             Select(_scripts.Entries.Count > 0 ? _scripts.Entries[0] : null);
 

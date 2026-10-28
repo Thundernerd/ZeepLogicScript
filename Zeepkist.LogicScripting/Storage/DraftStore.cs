@@ -45,12 +45,6 @@ internal sealed class DraftStore
         _loaded[draft.Id] = draft;
     }
 
-    public void Delete(ScriptId id)
-    {
-        _storage.DeleteJsonFile(GetFileName(id));
-        _loaded[id] = null;
-    }
-
     private Draft Load(ScriptId id)
     {
         var name = GetFileName(id);
@@ -64,7 +58,8 @@ internal sealed class DraftStore
             return null;
         }
 
-        return new Draft(id, result.Value.Name, result.Value.Text, result.Value.BaseHash);
+        // A file edited by hand may lack a field
+        return new Draft(id, result.Value.Name ?? string.Empty, result.Value.Text ?? string.Empty, result.Value.BaseHash);
     }
 
     private static string GetFileName(ScriptId id)
