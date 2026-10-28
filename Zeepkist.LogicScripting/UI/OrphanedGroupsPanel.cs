@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using BepInEx.Logging;
 using Imui.Controls;
 using Imui.Core;
@@ -10,8 +11,8 @@ using ZeepSDK.Utilities;
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// Lists the level's Orphaned Groups, each with Delete, Untag, Select and Restore Script from Draft. The first three
-/// are one undo step each; restoring only adds the Script to the window.
+/// Lists the level's Orphaned Groups, each with Delete, Untag, Select and Restore Script from Draft. Delete and Untag
+/// are one undo step each, Select is the editor's own selection step; restoring is the caller's.
 /// </summary>
 internal sealed class OrphanedGroupsPanel
 {
@@ -29,11 +30,11 @@ internal sealed class OrphanedGroupsPanel
     }
 
     /// <summary>
-    /// Returns the Script restored from its Draft, or null.
+    /// Returns the Orphaned Group whose Script the player chose to restore from its Draft, or null.
     /// </summary>
-    public ScriptEntry Draw(ImGui gui, ScriptList scripts)
+    public OrphanedGroup Draw(ImGui gui, IReadOnlyList<OrphanedGroup> orphanedGroups)
     {
-        if (scripts.Orphans.Count == 0)
+        if (orphanedGroups.Count == 0)
         {
             _message = string.Empty;
             return null;
@@ -43,7 +44,7 @@ internal sealed class OrphanedGroupsPanel
         gui.Text("Blocks of Scripts whose text the level no longer holds. They can't be recompiled.", wrap: true);
 
         OrphanedGroup restored = null;
-        foreach (var orphan in scripts.Orphans)
+        foreach (var orphan in orphanedGroups)
         {
             var name = orphan.Draft?.Name ?? "Unnamed";
             gui.Text(orphan.BlockCount == 1 ? $"{name}, 1 block" : $"{name}, {orphan.BlockCount} blocks");
@@ -75,13 +76,12 @@ internal sealed class OrphanedGroupsPanel
         if (_message.Length > 0)
             gui.Text(_message, wrap: true);
 
-        // Restored after the loop, which goes through the orphans that restoring changes
-        if (restored == null)
-            return null;
+        return restored;
+    }
 
-        var entry = scripts.Restore(restored);
+    public void ShowRestored(ScriptEntry entry)
+    {
         _message = $"Restored \"{entry.Name}\" from its Draft; Compile to store it in the level again";
-        return entry;
     }
 
     private void Edit(OrphanedGroup orphan, string verb, Func<LEV_LevelEditorCentral, ScriptId, int> edit)
@@ -93,7 +93,7 @@ internal sealed class OrphanedGroupsPanel
         try
         {
             var count = edit(central, orphan.Id);
-            _message = $"{verb} {count} blocks";
+            _message = count == 1 ? $"{verb} 1 block" : $"{verb} {count} blocks";
         }
         catch (Exception e)
         {

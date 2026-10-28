@@ -58,7 +58,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private readonly Dictionary<ScriptId, ScriptEditor> _editors = [];
     private readonly NamePrompt _namePrompt = new();
     private readonly DeletePrompt _deletePrompt = new();
-    private readonly OrphanedGroupsPanel _orphans;
+    private readonly OrphanedGroupsPanel _orphanedGroupsPanel;
 
     private ScriptEntry _current;
     private ScriptEditor _editor;
@@ -83,7 +83,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         _logger = logger;
         _startupCheck = startupCheck;
         _drafts = drafts;
-        _orphans = new OrphanedGroupsPanel(logger);
+        _orphanedGroupsPanel = new OrphanedGroupsPanel(logger);
     }
 
     public void OnZeepGUI(ImGui gui)
@@ -168,7 +168,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         _editors.Clear();
         _namePrompt.Close();
         _deletePrompt.Close();
-        _orphans.ClearMessage();
+        _orphanedGroupsPanel.ClearMessage();
         _listMessage = string.Empty;
         _readLevelChanges = null;
         Select(null);
@@ -184,8 +184,8 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         if (central == null || central.saveload.isLoading || _readLevelChanges == LevelChanges.Count)
             return;
 
-        var (stored, groups) = LevelScripts.Find(central);
-        _scripts.Update(stored, groups, _drafts.Find);
+        var (stored, blockCounts) = LevelScripts.Find(central);
+        _scripts.Update(stored, blockCounts, _drafts.Find);
         _readLevelChanges = LevelChanges.Count;
 
         // A Compile or undo changes the text a Draft is based on
@@ -263,9 +263,12 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         if (_listMessage.Length > 0)
             gui.Text(_listMessage, wrap: true);
 
-        var restored = _orphans.Draw(gui, _scripts);
-        if (restored != null)
+        // Restored after drawing, which goes through the list that restoring changes
+        var orphan = _orphanedGroupsPanel.Draw(gui, _scripts.OrphanedGroups);
+        if (orphan != null)
         {
+            var restored = _scripts.Restore(orphan);
+            _orphanedGroupsPanel.ShowRestored(restored);
             Select(restored);
             RequestDraftSave();
         }

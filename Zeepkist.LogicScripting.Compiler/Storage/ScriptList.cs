@@ -10,14 +10,14 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 public sealed class ScriptList
 {
     private readonly List<ScriptEntry> _entries = [];
-    private readonly List<OrphanedGroup> _orphans = [];
+    private readonly List<OrphanedGroup> _orphanedGroups = [];
 
     public IReadOnlyList<ScriptEntry> Entries => _entries;
 
     /// <summary>
     /// The level's Block Groups whose Script isn't in <see cref="Entries"/>, as of the last <see cref="Update"/>.
     /// </summary>
-    public IReadOnlyList<OrphanedGroup> Orphans => _orphans;
+    public IReadOnlyList<OrphanedGroup> OrphanedGroups => _orphanedGroups;
 
     /// <summary>
     /// Returns why <paramref name="name"/> can't name a new Script, or the Script with <paramref name="renamedId"/>,
@@ -52,11 +52,11 @@ public sealed class ScriptList
     /// text, whatever the level holds.
     /// </summary>
     /// <param name="stored">Every Script whose text the level holds.</param>
-    /// <param name="groups">The number of blocks of every Script that has blocks in the level.</param>
+    /// <param name="blockCounts">The number of blocks of every Script that has blocks in the level.</param>
     /// <param name="findDraft">The Script's Draft, or null when there is none.</param>
     public void Update(
         IReadOnlyList<StoredScript> stored,
-        IReadOnlyDictionary<ScriptId, int> groups,
+        IReadOnlyDictionary<ScriptId, int> blockCounts,
         Func<ScriptId, Draft> findDraft)
     {
         foreach (var script in stored)
@@ -66,21 +66,21 @@ public sealed class ScriptList
 
             var draft = findDraft(script.Id);
             _entries.Add(draft != null && draft.IsBasedOn(script)
-                ? new ScriptEntry(script.Id, GetFreeName(draft.Name ?? script.Name), draft.Text ?? string.Empty)
+                ? new ScriptEntry(script.Id, GetFreeName(draft.Name), draft.Text)
                 : new ScriptEntry(script.Id, GetFreeName(script.Name), script.Text));
         }
 
         foreach (var entry in _entries)
         {
             entry.Stored = stored.FirstOrDefault(s => s.Id == entry.Id);
-            entry.HasGroup = groups.ContainsKey(entry.Id);
+            entry.HasGroup = blockCounts.ContainsKey(entry.Id);
         }
 
-        _orphans.Clear();
-        foreach (var group in groups)
+        _orphanedGroups.Clear();
+        foreach (var group in blockCounts)
         {
             if (Find(group.Key) == null)
-                _orphans.Add(new OrphanedGroup(group.Key, group.Value, findDraft(group.Key)));
+                _orphanedGroups.Add(new OrphanedGroup(group.Key, group.Value, findDraft(group.Key)));
         }
     }
 
@@ -93,13 +93,13 @@ public sealed class ScriptList
         if (orphan.Draft == null)
             throw new ArgumentException("An Orphaned Group without a Draft can't be restored", nameof(orphan));
 
-        var entry = new ScriptEntry(orphan.Id, GetFreeName(orphan.Draft.Name ?? string.Empty), orphan.Draft.Text ?? string.Empty)
+        var entry = new ScriptEntry(orphan.Id, GetFreeName(orphan.Draft.Name), orphan.Draft.Text)
         {
             HasGroup = true
         };
 
         _entries.Add(entry);
-        _orphans.Remove(orphan);
+        _orphanedGroups.Remove(orphan);
         return entry;
     }
 
@@ -133,6 +133,6 @@ public sealed class ScriptList
     public void Clear()
     {
         _entries.Clear();
-        _orphans.Clear();
+        _orphanedGroups.Clear();
     }
 }

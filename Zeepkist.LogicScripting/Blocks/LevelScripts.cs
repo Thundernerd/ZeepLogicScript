@@ -14,10 +14,10 @@ internal static class LevelScripts
     /// </summary>
     /// <returns>Every Script whose text the level holds, and the number of blocks of every Script with blocks in the
     /// level.</returns>
-    public static (List<StoredScript> Stored, Dictionary<ScriptId, int> Groups) Find(LEV_LevelEditorCentral central)
+    public static (List<StoredScript> Stored, Dictionary<ScriptId, int> BlockCounts) Find(LEV_LevelEditorCentral central)
     {
         List<StoredScript> stored = [];
-        Dictionary<ScriptId, int> groups = [];
+        Dictionary<ScriptId, int> blockCounts = [];
         HashSet<ScriptId> storedIds = [];
         foreach (var block in central.undoRedo.allBlocksDictionary.Values)
         {
@@ -25,13 +25,13 @@ internal static class LevelScripts
             if (scriptId == null)
                 continue;
 
-            groups[scriptId] = groups.TryGetValue(scriptId, out var count) ? count + 1 : 1;
+            blockCounts[scriptId] = blockCounts.TryGetValue(scriptId, out var count) ? count + 1 : 1;
             var script = Read(block.customBlockEditProperties, scriptId);
             if (script != null && storedIds.Add(scriptId))
                 stored.Add(script);
         }
 
-        return (stored, groups);
+        return (stored, blockCounts);
     }
 
     /// <summary>

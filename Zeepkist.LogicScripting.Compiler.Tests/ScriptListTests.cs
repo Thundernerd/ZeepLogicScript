@@ -212,7 +212,7 @@ public class ScriptListTests
 
         list.Update([], new Dictionary<ScriptId, int> { [_orphanId] = 3 }, NoDraft);
 
-        var orphan = Assert.Single(list.Orphans);
+        var orphan = Assert.Single(list.OrphanedGroups);
         Assert.Equal(_orphanId, orphan.Id);
         Assert.Equal(3, orphan.BlockCount);
         Assert.Null(orphan.Draft);
@@ -226,7 +226,7 @@ public class ScriptListTests
 
         list.Update([], Groups(_id), NoDraft);
 
-        Assert.Empty(list.Orphans);
+        Assert.Empty(list.OrphanedGroups);
         Assert.Equal(ScriptMark.CarrierMissing, list.Entries[0].Mark);
     }
 
@@ -238,7 +238,7 @@ public class ScriptListTests
 
         list.Update([], Groups(_orphanId), id => id == _orphanId ? draft : null);
 
-        Assert.Same(draft, Assert.Single(list.Orphans).Draft);
+        Assert.Same(draft, Assert.Single(list.OrphanedGroups).Draft);
     }
 
     [Fact]
@@ -247,13 +247,13 @@ public class ScriptListTests
         var list = new ScriptList();
         list.Update([], Groups(_orphanId), _ => new Draft(_orphanId, "doors", "x = 1", Draft.HashOf("x = 0")));
 
-        var entry = list.Restore(list.Orphans[0]);
+        var entry = list.Restore(list.OrphanedGroups[0]);
 
         Assert.Equal(_orphanId, entry.Id);
         Assert.Equal("doors", entry.Name);
         Assert.Equal("x = 1", entry.Text);
         Assert.Equal(ScriptMark.CarrierMissing, entry.Mark);
-        Assert.Empty(list.Orphans);
+        Assert.Empty(list.OrphanedGroups);
     }
 
     [Fact]
@@ -263,7 +263,7 @@ public class ScriptListTests
         list.Add("doors");
         list.Update([], Groups(_orphanId), _ => new Draft(_orphanId, "doors", "x = 1", null));
 
-        var entry = list.Restore(list.Orphans[0]);
+        var entry = list.Restore(list.OrphanedGroups[0]);
 
         Assert.Equal("doors 2", entry.Name);
     }
@@ -273,11 +273,11 @@ public class ScriptListTests
     {
         var list = new ScriptList();
         list.Update([], Groups(_orphanId), _ => new Draft(_orphanId, "doors", "x = 1", null));
-        list.Restore(list.Orphans[0]);
+        list.Restore(list.OrphanedGroups[0]);
 
         list.Update([], Groups(_orphanId), NoDraft);
 
-        Assert.Empty(list.Orphans);
+        Assert.Empty(list.OrphanedGroups);
         Assert.Single(list.Entries);
     }
 
