@@ -1,0 +1,130 @@
+using System;
+using BepInEx.Logging;
+using Imui.Controls;
+using Imui.Core;
+using TNRD.Zeepkist.LogicScripting.Blocks;
+using TNRD.Zeepkist.LogicScripting.Compiler;
+using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
+using ZeepSDK.Utilities;
+
+namespace TNRD.Zeepkist.LogicScripting.UI;
+
+/// <summary>
+/// Lists the level's Orphaned Groups, each with Delete, Untag, Select and Restore Script from Draft. The first three
+/// are one undo step each; restoring only adds the Script to the window.
+/// </summary>
+internal sealed class OrphanedGroupsPanel
+{
+    private readonly ManualLogSource _logger;
+    private string _message = string.Empty;
+
+    public OrphanedGroupsPanel(ManualLogSource logger)
+    {
+        _logger = logger;
+    }
+
+    public void ClearMessage()
+    {
+        _message = string.Empty;
+    }
+
+    /// <summary>
+    /// Returns the Script restored from its Draft, or null.
+    /// </summary>
+    public ScriptEntry Draw(ImGui gui, ScriptList scripts)
+    {
+        if (scripts.Orphans.Count == 0)
+        {
+            _message = string.Empty;
+            return null;
+        }
+
+        gui.Text("Orphaned Groups");
+        gui.Text("Blocks of Scripts whose text the level no longer holds. They can't be recompiled.", wrap: true);
+
+        OrphanedGroup restored = null;
+        foreach (var orphan in scripts.Orphans)
+        {
+            var name = orphan.Draft?.Name ?? "Unnamed";
+            gui.Text(orphan.BlockCount == 1 ? $"{name}, 1 block" : $"{name}, {orphan.BlockCount} blocks");
+            gui.AddSpacingIfLayoutFrameNotEmpty();
+            gui.BeginHorizontal();
+            if (gui.Button("Delete", ImSizeMode.Fit))
+                Edit(orphan, "Deleted", BlockGroupEdits.Delete);
+
+            if (gui.Button("Untag", ImSizeMode.Fit))
+                Edit(orphan, "Untagged", BlockGroupEdits.Untag);
+
+            gui.TooltipAtLastControl("Keep the blocks as plain Logic Blocks");
+
+            if (gui.Button("Select", ImSizeMode.Fit))
+                Select(orphan);
+
+            gui.BeginReadOnly(orphan.Draft == null);
+            if (gui.Button("Restore from Draft", ImSizeMode.Fit) && orphan.Draft != null)
+                restored = orphan;
+
+            gui.EndReadOnly();
+            gui.TooltipAtLastControl(orphan.Draft == null
+                ? "This machine has no Draft of this Script"
+                : "Bring the Script back from this machine's Draft; Compile to store it in the level again");
+
+            gui.EndHorizontal();
+        }
+
+        if (_message.Length > 0)
+            gui.Text(_message, wrap: true);
+
+        // Restored after the loop, which goes through the orphans that restoring changes
+        if (restored == null)
+            return null;
+
+        var entry = scripts.Restore(restored);
+        _message = $"Restored \"{entry.Name}\" from its Draft; Compile to store it in the level again";
+        return entry;
+    }
+
+    private void Edit(OrphanedGroup orphan, string verb, Func<LEV_LevelEditorCentral, ScriptId, int> edit)
+    {
+        var central = GetCentral();
+        if (central == null)
+            return;
+
+        try
+        {
+            var count = edit(central, orphan.Id);
+            _message = $"{verb} {count} blocks";
+        }
+        catch (Exception e)
+        {
+            _logger.LogError($"{verb} orphaned group failed: {e}");
+            _message = "That failed; level unchanged";
+        }
+    }
+
+    private void Select(OrphanedGroup orphan)
+    {
+        var central = GetCentral();
+        if (central == null)
+            return;
+
+        var group = BlockGroups.Find(central, orphan.Id);
+        BlockGroups.Select(central, group);
+        _message = $"Selected {group.Count} blocks";
+    }
+
+    /// <summary>
+    /// Null, with a message, while blocks are grabbed: undo steps aren't registered then.
+    /// </summary>
+    private LEV_LevelEditorCentral GetCentral()
+    {
+        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        if (central != null && central.gizmos.isGrabbing)
+        {
+            _message = "Let go of the grabbed blocks first";
+            return null;
+        }
+
+        return central;
+    }
+}

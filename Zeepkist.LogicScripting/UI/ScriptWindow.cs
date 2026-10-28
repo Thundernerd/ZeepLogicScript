@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
@@ -7,6 +8,7 @@ using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
+using TNRD.Zeepkist.LogicScripting.Storage;
 using UnityEngine;
 using ZeepSDK.LevelEditor;
 using ZeepSDK.UI;
@@ -34,6 +36,11 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private const float CheckDelay = 0.4f;
 
     /// <summary>
+    /// Seconds after the last change before the Drafts are saved, so they aren't written on every key while typing.
+    /// </summary>
+    private const float DraftDelay = 1;
+
+    /// <summary>
     /// The underlines still show every error.
     /// </summary>
     private const int MaxListedErrors = 8;
@@ -44,10 +51,14 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private readonly StartupCheck _startupCheck;
     private readonly PlacedBlockHighlight _highlight = new();
     private readonly ScriptList _scripts = new();
+    private readonly DraftStore _drafts;
+    private readonly DraftChanges _draftChanges = new();
 
     // One each, so every Script keeps its own caret and undo
     private readonly Dictionary<ScriptId, ScriptEditor> _editors = [];
     private readonly NamePrompt _namePrompt = new();
+    private readonly DeletePrompt _deletePrompt = new();
+    private readonly OrphanedGroupsPanel _orphans;
 
     private ScriptEntry _current;
     private ScriptEditor _editor;
@@ -58,6 +69,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private CompileResult _check;
     private string _checkedText;
     private float _nextCheckTime;
+    private float? _draftSaveTime;
     private bool _open;
     private bool _mouseOver;
     private bool _fieldFocused;
@@ -66,14 +78,20 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
 
     private bool HasCurrentErrors => _check != null && _editor != null && _checkedText == _editor.Text && !_check.Succeeded;
 
-    public ScriptWindow(ManualLogSource logger, StartupCheck startupCheck)
+    public ScriptWindow(ManualLogSource logger, StartupCheck startupCheck, DraftStore drafts)
     {
         _logger = logger;
         _startupCheck = startupCheck;
+        _drafts = drafts;
+        _orphans = new OrphanedGroupsPanel(logger);
     }
 
     public void OnZeepGUI(ImGui gui)
     {
+        // Outside the editor nothing changes the Scripts any more, so waiting longer could only lose the last edits
+        if (_draftSaveTime != null && (Time.unscaledTime >= _draftSaveTime || !LevelEditorApi.IsInLevelEditor))
+            SaveDrafts();
+
         if (!LevelEditorApi.IsInLevelEditor || LevelEditorApi.IsTestingLevel)
         {
             ReleaseInput();
@@ -128,13 +146,29 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     }
 
     /// <summary>
-    /// Drops every Script, so the next level's come from that level. Scripts the level doesn't hold are lost.
+    /// Writes the Draft of every Script that changed since its last one. Also call when the mod unloads.
+    /// </summary>
+    public void SaveDrafts()
+    {
+        _draftSaveTime = null;
+        foreach (var draft in _draftChanges.TakeChanged(_scripts.Entries))
+        {
+            _drafts.Save(draft);
+        }
+    }
+
+    /// <summary>
+    /// Drops every Script, so the next level's come from that level, after saving their Drafts. Scripts the level
+    /// doesn't hold are only kept in their Drafts.
     /// </summary>
     public void ForgetScripts()
     {
+        SaveDrafts();
         _scripts.Clear();
         _editors.Clear();
         _namePrompt.Close();
+        _deletePrompt.Close();
+        _orphans.ClearMessage();
         _listMessage = string.Empty;
         _readLevelChanges = null;
         Select(null);
@@ -150,9 +184,12 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
         if (central == null || central.saveload.isLoading || _readLevelChanges == LevelChanges.Count)
             return;
 
-        var (stored, groupIds) = LevelScripts.Find(central);
-        _scripts.Update(stored, groupIds);
+        var (stored, groups) = LevelScripts.Find(central);
+        _scripts.Update(stored, groups, _drafts.Find);
         _readLevelChanges = LevelChanges.Count;
+
+        // A Compile or undo changes the text a Draft is based on
+        RequestDraftSave();
         if (_current == null && _scripts.Entries.Count > 0)
             Select(_scripts.Entries[0]);
     }
@@ -181,6 +218,12 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
                 if (gui.Menu("Select group"))
                     SelectGroup(entry);
 
+                if (gui.Menu("Delete"))
+                {
+                    _namePrompt.Close();
+                    _deletePrompt.Open(entry);
+                }
+
                 gui.EndContextMenu();
             }
         }
@@ -189,7 +232,10 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
             gui.Text("None yet in this level", wrap: true);
 
         if (gui.Button("New Script"))
+        {
+            _deletePrompt.Close();
             _namePrompt.OpenNew();
+        }
 
         if (clicked != null && clicked != _current)
             Select(clicked);
@@ -204,10 +250,76 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
                 _namePrompt.Renamed.Name = named;
 
             _namePrompt.Close();
+            RequestDraftSave();
+        }
+
+        var deleteChoice = _deletePrompt.Draw(gui);
+        if (deleteChoice != DeleteChoice.None)
+        {
+            DeleteScript(_deletePrompt.Deleted, deleteChoice);
+            _deletePrompt.Close();
         }
 
         if (_listMessage.Length > 0)
             gui.Text(_listMessage, wrap: true);
+
+        var restored = _orphans.Draw(gui, _scripts);
+        if (restored != null)
+        {
+            Select(restored);
+            RequestDraftSave();
+        }
+    }
+
+    /// <summary>
+    /// Removes the Script's blocks or untags them as one undo step, then drops the Script and its Draft. Undo brings
+    /// back the blocks and the Script's text in the level, so the Script comes back as it was last compiled.
+    /// </summary>
+    private void DeleteScript(ScriptEntry entry, DeleteChoice choice)
+    {
+        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        if (central == null)
+            return;
+
+        // The undo step isn't registered while grabbing
+        if (central.gizmos.isGrabbing)
+        {
+            _listMessage = "Let go of the grabbed blocks first";
+            return;
+        }
+
+        int count;
+        try
+        {
+            count = choice == DeleteChoice.KeepBlocks
+                ? BlockGroupEdits.Untag(central, entry.Id)
+                : BlockGroupEdits.Delete(central, entry.Id);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError($"Deleting Script \"{entry.Name}\" failed: {e}");
+            _listMessage = "Delete failed; level unchanged";
+            return;
+        }
+
+        _scripts.Remove(entry.Id);
+        _editors.Remove(entry.Id);
+        _drafts.Delete(entry.Id);
+        _draftChanges.Forget(entry.Id);
+        if (entry == _current)
+            Select(_scripts.Entries.Count > 0 ? _scripts.Entries[0] : null);
+
+        if (count == 0)
+            _listMessage = $"Deleted \"{entry.Name}\"";
+        else if (choice == DeleteChoice.KeepBlocks)
+            _listMessage = $"Deleted \"{entry.Name}\" and kept its {count} blocks as plain Logic Blocks";
+        else
+            _listMessage = $"Deleted \"{entry.Name}\" and its {count} blocks";
+    }
+
+    private void RequestDraftSave()
+    {
+        _draftSaveTime = Time.unscaledTime + DraftDelay;
     }
 
     /// <summary>
@@ -352,6 +464,7 @@ internal sealed class ScriptWindow : IZeepGUIDrawer
     private void OnEdited()
     {
         _current.Text = _editor.Text;
+        RequestDraftSave();
         _result = string.Empty;
         _insertMessage = string.Empty;
         _nextCheckTime = Time.unscaledTime + CheckDelay;

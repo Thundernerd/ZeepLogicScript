@@ -71,6 +71,38 @@ internal static partial class BlockBatch
     }
 
     /// <summary>
+    /// Runs <paramref name="change"/> on each block and registers it as one undo step named <paramref name="label"/>.
+    /// If anything throws, every block gets its old state back, no undo step is registered and the exception is
+    /// rethrown.
+    /// </summary>
+    public static void Change(
+        LEV_LevelEditorCentral central,
+        IReadOnlyList<BlockProperties> blocks,
+        Action<BlockProperties> change,
+        string label)
+    {
+        if (central.gizmos.isGrabbing)
+            throw new InvalidOperationException("Can't apply a block batch while blocks are grabbed");
+
+        List<ChangedBlock> changed = [];
+        try
+        {
+            foreach (var block in blocks)
+            {
+                changed.Add(new ChangedBlock(block, block.ConvertBlockToJSON_v15_string(true)));
+                change(block);
+            }
+
+            RegisterUndo(central, [], [], changed, label);
+        }
+        catch
+        {
+            Restore(central, changed, label);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Removes the blocks and the other blocks' Wires to them, noting each one's JSON in <paramref name="removed"/>
     /// and each block that loses a Wire in <paramref name="changed"/>. A changed block's undo state is noted before the
     /// cleanup; its redo state is taken in <see cref="RegisterUndo"/>, after it, so redo doesn't bring back Wires to
