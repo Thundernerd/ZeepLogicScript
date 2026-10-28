@@ -23,7 +23,8 @@ public class PlacedTests
             BlockManifest.SimpleTelemetry.DefaultStyle.BlockId,
             [BlockManifest.SimpleTelemetryMode.Choose("local_velocity")]),
         ["DOOR"] = new PlacedBlock(DoorBlockId),
-        ["DOOR2"] = new PlacedBlock(DoorBlockId)
+        ["DOOR2"] = new PlacedBlock(DoorBlockId),
+        ["GROUP"] = new PlacedBlock(BlockManifest.Passthrough.DefaultStyle.BlockId, isInBlockGroup: true)
     };
 
     [Fact]
@@ -63,6 +64,16 @@ public class PlacedTests
         Assert.Equal(
             ["1:10 lamp_1 L lamp", "2:21 - DOOR block", "3:5 x NOPE -"],
             result.PlacedBlockReferences.Select(r => $"{r.Position} {r.Name ?? "-"} {r.Uid} {r.Type?.Function ?? "-"}"));
+    }
+
+    [Fact]
+    public void ABlockGroupBlock_CantBeReferenced()
+    {
+        var result = Compile("p = placed(\"GROUP\")\npower_display(p)");
+
+        Assert.Equal(
+            ["1:12 Block \"GROUP\" is in a Block Group, which a recompile replaces; refer to a hand-placed block, such as a Passthrough between two Scripts"],
+            Errors(result));
     }
 
     [Fact]

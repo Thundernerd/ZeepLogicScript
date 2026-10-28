@@ -5,12 +5,13 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler;
 /// </summary>
 public sealed class InsertResult
 {
-    public InsertResult(string text, int caret, int insertedCount, int skippedCount)
+    public InsertResult(string text, int caret, int insertedCount, int alreadyReferencedCount, int skippedGroupBlockCount)
     {
         Text = text;
         Caret = caret;
         InsertedCount = insertedCount;
-        SkippedCount = skippedCount;
+        AlreadyReferencedCount = alreadyReferencedCount;
+        SkippedGroupBlockCount = skippedGroupBlockCount;
     }
 
     public string Text { get; }
@@ -25,5 +26,10 @@ public sealed class InsertResult
     /// <summary>
     /// Blocks the Script already refers to.
     /// </summary>
-    public int SkippedCount { get; }
+    public int AlreadyReferencedCount { get; }
+
+    /// <summary>
+    /// Blocks in a Block Group, which a Script can't refer to.
+    /// </summary>
+    public int SkippedGroupBlockCount { get; }
 }

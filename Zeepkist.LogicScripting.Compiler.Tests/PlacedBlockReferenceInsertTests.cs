@@ -8,6 +8,7 @@ public class PlacedBlockReferenceInsertTests
     private static readonly SelectedBlock _lamp = new("L", BlockManifest.Lamp.DefaultStyle.BlockId);
     private static readonly SelectedBlock _otherLamp = new("L2", BlockManifest.Lamp.DefaultStyle.BlockId);
     private static readonly SelectedBlock _door = new("D", 1);
+    private static readonly SelectedBlock _groupBlock = new("G", BlockManifest.Logic.DefaultStyle.BlockId, isInBlockGroup: true);
 
     [Fact]
     public void EachBlock_GetsALineNamedAfterItsType()
@@ -16,7 +17,7 @@ public class PlacedBlockReferenceInsertTests
 
         Assert.Equal("lamp_1 = placed(\"L\")\nlamp_2 = placed(\"L2\")\nblock_1 = placed(\"D\")", result.Text);
         Assert.Equal(result.Text.Length, result.Caret);
-        Assert.Equal((3, 0), (result.InsertedCount, result.SkippedCount));
+        Assert.Equal((3, 0), (result.InsertedCount, result.AlreadyReferencedCount));
     }
 
     [Fact]
@@ -33,7 +34,16 @@ public class PlacedBlockReferenceInsertTests
         var result = PlacedBlockReferenceInsert.Insert("x = placed(\"L\")", 0, [_lamp, _lamp]);
 
         Assert.Equal("x = placed(\"L\")", result.Text);
-        Assert.Equal((0, 2), (result.InsertedCount, result.SkippedCount));
+        Assert.Equal((0, 2), (result.InsertedCount, result.AlreadyReferencedCount));
+    }
+
+    [Fact]
+    public void BlockGroupBlocks_AreSkipped()
+    {
+        var result = PlacedBlockReferenceInsert.Insert(string.Empty, 0, [_groupBlock, _lamp]);
+
+        Assert.Equal("lamp_1 = placed(\"L\")", result.Text);
+        Assert.Equal((1, 0, 1), (result.InsertedCount, result.AlreadyReferencedCount, result.SkippedGroupBlockCount));
     }
 
     [Theory]

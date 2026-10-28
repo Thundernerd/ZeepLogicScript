@@ -14,7 +14,8 @@ internal static class CompiledBlockJson
 
     /// <param name="result">A successful Compile.</param>
     /// <param name="origin">World position of the group's centre cell.</param>
-    public static List<BlockPropertyJSON> Create(CompileResult result, Vector3 origin)
+    /// <param name="scriptId">The Script whose Block Group the blocks join.</param>
+    public static List<BlockPropertyJSON> Create(CompileResult result, Vector3 origin, string scriptId)
     {
         List<BlockPropertyJSON> jsons = [];
         foreach (var block in result.Blocks)
@@ -28,6 +29,8 @@ internal static class CompiledBlockJson
                 s = new CV3(Vector3.one),
                 d = new PropertyDictionariesJSON()
             };
+
+            json.d.SetStringDictionaryValue(BlockGroupTag.Key, BlockGroupTag.Create(scriptId, json.u));
 
             foreach (var setting in block.Settings)
             {
