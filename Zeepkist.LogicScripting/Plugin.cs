@@ -18,6 +18,7 @@ public class Plugin : BaseUnityPlugin
     private Harmony _harmony;
     private StartupCheck _startupCheck;
     private ConfigEntry<KeyCode> _toggleKey;
+    private ConfigEntry<bool> _completionWhileTyping;
     private ScriptWindow _scriptWindow;
     private ScriptToolbarDrawer _toolbarDrawer;
     private bool _returningFromTestMode;
@@ -40,9 +41,15 @@ public class Plugin : BaseUnityPlugin
             KeyCode.F9,
             "Opens and closes the Logic Script window in the level editor. None turns the key off; the Logic Script menu in ZeepSDK's menu bar still works.");
 
+        _completionWhileTyping = Config.Bind(
+            "Editor",
+            "Completion while typing",
+            true,
+            "Opens the completion list in the Script editor while typing a name. Ctrl+Space opens it either way.");
+
         var storage = StorageApi.CreateModStorage(this);
         var drafts = new DraftStore(storage, Logger);
-        _scriptWindow = new ScriptWindow(Logger, _startupCheck, drafts, new WindowStateStore(storage, Logger), _toggleKey);
+        _scriptWindow = new ScriptWindow(Logger, _startupCheck, drafts, new WindowStateStore(storage, Logger), _toggleKey, _completionWhileTyping);
         UIApi.AddZeepGUIDrawer(_scriptWindow);
         _toolbarDrawer = new ScriptToolbarDrawer(_scriptWindow);
         UIApi.AddToolbarDrawer(_toolbarDrawer);

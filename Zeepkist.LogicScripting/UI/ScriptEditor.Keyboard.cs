@@ -10,10 +10,12 @@ internal sealed partial class ScriptEditor
 {
     /// <summary>
     /// Every edit is recorded in the history; a caret move without an edit ends the current typing step.
+    /// <paramref name="typedName"/> is set when a character that can start a name was typed.
     /// </summary>
-    private bool HandleKeyboard(ImGui gui, ref ImTextEditBuffer buffer, ImRect textRect, bool editable, out bool compileRequested)
+    private bool HandleKeyboard(ImGui gui, ref ImTextEditBuffer buffer, ImRect textRect, bool editable, out bool compileRequested, out bool typedName)
     {
         compileRequested = false;
+        typedName = false;
         var changed = false;
         var text = Text;
         for (var i = 0; i < gui.Input.KeyboardEventsCount; i++)
@@ -89,6 +91,7 @@ internal sealed partial class ScriptEditor
             if (textChanged)
             {
                 text = buffer.ToString();
+                typedName |= IsNameStart(evt.Char);
                 _history.Record(before, new TextSnapshot(text, _state.Caret, _state.Selection), gui.Input.Time);
                 changed = true;
 
@@ -168,6 +171,11 @@ internal sealed partial class ScriptEditor
     {
         return (evt.Modifiers & (EventModifiers.Control | EventModifiers.Command)) != 0
             && (evt.Modifiers & EventModifiers.Alt) == 0;
+    }
+
+    private static bool IsNameStart(char c)
+    {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
     }
 
     private static bool IsUnprintable(char c)
