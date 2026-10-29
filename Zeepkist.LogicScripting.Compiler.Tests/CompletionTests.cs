@@ -26,6 +26,7 @@ public class CompletionTests
     [InlineData("x = lo|gic")]
     [InlineData("# a comment\nlo|")]
     [InlineData("x = \"a\" & lo|")]
+    [InlineData("x = \"#\" & lo|")]
     public void Expression_WhereAnExpressionCanStart(string text)
     {
         Assert.Equal(CaretContextKind.Expression, At(text).Kind);
@@ -105,6 +106,65 @@ public class CompletionTests
         Assert.Empty(Completion.GetItems(At("# lo|")));
     }
 
+    [Fact]
+    public void Items_NamesDefinedAbove_WithTheirBlockType()
+    {
+        var a = Names("a = generator(power: 1)\nb = 1\n\nx = |").First(i => i.Label == "a");
+
+        Assert.Equal(CompletionKind.Name, a.Kind);
+        Assert.Equal("generator", a.Detail);
+        Assert.Contains("b", NameLabels("a = generator(power: 1)\nb = 1\n\nx = |"));
+    }
+
+    [Fact]
+    public void Items_AreInAlphabeticalOrder_WithTheNames()
+    {
+        Assert.Equal(["lo", "logic", "lower"], NameLabels("lower = 1\nlo = 1\nx = lo|").Take(3));
+    }
+
+    [Theory]
+    [InlineData("x = |\na = 1")]
+    [InlineData("a = |")]
+    [InlineData("a = logic(1, |")]
+    [InlineData("a = logic(\n    1,\n    |\n)")]
+    [InlineData("x = logic(1, delay(2), |\na = 1")]
+    [InlineData("a = logic(\n    1,\n    |")]
+    [InlineData("a = logic(\n    |\nb = 1")]
+    public void Items_NoNamesDefinedAtOrBelowTheCaret(string text)
+    {
+        Assert.DoesNotContain("a", NameLabels(text));
+    }
+
+    [Theory]
+    [InlineData("x = delay(|\na = 1")]
+    [InlineData("a = delay(|")]
+    [InlineData("a = delay(1 & |)")]
+    [InlineData("a = delay(logic(1, |))")]
+    [InlineData("a = delay(\n    1,\n    ticks: |\n)")]
+    [InlineData("x = delay(\n    |\na = 1")]
+    public void Items_AnyName_InsideDelay(string text)
+    {
+        Assert.Contains("a", NameLabels(text));
+    }
+
+    [Fact]
+    public void Items_NamesAboveADefinition_AfterACallLeftOpen()
+    {
+        Assert.Contains("a", NameLabels("a = logic(\nb = |"));
+    }
+
+    [Fact]
+    public void Items_ANameDefinedTwice_Once()
+    {
+        Assert.Single(NameLabels("a = 1\na = 2\nx = |"), l => l == "a");
+    }
+
+    [Fact]
+    public void Items_NoNamesWhereNothingCompletes()
+    {
+        Assert.Empty(Names("a = 1\n# |"));
+    }
+
     [Theory]
     [InlineData("x = lo|", "logic", "x = logic(|")]
     [InlineData("x = lo|gic", "logic", "x = logic(|")]
@@ -118,6 +178,29 @@ public class CompletionTests
         var item = Completion.GetItems(context).First(i => i.Label == label);
 
         Assert.Equal(expected, Format(Completion.Accept(context, item)));
+    }
+
+    [Fact]
+    public void Accept_AName_WritesItAlone()
+    {
+        var context = At("abc = 1\nx = ab|");
+        var item = Completion.GetItems(context, DefinedNames.Read(context.Text)).First(i => i.Label == "abc");
+
+        Assert.Equal("abc = 1\nx = abc|", Format(Completion.Accept(context, item)));
+    }
+
+    /// <summary>
+    /// With the names the text itself defines.
+    /// </summary>
+    private static System.Collections.Generic.IReadOnlyList<CompletionItem> Names(string text)
+    {
+        var context = At(text);
+        return Completion.GetItems(context, DefinedNames.Read(context.Text));
+    }
+
+    private static System.Collections.Generic.List<string> NameLabels(string text)
+    {
+        return Names(text).Select(i => i.Label).ToList();
     }
 
     private static System.Collections.Generic.List<string> Labels(string text)

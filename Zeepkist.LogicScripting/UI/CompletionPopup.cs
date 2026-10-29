@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using BepInEx.Configuration;
 using Imui.Controls;
 using Imui.Core;
 using Imui.IO.Events;
@@ -15,7 +14,6 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// </summary>
 internal sealed class CompletionPopup
 {
-    private const int MaxRows = 8;
     private const float MaxWidth = 480;
 
     /// <summary>
@@ -23,25 +21,20 @@ internal sealed class CompletionPopup
     /// </summary>
     private const float DetailGap = 4;
 
-    private readonly ConfigEntry<bool> _whileTyping;
-    private CaretContext _context;
-    private IReadOnlyList<CompletionItem> _items = [];
+    private readonly CompletionSession _session;
+    private readonly EditorAssist _assist;
     private IReadOnlyList<CompletionItem> _measuredItems;
     private float _labelWidth;
     private float _detailWidth;
-    private bool _open;
-    private bool _openedByShortcut;
-    private bool _openRequested;
     private bool _pressAccepted;
-    private int _selected;
-    private int _firstRow;
     private ImRect _rect;
     private ImRect _rows;
     private float _rowHeight;
 
-    public CompletionPopup(ConfigEntry<bool> whileTyping)
+    public CompletionPopup(EditorAssist assist)
     {
-        _whileTyping = whileTyping;
+        _assist = assist;
+        _session = new CompletionSession(assist.FindPlacedBlock);
     }
 
     /// <summary>
@@ -49,16 +42,12 @@ internal sealed class CompletionPopup
     /// </summary>
     public bool TookEscape { get; private set; }
 
-    /// <summary>
-    /// Where the word being completed starts while the list is open.
-    /// </summary>
-    public int? WordStart => _open ? _context.Word.Start : null;
+    /// <inheritdoc cref="CompletionSession.WordStart"/>
+    public int? WordStart => _session.WordStart;
 
     public void Close()
     {
-        _open = false;
-        _openedByShortcut = false;
-        _rect = default;
+        _session.Close();
     }
 
     /// <summary>
@@ -68,14 +57,14 @@ internal sealed class CompletionPopup
     public void Draw(ImGui gui, Vector2 wordPosition, float lineHeight, ImRect bounds)
     {
         _rect = default;
-        if (!_open)
+        if (!_session.IsOpen)
             return;
 
         Measure(gui);
         var padding = gui.Style.Menu.Padding;
         var spacing = gui.Style.Layout.Spacing;
         _rowHeight = lineHeight + spacing;
-        var rows = Mathf.Min(MaxRows, _items.Count);
+        var rows = _session.VisibleRows;
         var width = Mathf.Min(MaxWidth, _labelWidth + (_detailWidth > 0 ? (spacing * DetailGap) + _detailWidth : 0) + (spacing * 2) + padding.Horizontal);
         var height = (rows * _rowHeight) + padding.Vertical;
         var lineBottom = wordPosition.y - lineHeight;
@@ -91,21 +80,27 @@ internal sealed class CompletionPopup
         var settings = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f, overflow: ImTextOverflow.Ellipsis);
         var detailSettings = new ImTextSettings(gui.Style.Layout.TextSize, 1, 0.5f, overflow: ImTextOverflow.Ellipsis);
         var hovered = GetRowAt(gui.Input.MousePosition);
-        for (var i = _firstRow; i < _firstRow + rows; i++)
+        var selected = _session.Selected;
+        for (var i = _session.FirstRow; i < _session.FirstRow + rows; i++)
         {
             var row = GetRowRect(i);
-            ref readonly var itemStyle = ref i == _selected ? ref gui.Style.Menu.ItemActive : ref gui.Style.Menu.ItemNormal;
-            var back = i == hovered && i != _selected ? itemStyle.Hovered.BackColor : itemStyle.Normal.BackColor;
+            ref readonly var itemStyle = ref i == selected ? ref gui.Style.Menu.ItemActive : ref gui.Style.Menu.ItemNormal;
+            var back = i == hovered && i != selected ? itemStyle.Hovered.BackColor : itemStyle.Normal.BackColor;
             gui.Canvas.Rect(row, back, itemStyle.BorderRadius);
 
-            var item = _items[i];
+            var item = _session.Items[i];
             var text = row.WithPadding(left: spacing, right: spacing);
             var label = text.TakeLeft(Mathf.Min(_labelWidth, text.W), out var detail);
 
             // The highlighted row's background can be the accent color, which the syntax colors aren't made for
-            var kind = item.Kind == CompletionKind.Keyword ? HighlightKind.Keyword : HighlightKind.Function;
-            var labelColor = i == _selected ? itemStyle.Normal.FrontColor : palette.Get(kind);
-            var detailColor = i == _selected ? itemStyle.Normal.FrontColor : WindowColors.Muted;
+            var kind = item.Kind switch
+            {
+                CompletionKind.Keyword => HighlightKind.Keyword,
+                CompletionKind.Name => HighlightKind.Name,
+                _ => HighlightKind.Function
+            };
+            var labelColor = i == selected ? itemStyle.Normal.FrontColor : palette.Get(kind);
+            var detailColor = i == selected ? itemStyle.Normal.FrontColor : WindowColors.Muted;
             gui.Text(item.Label, in settings, labelColor, label);
             if (item.Detail.Length > 0)
                 gui.Text(item.Detail, in detailSettings, detailColor, detail.WithPadding(left: spacing * DetailGap));
@@ -136,7 +131,7 @@ internal sealed class CompletionPopup
             }
         }
 
-        if (!_open || _rect.W <= 0)
+        if (!_session.IsOpen || _rect.W <= 0)
             return null;
 
         if (!_rect.Contains(gui.Input.MousePosition))
@@ -154,14 +149,14 @@ internal sealed class CompletionPopup
                 var row = GetRowAt(gui.Input.MousePosition);
                 if (row >= 0)
                 {
-                    accepted = Accept(row);
+                    accepted = _session.Accept(row);
                     _pressAccepted = true;
                 }
 
                 break;
 
             case ImMouseEventType.Scroll when evt.Delta.y != 0:
-                Select(_selected + (evt.Delta.y > 0 ? 1 : -1), wrap: false);
+                _session.Select(_session.Selected + (evt.Delta.y > 0 ? 1 : -1), wrap: false);
                 break;
         }
 
@@ -180,7 +175,7 @@ internal sealed class CompletionPopup
         TookEscape = false;
 
         // The same check as the one that unfocuses the editor, which Imui's own Escape event arrives a frame after
-        if (_open && Input.GetKeyDown(KeyCode.Escape))
+        if (_session.IsOpen && Input.GetKeyDown(KeyCode.Escape))
         {
             Close();
             TookEscape = true;
@@ -196,24 +191,23 @@ internal sealed class CompletionPopup
             var control = (evt.Modifiers & EventModifiers.Control) != 0;
             if (evt.Key == KeyCode.Space && control)
             {
-                _openRequested = true;
-                _openedByShortcut = true;
+                _session.Request();
                 gui.Input.UseKeyboardEvent(i);
                 continue;
             }
 
-            if (!_open || (evt.Modifiers & (EventModifiers.Control | EventModifiers.Command | EventModifiers.Alt | EventModifiers.Shift)) != 0)
+            if (!_session.IsOpen || (evt.Modifiers & (EventModifiers.Control | EventModifiers.Command | EventModifiers.Alt | EventModifiers.Shift)) != 0)
                 continue;
 
             switch (evt.Key)
             {
                 case KeyCode.DownArrow:
-                    Select(_selected + 1, wrap: true);
+                    _session.Select(_session.Selected + 1, wrap: true);
                     gui.Input.UseKeyboardEvent(i);
                     break;
 
                 case KeyCode.UpArrow:
-                    Select(_selected - 1, wrap: true);
+                    _session.Select(_session.Selected - 1, wrap: true);
                     gui.Input.UseKeyboardEvent(i);
                     break;
 
@@ -225,7 +219,7 @@ internal sealed class CompletionPopup
                     // Unity sends the key's character as an event of its own, which would still type a line break or
                     // indent
                     UseCharacter(gui, character);
-                    return Accept(_selected);
+                    return _session.Accept(_session.Selected);
             }
         }
 
@@ -233,61 +227,17 @@ internal sealed class CompletionPopup
     }
 
     /// <summary>
-    /// Call after the editor handled its input, with the text and caret it ended with. An empty prefix keeps the list
-    /// open only when Ctrl+Space opened it.
+    /// Call after the editor handled its input, with the text and caret it ended with.
     /// </summary>
     public void Update(TextSnapshot snapshot, bool typedName, bool focused)
     {
-        var requested = _openRequested || (typedName && _whileTyping.Value);
-        _openRequested = false;
         TookEscape &= focused;
-        if (!focused || snapshot.Selection != 0)
-        {
-            Close();
-            return;
-        }
-
-        if (!_open && !requested)
-            return;
-
-        if (_context == null || _context.Text != snapshot.Text || _context.Caret != snapshot.Caret)
-        {
-            var wordStart = _context?.Word.Start;
-            _context = CaretContext.At(snapshot.Text, snapshot.Caret);
-            _items = Completion.GetItems(_context);
-            _selected = 0;
-            _firstRow = 0;
-            if (_open && wordStart != _context.Word.Start)
-                Close();
-        }
-
-        if (requested)
-            _open = true;
-
-        if (_items.Count == 0 || (_context.Prefix.Length == 0 && !_openedByShortcut))
-            Close();
-    }
-
-    private TextSnapshot? Accept(int index)
-    {
-        var item = _items[index];
-        Close();
-        return Completion.Accept(_context, item);
-    }
-
-    private void Select(int index, bool wrap)
-    {
-        var count = _items.Count;
-        _selected = wrap ? (index + count) % count : Mathf.Clamp(index, 0, count - 1);
-        if (_selected < _firstRow)
-            _firstRow = _selected;
-        else if (_selected >= _firstRow + MaxRows)
-            _firstRow = _selected - MaxRows + 1;
+        _session.Update(snapshot, typedName, _assist.CompletionWhileTyping, focused);
     }
 
     private ImRect GetRowRect(int index)
     {
-        var bottom = _rows.Top - ((index - _firstRow + 1) * _rowHeight);
+        var bottom = _rows.Top - ((index - _session.FirstRow + 1) * _rowHeight);
         return new ImRect(_rows.X, bottom, _rows.W, _rowHeight);
     }
 
@@ -296,19 +246,19 @@ internal sealed class CompletionPopup
         if (!_rect.Contains(position))
             return -1;
 
-        var row = _firstRow + Mathf.FloorToInt((_rows.Top - position.y) / _rowHeight);
-        return row >= _firstRow && row < Mathf.Min(_items.Count, _firstRow + MaxRows) ? row : -1;
+        var row = _session.FirstRow + Mathf.FloorToInt((_rows.Top - position.y) / _rowHeight);
+        return row >= _session.FirstRow && row < _session.FirstRow + _session.VisibleRows ? row : -1;
     }
 
     private void Measure(ImGui gui)
     {
-        if (ReferenceEquals(_measuredItems, _items))
+        if (ReferenceEquals(_measuredItems, _session.Items))
             return;
 
-        _measuredItems = _items;
+        _measuredItems = _session.Items;
         _labelWidth = 0;
         _detailWidth = 0;
-        foreach (var item in _items)
+        foreach (var item in _session.Items)
         {
             _labelWidth = Mathf.Max(_labelWidth, gui.MeasureTextSize(item.Label).x);
             _detailWidth = Mathf.Max(_detailWidth, gui.MeasureTextSize(item.Detail).x);

@@ -21,13 +21,6 @@ internal static class PlacedBlocks
         if (!BlockManifest.TryGetBlock(block.blockID, out var type, out _))
             return new PlacedBlock(block.blockID, isInBlockGroup: isInBlockGroup);
 
-        List<Setting> settings = [];
-        if (type.Modes != null)
-        {
-            var key = type.Modes.Setting.Key;
-            settings.Add(Setting.Int(key, block.customBlockEditProperties.GetIntDictionaryValue(key)));
-        }
-
         List<int> wiredInputs = [];
         foreach (var input in type.Inputs)
         {
@@ -35,7 +28,34 @@ internal static class PlacedBlocks
                 wiredInputs.Add(input.Index);
         }
 
-        return new PlacedBlock(block.blockID, settings, wiredInputs, GetDownstream(central, block, type, scriptId), isInBlockGroup);
+        return new PlacedBlock(block.blockID, GetSettings(block, type), wiredInputs, GetDownstream(central, block, type, scriptId), isInBlockGroup);
+    }
+
+    /// <summary>
+    /// The block's ID and Settings only, for the editor's help, which looks up every reference on each edit and has no
+    /// use for the Wires <see cref="Find"/> follows.
+    /// </summary>
+    public static PlacedBlock FindWithoutWires(LEV_LevelEditorCentral central, string uid)
+    {
+        var block = LevelBlocks.Find(central, uid);
+        if (block == null)
+            return null;
+
+        return BlockManifest.TryGetBlock(block.blockID, out var type, out _)
+            ? new PlacedBlock(block.blockID, GetSettings(block, type))
+            : new PlacedBlock(block.blockID);
+    }
+
+    private static List<Setting> GetSettings(BlockProperties block, BlockType type)
+    {
+        List<Setting> settings = [];
+        if (type.Modes != null)
+        {
+            var key = type.Modes.Setting.Key;
+            settings.Add(Setting.Int(key, block.customBlockEditProperties.GetIntDictionaryValue(key)));
+        }
+
+        return settings;
     }
 
     /// <summary>
