@@ -77,10 +77,13 @@ public sealed class CompletionSession
         if (!IsOpen && !requested)
             return;
 
-        if (_context == null || _context.Text != snapshot.Text || _context.Caret != snapshot.Caret)
+        // Opening reads the names again too: the level's blocks, which give a Placed Block Reference its type, can
+        // change while the list is closed
+        var opening = requested && !IsOpen;
+        if (opening || _context == null || _context.Text != snapshot.Text || _context.Caret != snapshot.Caret)
         {
             var wordStart = _context?.Word.Start;
-            if (_context == null || _context.Text != snapshot.Text)
+            if (opening || _context == null || _context.Text != snapshot.Text)
                 _definedNames = DefinedNames.Read(snapshot.Text, _findPlacedBlock);
 
             _context = CaretContext.At(snapshot.Text, snapshot.Caret);

@@ -151,6 +151,23 @@ public class CompletionSessionTests
     }
 
     [Fact]
+    public void Opening_ReadsThePlacedBlocksTypeAgain()
+    {
+        PlacedBlock lamp = null;
+        var session = new CompletionSession(_ => lamp);
+        const string Text = "lamp_1 = placed(\"L\")\nx = la";
+        session.Request();
+        session.Update(new TextSnapshot(Text, Text.Length), typedName: false, whileTyping: true, focused: true);
+        session.Close();
+
+        lamp = new PlacedBlock(BlockManifest.Lamp.DefaultStyle.BlockId);
+        session.Request();
+        session.Update(new TextSnapshot(Text, Text.Length), typedName: false, whileTyping: true, focused: true);
+
+        Assert.Equal("lamp", Assert.Single(session.Items, i => i.Label == "lamp_1").Detail);
+    }
+
+    [Fact]
     public void Accept_NothingWhenClosed()
     {
         var session = new CompletionSession();
