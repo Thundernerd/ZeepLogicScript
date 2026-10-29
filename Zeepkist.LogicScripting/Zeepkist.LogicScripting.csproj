@@ -3,8 +3,6 @@
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <AssemblyName>Zeepkist.LogicScripting</AssemblyName>
-    <!-- Pinned so the config file and ZeepSDK storage folder keep their names; PluginInfoProps would otherwise take the GUID from AssemblyName -->
-    <BepInExPluginGuid>net.tnrd.zeepkist.logicscripting</BepInExPluginGuid>
     <Version>0.1.0</Version>
     <LangVersion>latest</LangVersion>
     <!-- Lets Mono skip access checks, so publicized private game members can be called directly (ADR 0007) -->
