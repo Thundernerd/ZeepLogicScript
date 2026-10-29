@@ -20,6 +20,7 @@ internal sealed class CallHelpPopup
     private readonly CallHelpSession _session;
     private readonly List<(string Text, Color32 Color, ImRect Rect)> _pieces = [];
     private CallHelp _laidOut;
+    private float _laidOutWidth;
     private Vector2 _size;
 
     public CallHelpPopup(EditorAssist assist)
@@ -43,15 +44,18 @@ internal sealed class CallHelpPopup
             return;
 
         var padding = gui.Style.Menu.Padding;
-        if (!ReferenceEquals(_laidOut, help))
+        var maxTextWidth = Mathf.Min(MaxWidth, bounds.W) - padding.Horizontal;
+        if (!ReferenceEquals(_laidOut, help) || _laidOutWidth != maxTextWidth)
         {
             _laidOut = help;
-            _size = Layout(gui, help, Mathf.Min(MaxWidth, bounds.W) - padding.Horizontal, lineHeight);
+            _laidOutWidth = maxTextWidth;
+            _size = Layout(gui, help, maxTextWidth, lineHeight);
         }
 
-        var width = _size.x + padding.Horizontal;
+        // A separator never wraps, so a line can run past the most it may take; its text ends in an ellipsis there
+        var width = Mathf.Min(_size.x, maxTextWidth) + padding.Horizontal;
         var height = _size.y + padding.Vertical;
-        var x = Mathf.Clamp(linePosition.x - padding.Left, bounds.X, bounds.Right - width);
+        var x = Mathf.Max(bounds.X, Mathf.Min(linePosition.x - padding.Left, bounds.Right - width));
 
         var hasCompletion = completion.W > 0;
         var rect = new ImRect(x, linePosition.y, width, height);
@@ -73,7 +77,9 @@ internal sealed class CallHelpPopup
         {
             var pieceRect = piece.Rect;
             pieceRect.Position += origin;
-            gui.Text(piece.Text, in settings, piece.Color, pieceRect);
+            pieceRect.W = Mathf.Min(pieceRect.W, rect.Right - padding.Right - pieceRect.X);
+            if (pieceRect.W > 0)
+                gui.Text(piece.Text, in settings, piece.Color, pieceRect);
         }
 
         gui.EndPopup();
@@ -92,9 +98,7 @@ internal sealed class CallHelpPopup
         TookEscape = true;
     }
 
-    /// <summary>
-    /// Call after the editor handled its input, with the text and caret it ended with.
-    /// </summary>
+    /// <inheritdoc cref="CallHelpSession.Update"/>
     public void Update(TextSnapshot snapshot, bool focused)
     {
         TookEscape &= focused;
