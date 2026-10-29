@@ -58,7 +58,7 @@ public sealed class CaretContext
         var kind = IsInCommentOrString(tokens, comments, caret) || (word.Length > 0 && Lexer.IsDigit(text[word.Start]))
             ? CaretContextKind.None
             : GetKind(tokens, word);
-        var statementStart = ReadStatement(tokens, word, out var canReferAhead);
+        var statementStart = FindStatementStart(tokens, word, out var canReferAhead);
 
         return new CaretContext(text, caret, kind, word, statementStart, canReferAhead);
     }
@@ -128,7 +128,7 @@ public sealed class CaretContext
     /// Follows the parentheses opened in the word's statement before it, to tell whether one of them is a Delay's
     /// call.
     /// </summary>
-    private static int ReadStatement(List<Token> tokens, TextSpan word, out bool canReferAhead)
+    private static int FindStatementStart(List<Token> tokens, TextSpan word, out bool isInDelay)
     {
         var statementStart = 0;
         Stack<bool> delayCalls = new();
@@ -155,7 +155,7 @@ public sealed class CaretContext
             }
         }
 
-        canReferAhead = delayCalls.Contains(true);
+        isInDelay = delayCalls.Contains(true);
         return statementStart;
     }
 

@@ -7,9 +7,5 @@ public enum CompletionKind
     /// </summary>
     Function,
     Keyword,
-
-    /// <summary>
-    /// A name the Script defines.
-    /// </summary>
     Name
 }

@@ -42,15 +42,12 @@ internal sealed class CompletionPopup
     /// </summary>
     public bool TookEscape { get; private set; }
 
-    /// <summary>
-    /// Where the word being completed starts while the list is open.
-    /// </summary>
+    /// <inheritdoc cref="CompletionSession.WordStart"/>
     public int? WordStart => _session.WordStart;
 
     public void Close()
     {
         _session.Close();
-        _rect = default;
     }
 
     /// <summary>
@@ -152,7 +149,7 @@ internal sealed class CompletionPopup
                 var row = GetRowAt(gui.Input.MousePosition);
                 if (row >= 0)
                 {
-                    accepted = Accept(row);
+                    accepted = _session.Accept(row);
                     _pressAccepted = true;
                 }
 
@@ -222,7 +219,7 @@ internal sealed class CompletionPopup
                     // Unity sends the key's character as an event of its own, which would still type a line break or
                     // indent
                     UseCharacter(gui, character);
-                    return Accept(_session.Selected);
+                    return _session.Accept(_session.Selected);
             }
         }
 
@@ -236,14 +233,6 @@ internal sealed class CompletionPopup
     {
         TookEscape &= focused;
         _session.Update(snapshot, typedName, _assist.CompletionWhileTyping, focused);
-        if (!_session.IsOpen)
-            _rect = default;
-    }
-
-    private TextSnapshot? Accept(int index)
-    {
-        _rect = default;
-        return _session.Accept(index);
     }
 
     private ImRect GetRowRect(int index)

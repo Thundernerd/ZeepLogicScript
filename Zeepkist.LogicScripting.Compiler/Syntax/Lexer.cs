@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -199,7 +198,8 @@ internal static class Lexer
         if (binary == null && unary == null)
             return null;
 
-        return new Token(binary, unary, position, index);
+        var length = binary?.Symbol.Length ?? unary.Symbol.Length;
+        return new Token(binary, unary, position, new TextSpan(index, length));
     }
 
     private static T MatchLongest<T>(IEnumerable<T> operators, Func<T, string> getSymbol, string text, int index)

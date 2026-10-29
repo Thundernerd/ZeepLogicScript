@@ -1,4 +1,4 @@
-namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
+namespace TNRD.Zeepkist.LogicScripting.Compiler;
 
 public readonly struct TextSpan
 {

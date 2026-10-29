@@ -15,7 +15,7 @@ public static class DefinedNames
     /// <summary>
     /// Every definition of a name that isn't reserved, in text order; a name defined twice is listed twice.
     /// </summary>
-    /// <param name="text">The Script.</param>
+    /// <param name="text"></param>
     /// <param name="findPlacedBlock">The block in the level with a UID, or null when there's none.</param>
     public static IReadOnlyList<DefinedName> Read(string text, Func<string, PlacedBlock> findPlacedBlock = null)
     {

@@ -1,5 +1,3 @@
-using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
-
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 internal readonly struct Token
@@ -13,12 +11,8 @@ internal readonly struct Token
         IsUnclosed = isUnclosed;
     }
 
-    public Token(BinaryOperator binaryOperator, UnaryOperator unaryOperator, Position position, int start)
-        : this(
-            TokenKind.Operator,
-            binaryOperator?.Symbol ?? unaryOperator.Symbol,
-            position,
-            new TextSpan(start, (binaryOperator?.Symbol ?? unaryOperator.Symbol).Length))
+    public Token(BinaryOperator binaryOperator, UnaryOperator unaryOperator, Position position, TextSpan span)
+        : this(TokenKind.Operator, binaryOperator?.Symbol ?? unaryOperator.Symbol, position, span)
     {
         BinaryOperator = binaryOperator;
         UnaryOperator = unaryOperator;
