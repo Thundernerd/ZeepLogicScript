@@ -33,7 +33,8 @@ public class NeverThrowsTests
         "toggler(1, targets: [placed(\"T\"), placed(\"L\")])\ndeath(1)",
         "function edge(x) -> rising\n    prev = delay(x, ticks: 1)\n    rising = x & !prev\nend\npower_display(edge(player_input().horn))",
         "l = latch(b: 0, a: 1)\npower_display(l.q)\nfunction latch(a, b) -> q, not_q\n    q = delay(!b & (a | q), ticks: 1)\n    not_q = !q\nend",
-        "function light(lamp, x)\n    lamp(intensity: x)\n    t = placed(\"T\")\nend\nlight(placed(\"L\"), 1)\nx = delay(same(later), ticks: 1)\nlater = 1\nfunction same(v) -> w\nw = v\nend"
+        "function light(lamp, x)\n    lamp(intensity: x)\n    t = placed(\"T\")\nend\nlight(placed(\"L\"), 1)\nx = delay(same(later), ticks: 1)\nlater = 1\nfunction same(v) -> w\nw = v\nend",
+        "t = simple_telemetry(mode: local_velocity)\nw = placed(\"W\")\nw(red: t.x)"
     ];
 
     private static readonly Dictionary<string, PlacedBlock> _level = new()
@@ -53,6 +54,7 @@ public class NeverThrowsTests
     [
         "x", "y", "later", "default", "function", "end", "->", "f", "f(x)", "function f(x) -> y\n", "\nend\n", "true", "false", "placed", "logic", "power_display", "delay", "toggler", "targets",
         "player_input", "demultiplexer", "multiplexer", "math", "op", "ticks", "hide", "style", "ch1", "horn", "and",
+        "simple_telemetry", "mode", "local_velocity",
         "\"W\"", "\"G\"", "\"OTHER\"", "0", "1", "-1", "99999999999999999999", "2147483648", "\"T\"", "\"L\"", "\"", "(", ")", "[", "]", ",", ":",
         ".", "=", "==", "!=", "&", "&&", "|", "||", "^", "!", "~", "-", "+", "*", "/", "%", "<", ">", "<=", ">=", "<<",
         ">>", "#", " ", "\t", "\n", "\r\n", "$", "1.5", "é"
@@ -278,13 +280,14 @@ public class NeverThrowsTests
             ScriptText.GetIndex(text, position);
         }
 
-        Complete(new TextSnapshot(text, -1));
-        Complete(new TextSnapshot(text, text.Length + 1));
+        var definedNames = DefinedNames.Read(text, uid => _level.GetValueOrDefault(uid));
+        Complete(new TextSnapshot(text, -1), definedNames);
+        Complete(new TextSnapshot(text, text.Length + 1), definedNames);
 
         foreach (var snapshot in GetSnapshots(text))
         {
             Edit(snapshot);
-            Complete(snapshot);
+            Complete(snapshot, definedNames);
         }
 
         return result;
@@ -338,10 +341,10 @@ public class NeverThrowsTests
     /// <summary>
     /// Accepts the first item too, so a word span that doesn't fit the text would fail here.
     /// </summary>
-    private static void Complete(TextSnapshot snapshot)
+    private static void Complete(TextSnapshot snapshot, IReadOnlyList<DefinedName> definedNames)
     {
         var context = CaretContext.At(snapshot.Text, snapshot.Caret);
-        var items = Completion.GetItems(context);
+        var items = Completion.GetItems(context, definedNames);
         if (items.Count > 0)
             Completion.Accept(context, items[0]);
     }

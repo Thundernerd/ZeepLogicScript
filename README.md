@@ -84,7 +84,8 @@ The text editor knows the usual shortcuts:
 Ctrl+Z / Ctrl+Y to undo and redo, Ctrl+D to duplicate a line, Ctrl+Shift+K to delete a line,
 Ctrl+/ to comment a line out, Alt+Up / Alt+Down to move lines, and Tab / Shift+Tab to indent.
 
-While you type a name, the editor lists the block functions that match.
+While you type a name, the editor lists the block functions and defined names that match.
+It only lists names defined on an earlier line, except inside `delay(...)`, which can refer to any of them.
 Up / Down choose one, Enter or Tab writes it, and Escape closes the list.
 Ctrl+Space opens the list at any time.
 To stop it opening by itself, turn off **Completion while typing** in the mod's settings.

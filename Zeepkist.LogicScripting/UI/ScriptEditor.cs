@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using BepInEx.Configuration;
 using Imui.Controls;
 using Imui.Core;
 using Imui.IO.Events;
@@ -24,10 +23,10 @@ internal sealed partial class ScriptEditor
     private IReadOnlyList<TextSpan> _errors = [];
     private bool _focusRequested;
 
-    public ScriptEditor(string text, ConfigEntry<bool> completionWhileTyping)
+    public ScriptEditor(string text, EditorAssist assist)
     {
         Text = text;
-        _completion = new CompletionPopup(completionWhileTyping);
+        _completion = new CompletionPopup(assist);
     }
 
     public string Text { get; private set; } = string.Empty;
