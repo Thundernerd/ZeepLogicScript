@@ -21,16 +21,26 @@ public static class ScriptCompiler
     /// The block in the level with a UID, or null when there's none; without it, every Placed Block Reference is an
     /// error.
     /// </param>
+    /// <param name="findLibrary">
+    /// A Library's text by its name, or null when there's none on this machine; without it, every qualified call is an
+    /// error. Each Library is asked for once.
+    /// </param>
     public static CompileResult Compile(
         string text,
         int quarterTurns,
         IReadOnlyCollection<int> disabledBlockIds = null,
-        Func<string, PlacedBlock> findPlacedBlock = null)
+        Func<string, PlacedBlock> findPlacedBlock = null,
+        Func<string, string> findLibrary = null)
     {
         List<Diagnostic> diagnostics = [];
         var tokens = Lexer.Tokenize(text ?? string.Empty, diagnostics);
         var statements = Parser.Parse(tokens, diagnostics);
-        var graph = GraphBuilder.Build(statements, diagnostics, disabledBlockIds ?? [], findPlacedBlock ?? (_ => null));
+        var graph = GraphBuilder.Build(
+            statements,
+            diagnostics,
+            disabledBlockIds ?? [],
+            findPlacedBlock ?? (_ => null),
+            findLibrary ?? (_ => null));
         var references = graph.PlacedBlockReferences.OrderBy(r => r.Position).ToList();
 
         if (diagnostics.Count > 0)
@@ -61,6 +71,21 @@ public static class ScriptCompiler
         }
 
         return new CompileResult([], blocks, wires, placedWires, references);
+    }
+
+    /// <summary>
+    /// The errors in a Library on its own, without a Script calling it. It may hold only Functions, and each body is
+    /// checked with inputs that stand for whatever a caller could pass.
+    /// </summary>
+    /// <param name="text">The Library.</param>
+    /// <param name="findLibrary">Another Library's text by its name, or null when there's none on this machine.</param>
+    public static IReadOnlyList<Diagnostic> CheckLibrary(string text, Func<string, string> findLibrary = null)
+    {
+        List<Diagnostic> diagnostics = [];
+        var tokens = Lexer.Tokenize(text ?? string.Empty, diagnostics);
+        var statements = Parser.Parse(tokens, diagnostics);
+        GraphBuilder.Build(statements, diagnostics, [], _ => null, findLibrary ?? (_ => null), isLibrary: true);
+        return diagnostics.OrderBy(d => d.Position).ToList();
     }
 
     private static CompiledWire ToCompiledWire(GraphWire wire)

@@ -293,7 +293,9 @@ internal sealed partial class Parser
 
             var output = Current;
             Expect(TokenKind.Name, "an output name");
-            expression = new MemberExpression(output.Position, expression, output.Text);
+            expression = expression is NameExpression library && Current.Kind == TokenKind.OpenParen
+                ? ParseCall(library, output)
+                : new MemberExpression(output.Position, expression, output.Text);
         }
 
         return expression;
@@ -317,7 +319,7 @@ internal sealed partial class Parser
             case TokenKind.Name:
                 _index++;
                 if (Current.Kind == TokenKind.OpenParen)
-                    return ParseCall(token);
+                    return ParseCall(null, token);
 
                 return new NameExpression(token.Position, token.Text);
 
@@ -345,15 +347,18 @@ internal sealed partial class Parser
         return new IntegerLiteral(start.Position, value);
     }
 
-    private CallExpression ParseCall(Token function)
+    /// <param name="library">The Library before the dot of a qualified call, <c>timing.edge(x)</c>, or null.</param>
+    /// <param name="function">The function's name.</param>
+    private CallExpression ParseCall(NameExpression library, Token function)
     {
+        var position = library?.Position ?? function.Position;
         ExpectOpenParen();
         List<Expression> arguments = [];
         List<NamedArgument> namedArguments = [];
         if (Current.Kind == TokenKind.CloseParen)
         {
             _index++;
-            return new CallExpression(function.Position, function.Text, arguments, namedArguments);
+            return new CallExpression(position, library?.Name, function.Text, arguments, namedArguments);
         }
 
         while (true)
@@ -379,7 +384,7 @@ internal sealed partial class Parser
             }
 
             Expect(TokenKind.CloseParen, "',' or ')'");
-            return new CallExpression(function.Position, function.Text, arguments, namedArguments);
+            return new CallExpression(position, library?.Name, function.Text, arguments, namedArguments);
         }
     }
 

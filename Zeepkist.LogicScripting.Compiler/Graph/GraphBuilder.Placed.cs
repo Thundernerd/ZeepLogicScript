@@ -16,13 +16,16 @@ internal sealed partial class GraphBuilder
     /// <summary>
     /// The only Wires that can close a Dependency Loop.
     /// </summary>
-    private readonly List<(GraphWire Wire, SyntaxNode Origin)> _wiresIntoPlaced = [];
+    private readonly List<(GraphWire Wire, SyntaxNode Origin, Scope Scope)> _wiresIntoPlaced = [];
 
     /// <summary>
     /// Null after reporting why the reference reaches no block. Several references to one UID share one block.
     /// </summary>
     private Resolved VisitPlaced(CallExpression call)
     {
+        if (_isLibrary || _scope.Library != null)
+            return Fail(call, $"A Library can't use {PlacedFunction}(...), since a UID belongs to one level; pass the block in as an input");
+
         if (call.Arguments.Count != 1 || call.NamedArguments.Count > 0 || call.Arguments[0] is not StringLiteral uid)
             return Fail(call, $"{PlacedFunction}(...) takes one UID in quotes, like {PlacedFunction}(\"AbC12\")");
 
@@ -64,7 +67,7 @@ internal sealed partial class GraphBuilder
 
     private bool IsReferenceCall(CallExpression call)
     {
-        return _scope.Names.TryGetValue(call.Function, out var value) && GetPlacedBlock(value) != null;
+        return call.Library == null && _scope.Names.TryGetValue(call.Function, out var value) && GetPlacedBlock(value) != null;
     }
 
     /// <summary>
@@ -170,7 +173,7 @@ internal sealed partial class GraphBuilder
 
         // A body may be expanded several times, so name the line it was called from
         _placedInputLines.Add((block, connector.Index), _scope.Function == null ? call.Position.Line : _statementLine);
-        _wiresIntoPlaced.Add((_graph.AddWire(from, block, connector.Index), origin));
+        _wiresIntoPlaced.Add((_graph.AddWire(from, block, connector.Index), origin, _scope));
     }
 
     private static SyntaxNode GetInputOrigin(CallExpression call, bool isByPosition, int input, BlockType type)
@@ -185,11 +188,16 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private void CheckDependencyLoops()
     {
-        foreach (var (wire, origin) in _wiresIntoPlaced)
+        var scope = _scope;
+        foreach (var (wire, origin, wireScope) in _wiresIntoPlaced)
         {
+            // The scope places the error when the Wire comes from a Library's body
+            _scope = wireScope;
             if (wire.To.Type != BlockManifest.Delay && Reaches(wire.To, wire.From))
                 Error(origin, "This Wire makes a Dependency Loop, which stops all logic in play; put a delay(...) in the loop");
         }
+
+        _scope = scope;
     }
 
     /// <summary>

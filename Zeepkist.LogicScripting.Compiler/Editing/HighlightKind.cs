@@ -8,7 +8,8 @@ public enum HighlightKind
     Name,
 
     /// <summary>
-    /// A Block Function, one of the Script's own Functions, or <c>placed</c>.
+    /// A Block Function, one of the Script's own Functions, a Library's Function with its Library's name, or
+    /// <c>placed</c>.
     /// </summary>
     Function,
 

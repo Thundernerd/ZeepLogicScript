@@ -38,22 +38,24 @@ internal sealed partial class GraphBuilder
 
     /// <summary>
     /// Notes every Function up front, since a call may come before the definition, and checks each one's first line.
+    /// They go to the current scope's Functions: the text being compiled, or a Library being loaded.
     /// </summary>
     private void CollectFunctions(List<Statement> statements)
     {
+        var known = Functions;
         var functions = statements.OfType<FunctionDefinition>().ToList();
         foreach (var function in functions)
         {
             var name = function.Name;
-            if (CheckName(name) && !_functions.ContainsKey(name.Name))
-                _functions.Add(name.Name, function);
-            else if (_functions.TryGetValue(name.Name, out var first))
+            if (CheckName(name) && !known.ContainsKey(name.Name))
+                known.Add(name.Name, function);
+            else if (known.TryGetValue(name.Name, out var first))
                 Error(name, $"Function '{name.Name}' is already defined on line {first.Position.Line}");
         }
 
         foreach (var function in functions)
         {
-            if (_functions.TryGetValue(function.Name.Name, out var registered) && registered == function && !CheckHeader(function))
+            if (known.TryGetValue(function.Name.Name, out var registered) && registered == function && !CheckHeader(function))
                 _brokenFunctions.Add(function);
         }
     }
@@ -126,9 +128,12 @@ internal sealed partial class GraphBuilder
         return message == null;
     }
 
+    /// <summary>
+    /// A qualified call is always to a Function; whether its Library has one is checked when it's expanded.
+    /// </summary>
     private bool IsFunctionCall(CallExpression call)
     {
-        return _functions.ContainsKey(call.Function);
+        return call.Library != null || Functions.ContainsKey(call.Function);
     }
 
     /// <summary>
@@ -136,14 +141,14 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private Resolved VisitFunctionCall(CallExpression call)
     {
-        var function = _functions[call.Function];
-        var outputs = ExpandCall(call);
+        var function = FindFunction(call);
+        var outputs = ExpandCall(call, function);
         if (outputs == null)
             return null;
 
         return function.Outputs.Count switch
         {
-            0 => Fail(call, $"'{call.Function}' has no output to use as a value"),
+            0 => Fail(call, $"'{call.QualifiedName}' has no output to use as a value"),
             1 => outputs[function.Outputs[0].Name],
             _ => new FunctionOutputs(function, outputs)
         };
@@ -152,10 +157,11 @@ internal sealed partial class GraphBuilder
     /// <summary>
     /// The value of each output by name, or null after reporting why the call places nothing.
     /// </summary>
-    private Dictionary<string, Resolved> ExpandCall(CallExpression call)
+    /// <param name="call">The call.</param>
+    /// <param name="function">The Function it names, or null when there's none, already reported.</param>
+    private Dictionary<string, Resolved> ExpandCall(CallExpression call, FunctionDefinition function)
     {
-        var function = _functions[call.Function];
-        if (_brokenFunctions.Contains(function) || !CanExpand(call, function))
+        if (function == null || _brokenFunctions.Contains(function) || !CanExpand(call, function))
         {
             foreach (var argument in call.Arguments.Concat(call.NamedArguments.Select(a => a.Value)))
             {
@@ -169,7 +175,8 @@ internal sealed partial class GraphBuilder
         if (arguments == null)
             return null;
 
-        return Expand(function, scope =>
+        var callSite = _libraryFunctions.ContainsKey(function) ? _scope.CallSite ?? call.Position : (Position?)null;
+        return Expand(function, callSite, scope =>
         {
             foreach (var argument in arguments)
             {
@@ -186,10 +193,11 @@ internal sealed partial class GraphBuilder
         var calling = _callStack.IndexOf(function);
         if (calling >= 0)
         {
-            var through = _callStack.Skip(calling + 1).Select(f => $"'{f.Name.Name}'").ToList();
+            var through = _callStack.Skip(calling + 1).Select(f => $"'{GetQualifiedName(f)}'").ToList();
+            var name = GetQualifiedName(function);
             Error(call, through.Count == 0
-                ? $"'{call.Function}' calls itself, and a function can't"
-                : $"'{call.Function}' calls itself through {string.Join(", ", through)}, and a function can't");
+                ? $"'{name}' calls itself, and a function can't"
+                : $"'{name}' calls itself through {string.Join(", ", through)}, and a function can't");
             return false;
         }
 
@@ -231,7 +239,7 @@ internal sealed partial class GraphBuilder
 
         if (call.Arguments.Count > inputs.Count)
         {
-            Error(call, $"'{call.Function}' takes {Count(inputs.Count, "input")}, got {call.Arguments.Count}");
+            Error(call, $"'{call.QualifiedName}' takes {Count(inputs.Count, "input")}, got {call.Arguments.Count}");
             failed = true;
         }
 
@@ -250,8 +258,8 @@ internal sealed partial class GraphBuilder
             else if (input < 0)
             {
                 Error(argument, inputs.Count == 0
-                    ? $"'{call.Function}' has no inputs"
-                    : $"'{call.Function}' has no input '{argument.Name}'; use {string.Join(", ", inputs.Select(i => i.Name))}");
+                    ? $"'{call.QualifiedName}' has no inputs"
+                    : $"'{call.QualifiedName}' has no input '{argument.Name}'; use {string.Join(", ", inputs.Select(i => i.Name))}");
                 namesFailed = true;
             }
             else if (isGiven[input])
@@ -271,8 +279,8 @@ internal sealed partial class GraphBuilder
         if (missing.Count > 0 && !namesFailed)
         {
             Error(call, missing.Count == 1
-                ? $"'{call.Function}' needs input {missing[0]}"
-                : $"'{call.Function}' needs inputs {string.Join(", ", missing)}");
+                ? $"'{call.QualifiedName}' needs input {missing[0]}"
+                : $"'{call.QualifiedName}' needs inputs {string.Join(", ", missing)}");
             failed = true;
         }
 
@@ -299,9 +307,13 @@ internal sealed partial class GraphBuilder
     /// <summary>
     /// Visits the body in a new scope whose inputs <paramref name="bindInputs"/> fills, and gives each output's value.
     /// </summary>
-    private Dictionary<string, Resolved> Expand(FunctionDefinition function, Action<Scope> bindInputs)
+    /// <param name="function">The Function.</param>
+    /// <param name="callSite">See <see cref="Scope.CallSite"/>.</param>
+    /// <param name="bindInputs">Fills the inputs.</param>
+    private Dictionary<string, Resolved> Expand(FunctionDefinition function, Position? callSite, Action<Scope> bindInputs)
     {
-        var scope = new Scope(function);
+        _libraryFunctions.TryGetValue(function, out var library);
+        var scope = new Scope(function, library, callSite);
         CollectDefinitions(scope, function.Body);
         bindInputs(scope);
 
@@ -340,7 +352,7 @@ internal sealed partial class GraphBuilder
                 continue;
 
             var snapshot = new Snapshot(this);
-            Expand(function, scope => scope.FailedNames.UnionWith(function.Inputs.Select(i => i.Name)));
+            Expand(function, null, scope => scope.FailedNames.UnionWith(function.Inputs.Select(i => i.Name)));
             ConnectDeferredWires(snapshot.DeferredWireCount);
             snapshot.Restore();
         }

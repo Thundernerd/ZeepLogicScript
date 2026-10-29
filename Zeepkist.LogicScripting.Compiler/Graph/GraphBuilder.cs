@@ -16,16 +16,17 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 /// </summary>
 internal sealed partial class GraphBuilder
 {
-    private readonly List<Diagnostic> _diagnostics;
     private readonly IReadOnlyCollection<int> _disabledBlockIds;
     private readonly Func<string, PlacedBlock> _findPlacedBlock;
     private readonly BlockGraph _graph = new();
     private readonly Dictionary<long, BlockOutput> _literals = [];
 
+    private List<Diagnostic> _diagnostics;
+
     /// <summary>
     /// Every error so far, so a Function's body reports each of its errors once however often it's expanded.
     /// </summary>
-    private readonly HashSet<(int Line, int Column, string Message)> _reported = [];
+    private HashSet<(int Line, int Column, string Message)> _reported = [];
 
     /// <summary>
     /// How deep <see cref="Evaluate"/> recurses. The parser caps each expression, but a Function's body is visited
@@ -41,32 +42,49 @@ internal sealed partial class GraphBuilder
     private GraphBuilder(
         List<Diagnostic> diagnostics,
         IReadOnlyCollection<int> disabledBlockIds,
-        Func<string, PlacedBlock> findPlacedBlock)
+        Func<string, PlacedBlock> findPlacedBlock,
+        Func<string, string> findLibrary,
+        bool isLibrary)
     {
         _diagnostics = diagnostics;
         _disabledBlockIds = disabledBlockIds;
         _findPlacedBlock = findPlacedBlock;
+        _findLibrary = findLibrary;
+        _isLibrary = isLibrary;
         _scope = _topScope;
     }
 
-    /// <param name="statements">The parsed Script.</param>
+    /// <param name="statements">The parsed Script, or Library when <paramref name="isLibrary"/>.</param>
     /// <param name="diagnostics">Where to add the errors found.</param>
     /// <param name="disabledBlockIds">Blocks that don't match the game; placing one is an error.</param>
     /// <param name="findPlacedBlock">The block in the level with a UID, or null when there's none.</param>
+    /// <param name="findLibrary">A Library's text by its name, or null when there's none.</param>
+    /// <param name="isLibrary">
+    /// Whether the text is a Library, checked on its own: it holds only Functions, each checked as if uncalled.
+    /// </param>
     public static BlockGraph Build(
         List<Statement> statements,
         List<Diagnostic> diagnostics,
         IReadOnlyCollection<int> disabledBlockIds,
-        Func<string, PlacedBlock> findPlacedBlock)
+        Func<string, PlacedBlock> findPlacedBlock,
+        Func<string, string> findLibrary,
+        bool isLibrary = false)
     {
-        var builder = new GraphBuilder(diagnostics, disabledBlockIds, findPlacedBlock);
+        var builder = new GraphBuilder(diagnostics, disabledBlockIds, findPlacedBlock, findLibrary, isLibrary);
         builder.CollectFunctions(statements);
         builder.CollectDefinitions(builder._topScope, statements);
 
-        foreach (var statement in statements)
+        if (isLibrary)
         {
-            builder._statementLine = statement.Position.Line;
-            builder.Visit(statement);
+            builder.ReportStatementsOutsideFunctions(statements);
+        }
+        else
+        {
+            foreach (var statement in statements)
+            {
+                builder._statementLine = statement.Position.Line;
+                builder.Visit(statement);
+            }
         }
 
         builder.CheckUncalledFunctions();
@@ -90,7 +108,7 @@ internal sealed partial class GraphBuilder
                 VisitDefault(defaultStatement);
                 break;
             case ExpressionStatement { Expression: CallExpression call } when IsFunctionCall(call):
-                ExpandCall(call);
+                ExpandCall(call, FindFunction(call));
                 break;
             case ExpressionStatement { Expression: CallExpression call } when call.Function != PlacedFunction:
                 VisitCall(call);
@@ -150,6 +168,9 @@ internal sealed partial class GraphBuilder
 
             case BinaryExpression binary:
                 return VisitBinary(binary);
+
+            case CallExpression { Library: not null } call:
+                return VisitFunctionCall(call);
 
             case CallExpression { Function: PlacedFunction } call:
                 return VisitPlaced(call);
@@ -231,7 +252,7 @@ internal sealed partial class GraphBuilder
                     return value;
 
                 var function = outputs.Function;
-                return Fail(member, $"'{function.Name.Name}' has no output '{member.Output}'; use {string.Join(", ", function.Outputs.Select(o => o.Name))}");
+                return Fail(member, $"'{GetQualifiedName(function)}' has no output '{member.Output}'; use {string.Join(", ", function.Outputs.Select(o => o.Name))}");
 
             case OutputValue:
                 return Fail(member, $"'{Describe(member.Target)}' has a single output; use it without .{member.Output}");
@@ -268,7 +289,7 @@ internal sealed partial class GraphBuilder
         return expression switch
         {
             NameExpression name => name.Name,
-            CallExpression call => call.Function,
+            CallExpression call => call.QualifiedName,
             _ => "value"
         };
     }
@@ -320,6 +341,12 @@ internal sealed partial class GraphBuilder
 
     private void Report(Position position, string message)
     {
+        if (_scope.CallSite is { } callSite)
+        {
+            message = $"In {GetQualifiedName(_scope.Function)}, line {position.Line}: {message}";
+            position = callSite;
+        }
+
         if (_reported.Add((position.Line, position.Column, message)))
             _diagnostics.Add(new Diagnostic(position, message));
     }
