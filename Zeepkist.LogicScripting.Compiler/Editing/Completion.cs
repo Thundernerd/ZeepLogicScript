@@ -14,16 +14,20 @@ public static class Completion
 
     /// <summary>
     /// The items whose label starts with the typed prefix, then those that only contain it, each in alphabetical
-    /// order. Case is ignored.
+    /// order. Case is ignored. Of the <paramref name="definedNames"/>, only those defined before the caret's statement
+    /// are offered, unless the caret is inside <c>delay(...)</c>.
     /// </summary>
-    public static IReadOnlyList<CompletionItem> GetItems(CaretContext context)
+    public static IReadOnlyList<CompletionItem> GetItems(CaretContext context, IReadOnlyList<DefinedName> definedNames = null)
     {
         if (context == null || context.Kind != CaretContextKind.Expression)
             return [];
 
+        List<CompletionItem> items = [.. _expressionItems, .. GetNameItems(context, definedNames ?? [])];
+        items.Sort(CompareLabels);
+
         var prefix = context.Prefix;
-        var starting = _expressionItems.Where(i => i.Label.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
-        var containing = _expressionItems.Where(i =>
+        var starting = items.Where(i => i.Label.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+        var containing = items.Where(i =>
             !i.Label.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
             && i.Label.IndexOf(prefix, StringComparison.OrdinalIgnoreCase) >= 0);
 
@@ -63,8 +67,25 @@ public static class Completion
         items.Add(new CompletionItem("placed", CompletionKind.Function, "(\"UID\")"));
         items.Add(new CompletionItem("true", CompletionKind.Keyword, string.Empty));
         items.Add(new CompletionItem("false", CompletionKind.Keyword, string.Empty));
-        items.Sort((a, b) => string.CompareOrdinal(a.Label, b.Label));
         return items;
+    }
+
+    /// <summary>
+    /// A name defined twice is offered once.
+    /// </summary>
+    private static IEnumerable<CompletionItem> GetNameItems(CaretContext context, IReadOnlyList<DefinedName> definedNames)
+    {
+        HashSet<string> offered = [];
+        foreach (var name in definedNames)
+        {
+            if ((context.CanReferAhead || name.Span.Start < context.StatementStart) && offered.Add(name.Name))
+                yield return new CompletionItem(name.Name, CompletionKind.Name, name.Type?.Function ?? string.Empty);
+        }
+    }
+
+    private static int CompareLabels(CompletionItem a, CompletionItem b)
+    {
+        return string.CompareOrdinal(a.Label, b.Label);
     }
 
     private static string DescribeInputs(BlockType type)

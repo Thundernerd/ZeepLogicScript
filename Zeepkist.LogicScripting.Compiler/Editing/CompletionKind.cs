@@ -6,5 +6,10 @@ public enum CompletionKind
     /// A Block Function, an alias of one, or <c>placed</c>: accepting it opens its call.
     /// </summary>
     Function,
-    Keyword
+    Keyword,
+
+    /// <summary>
+    /// A name the Script defines.
+    /// </summary>
+    Name
 }

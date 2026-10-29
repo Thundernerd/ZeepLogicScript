@@ -21,7 +21,7 @@ internal sealed class CompletionPopup
     /// </summary>
     private const float DetailGap = 4;
 
-    private readonly CompletionSession _session = new();
+    private readonly CompletionSession _session;
     private readonly EditorAssist _assist;
     private IReadOnlyList<CompletionItem> _measuredItems;
     private float _labelWidth;
@@ -34,6 +34,7 @@ internal sealed class CompletionPopup
     public CompletionPopup(EditorAssist assist)
     {
         _assist = assist;
+        _session = new CompletionSession(assist.FindPlacedBlock);
     }
 
     /// <summary>
@@ -95,7 +96,12 @@ internal sealed class CompletionPopup
             var label = text.TakeLeft(Mathf.Min(_labelWidth, text.W), out var detail);
 
             // The highlighted row's background can be the accent color, which the syntax colors aren't made for
-            var kind = item.Kind == CompletionKind.Keyword ? HighlightKind.Keyword : HighlightKind.Function;
+            var kind = item.Kind switch
+            {
+                CompletionKind.Keyword => HighlightKind.Keyword,
+                CompletionKind.Name => HighlightKind.Name,
+                _ => HighlightKind.Function
+            };
             var labelColor = i == selected ? itemStyle.Normal.FrontColor : palette.Get(kind);
             var detailColor = i == selected ? itemStyle.Normal.FrontColor : WindowColors.Muted;
             gui.Text(item.Label, in settings, labelColor, label);

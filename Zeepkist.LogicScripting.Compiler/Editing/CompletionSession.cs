@@ -13,9 +13,19 @@ public sealed class CompletionSession
     /// </summary>
     public const int MaxRows = 8;
 
+    private readonly Func<string, PlacedBlock> _findPlacedBlock;
     private CaretContext _context;
+    private IReadOnlyList<DefinedName> _definedNames = [];
     private bool _openedByShortcut;
     private bool _openRequested;
+
+    /// <param name="findPlacedBlock">
+    /// The block in the level with a UID, or null when there's none; it gives a Placed Block Reference its type.
+    /// </param>
+    public CompletionSession(Func<string, PlacedBlock> findPlacedBlock = null)
+    {
+        _findPlacedBlock = findPlacedBlock;
+    }
 
     public bool IsOpen { get; private set; }
     public IReadOnlyList<CompletionItem> Items { get; private set; } = [];
@@ -70,8 +80,11 @@ public sealed class CompletionSession
         if (_context == null || _context.Text != snapshot.Text || _context.Caret != snapshot.Caret)
         {
             var wordStart = _context?.Word.Start;
+            if (_context == null || _context.Text != snapshot.Text)
+                _definedNames = DefinedNames.Read(snapshot.Text, _findPlacedBlock);
+
             _context = CaretContext.At(snapshot.Text, snapshot.Caret);
-            Items = Completion.GetItems(_context);
+            Items = Completion.GetItems(_context, _definedNames);
             Selected = 0;
             FirstRow = 0;
             if (IsOpen && wordStart != _context.Word.Start)

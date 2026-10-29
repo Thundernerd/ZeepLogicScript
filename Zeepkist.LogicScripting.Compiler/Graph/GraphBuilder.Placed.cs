@@ -7,7 +7,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 
 internal sealed partial class GraphBuilder
 {
-    private const string PlacedFunction = "placed";
+    internal const string PlacedFunction = "placed";
 
     private readonly Dictionary<string, BlockNode> _placedNodes = [];
 

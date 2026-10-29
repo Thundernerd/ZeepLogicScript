@@ -61,7 +61,7 @@ internal sealed partial class GraphBuilder
     /// <summary>
     /// Block Functions, <c>placed</c>, and the words Settings use for true and false.
     /// </summary>
-    private static bool IsReserved(string name)
+    internal static bool IsReserved(string name)
     {
         return name is "true" or "false" or PlacedFunction || BlockManifest.TryGetFunction(name, out _);
     }

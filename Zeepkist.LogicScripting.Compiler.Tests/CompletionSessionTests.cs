@@ -1,4 +1,5 @@
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
+using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using Xunit;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Tests;
@@ -135,6 +136,18 @@ public class CompletionSessionTests
 
         Assert.Equal("x = logic(", accepted?.Text);
         Assert.False(session.IsOpen);
+    }
+
+    [Fact]
+    public void Items_DefinedNames_WithThePlacedBlocksTypeFromTheLevel()
+    {
+        var session = new CompletionSession(uid => uid == "L" ? new PlacedBlock(BlockManifest.Lamp.DefaultStyle.BlockId) : null);
+        const string Text = "lamp_1 = placed(\"L\")\nlamp_1(intensity: la";
+
+        session.Update(new TextSnapshot(Text, Text.Length), typedName: true, whileTyping: true, focused: true);
+
+        var item = Assert.Single(session.Items, i => i.Label == "lamp_1");
+        Assert.Equal("lamp", item.Detail);
     }
 
     [Fact]

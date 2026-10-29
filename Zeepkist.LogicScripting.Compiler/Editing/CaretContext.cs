@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
@@ -11,12 +12,14 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 /// </summary>
 public sealed class CaretContext
 {
-    private CaretContext(string text, int caret, CaretContextKind kind, TextSpan word)
+    private CaretContext(string text, int caret, CaretContextKind kind, TextSpan word, int statementStart, bool canReferAhead)
     {
         Text = text;
         Caret = caret;
         Kind = kind;
         Word = word;
+        StatementStart = statementStart;
+        CanReferAhead = canReferAhead;
     }
 
     public string Text { get; }
@@ -34,6 +37,17 @@ public sealed class CaretContext
     /// </summary>
     public string Prefix => Text.Substring(Word.Start, Caret - Word.Start);
 
+    /// <summary>
+    /// Where the statement the word is in starts; the names defined before it can be used there.
+    /// </summary>
+    public int StatementStart { get; }
+
+    /// <summary>
+    /// Whether the word is inside <c>delay(...)</c>, where a name may refer to a later definition or to the one being
+    /// defined.
+    /// </summary>
+    public bool CanReferAhead { get; }
+
     public static CaretContext At(string text, int caret)
     {
         text ??= string.Empty;
@@ -44,8 +58,9 @@ public sealed class CaretContext
         var kind = IsInCommentOrString(tokens, comments, caret) || (word.Length > 0 && Lexer.IsDigit(text[word.Start]))
             ? CaretContextKind.None
             : GetKind(tokens, word);
+        var statementStart = ReadStatement(tokens, word, out var canReferAhead);
 
-        return new CaretContext(text, caret, kind, word);
+        return new CaretContext(text, caret, kind, word, statementStart, canReferAhead);
     }
 
     private static TextSpan FindWord(string text, int caret)
@@ -107,6 +122,40 @@ public sealed class CaretContext
             return CaretContextKind.Expression;
 
         return CaretContextKind.None;
+    }
+
+    /// <summary>
+    /// Follows the parentheses opened in the word's statement before it, to tell whether one of them is a Delay's
+    /// call.
+    /// </summary>
+    private static int ReadStatement(List<Token> tokens, TextSpan word, out bool canReferAhead)
+    {
+        var statementStart = 0;
+        Stack<bool> delayCalls = new();
+        for (var i = 0; i < tokens.Count && tokens[i].Span.Start < word.Start; i++)
+        {
+            switch (tokens[i].Kind)
+            {
+                case TokenKind.NewLine:
+                    statementStart = tokens[i].Span.End;
+                    delayCalls.Clear();
+                    break;
+
+                case TokenKind.OpenParen:
+                    delayCalls.Push(i > 0
+                        && tokens[i - 1].Kind == TokenKind.Name
+                        && BlockManifest.TryGetFunction(tokens[i - 1].Text, out var type)
+                        && type == BlockManifest.Delay);
+                    break;
+
+                case TokenKind.CloseParen when delayCalls.Count > 0:
+                    delayCalls.Pop();
+                    break;
+            }
+        }
+
+        canReferAhead = delayCalls.Contains(true);
+        return statementStart;
     }
 
     private static bool IsNameCharacter(char c)

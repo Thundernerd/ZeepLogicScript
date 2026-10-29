@@ -1,4 +1,7 @@
 using BepInEx.Configuration;
+using TNRD.Zeepkist.LogicScripting.Blocks;
+using TNRD.Zeepkist.LogicScripting.Compiler;
+using ZeepSDK.Utilities;
 
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
@@ -18,4 +21,13 @@ internal sealed class EditorAssist
     /// Whether typing a name opens the completion list; Ctrl+Space opens it either way.
     /// </summary>
     public bool CompletionWhileTyping => _completionWhileTyping.Value;
+
+    /// <summary>
+    /// The block in the open level with a UID; null outside the editor or when there's none.
+    /// </summary>
+    public PlacedBlock FindPlacedBlock(string uid)
+    {
+        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        return central == null ? null : PlacedBlocks.FindWithoutWires(central, uid);
+    }
 }
