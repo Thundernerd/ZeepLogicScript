@@ -118,30 +118,7 @@ public static class Completion
 
     private static IEnumerable<CompletionItem> GetValueItems(CaretContext context)
     {
-        return GetValues(context).Select(v => new CompletionItem(v, CompletionKind.Value, string.Empty));
-    }
-
-    private static IEnumerable<string> GetValues(CaretContext context)
-    {
-        if (context.Callee == null)
-            return GetValues(BlockSetting.Hide);
-
-        var type = BlockManifest.TryGetFunction(context.Callee, out var function) ? function : null;
-        if (context.SettingName == BlockType.StyleName && type is { HasStyles: true })
-            return type.Styles.Select(s => s.Name);
-
-        var setting = type?.FindSetting(context.SettingName);
-        return setting == null ? [] : GetValues(setting);
-    }
-
-    private static IEnumerable<string> GetValues(BlockSetting setting)
-    {
-        return setting.Type switch
-        {
-            SettingType.Bool => ["true", "false"],
-            SettingType.Option or SettingType.Player => setting.Options,
-            _ => []
-        };
+        return context.SettingValues.Select(v => new CompletionItem(v, CompletionKind.Value, string.Empty));
     }
 
     private static IEnumerable<CompletionItem> GetInputItems(CaretContext context, BlockType type)

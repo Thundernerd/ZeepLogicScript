@@ -62,9 +62,8 @@ public static class BlockReference
         var accepts = setting.Type switch
         {
             SettingType.Number => DescribeNumber(setting),
-            SettingType.Bool => "true, false",
             SettingType.Targets => $"1–{BlockSetting.MaxTargets} placed blocks",
-            _ => string.Join(", ", setting.Options)
+            _ => string.Join(", ", setting.Values)
         };
 
         return setting.IsRequired && setting.Type != SettingType.Targets ? $"{accepts} (required)" : accepts;
