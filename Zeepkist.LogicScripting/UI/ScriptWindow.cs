@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Configuration;
@@ -11,6 +12,7 @@ using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 using TNRD.Zeepkist.LogicScripting.Storage;
 using UnityEngine;
 using ZeepSDK.LevelEditor;
+using ZeepSDK.Messaging;
 using ZeepSDK.UI;
 using ZeepSDK.Utilities;
 
@@ -31,6 +33,8 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     /// Seconds after the last edit before the Script is checked, so it isn't checked on every key while typing.
     /// </summary>
     private const float CheckDelay = 0.4f;
+
+    private const string LogFile = "BepInEx/LogOutput.log";
 
     private readonly ManualLogSource _logger;
     private readonly StartupCheck _startupCheck;
@@ -60,6 +64,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     private bool _fieldFocused;
     private bool _blockingMouse;
     private bool _blockingKeyboard;
+    private bool _failed;
 
     private bool HasCurrentErrors => _check != null && _editor != null && _checkedText == _editor.Text && !_check.Succeeded;
     private bool AnyFieldFocused => _fieldFocused || _scriptListPanel.NameFocused || _referencePanel.FilterFocused;
@@ -85,7 +90,25 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
 
     public bool IsOpen => _state.Open;
 
+    /// <summary>
+    /// ZeepSDK draws every drawer in one loop without catching, so an exception here would stop the drawers after this
+    /// one, and come back every frame with the editor's input still blocked.
+    /// </summary>
     public void OnZeepGUI(ImGui gui)
+    {
+        var checkpoint = GuiCheckpoint.Take(gui);
+        try
+        {
+            DrawFrame(gui);
+        }
+        catch (Exception e)
+        {
+            checkpoint.Restore(gui);
+            OnFailed(e);
+        }
+    }
+
+    private void DrawFrame(ImGui gui)
     {
         // Outside the editor nothing changes the Scripts any more, so waiting longer could only lose the last edits
         if (LevelEditorApi.IsInLevelEditor)
@@ -121,11 +144,36 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     }
 
     /// <summary>
+    /// Logs only the first failure until the window is opened again, as most come back every frame. The highlight is
+    /// left for the next frame, which removes it with the window closed: it's game code, and may be what failed.
+    /// </summary>
+    private void OnFailed(Exception e)
+    {
+        var wasOpen = _state.Open;
+        _state.Open = false;
+        UnblockEditor();
+
+        if (_failed)
+            return;
+
+        _failed = true;
+        _logger.LogError($"The Script window failed: {e}");
+        MessengerApi.LogError(wasOpen
+            ? $"The Logic Script window ran into an error and closed. Details are in {LogFile}"
+            : $"Logic Script ran into an error. Details are in {LogFile}");
+    }
+
+    /// <summary>
     /// Also call when the mod unloads, or the level editor's input stays blocked.
     /// </summary>
     public void ReleaseInput()
     {
+        UnblockEditor();
         _highlight.Set(ComponentCache.Get<LEV_LevelEditorCentral>(), null);
+    }
+
+    private void UnblockEditor()
+    {
         _mouseOver = false;
         _fieldFocused = false;
         _scriptListPanel.ReleaseFocus();

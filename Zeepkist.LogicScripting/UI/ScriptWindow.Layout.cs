@@ -42,9 +42,14 @@ internal sealed partial class ScriptWindow
     private WindowState _savedState;
     private bool _showReference;
 
+    /// <summary>
+    /// Opening tries again after a failure, and logs the next one.
+    /// </summary>
     public void SetOpen(bool open)
     {
         _state.Open = open;
+        if (open)
+            _failed = false;
     }
 
     /// <summary>
