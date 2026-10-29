@@ -54,7 +54,7 @@ internal sealed partial class GraphBuilder
         if (value == null)
             _scope.FailedNames.Add(definition.Name);
         else
-            _scope.Names.Add(definition.Name, value.Value);
+            _scope.Names.Add(definition.Name, value);
     }
 
     /// <summary>
@@ -98,7 +98,7 @@ internal sealed partial class GraphBuilder
             && !_scope.FailedNames.Contains(name.Name);
     }
 
-    private Resolved? LookUp(NameExpression name)
+    private Resolved LookUp(NameExpression name)
     {
         if (_scope.Names.TryGetValue(name.Name, out var value))
             return value;

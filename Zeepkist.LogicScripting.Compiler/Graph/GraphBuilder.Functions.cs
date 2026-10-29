@@ -134,7 +134,7 @@ internal sealed partial class GraphBuilder
     /// <summary>
     /// A call used as a value: its one output, or all of them to pick from with a dot.
     /// </summary>
-    private Resolved? VisitFunctionCall(CallExpression call)
+    private Resolved VisitFunctionCall(CallExpression call)
     {
         var function = _functions[call.Function];
         var outputs = ExpandCall(call);
@@ -145,14 +145,14 @@ internal sealed partial class GraphBuilder
         {
             0 => Fail(call, $"'{call.Function}' has no output to use as a value"),
             1 => outputs[function.Outputs[0].Name],
-            _ => Resolved.Of(new FunctionOutputs(function, outputs))
+            _ => new FunctionOutputs(function, outputs)
         };
     }
 
     /// <summary>
     /// The value of each output by name, or null after reporting why the call places nothing.
     /// </summary>
-    private Dictionary<string, Resolved?> ExpandCall(CallExpression call)
+    private Dictionary<string, Resolved> ExpandCall(CallExpression call)
     {
         var function = _functions[call.Function];
         if (_brokenFunctions.Contains(function) || !CanExpand(call, function))
@@ -215,7 +215,7 @@ internal sealed partial class GraphBuilder
     private Dictionary<string, Resolved> BindArguments(CallExpression call, FunctionDefinition function)
     {
         var inputs = function.Inputs;
-        var values = new Resolved?[inputs.Count];
+        var values = new Resolved[inputs.Count];
         var isGiven = new bool[inputs.Count];
         var failed = false;
         for (var i = 0; i < call.Arguments.Count; i++)
@@ -282,7 +282,7 @@ internal sealed partial class GraphBuilder
         Dictionary<string, Resolved> arguments = [];
         for (var i = 0; i < inputs.Count; i++)
         {
-            arguments.Add(inputs[i].Name, values[i].Value);
+            arguments.Add(inputs[i].Name, values[i]);
         }
 
         return arguments;
@@ -291,16 +291,15 @@ internal sealed partial class GraphBuilder
     /// <summary>
     /// An argument's value; inside <c>delay(...)</c> it may be a name defined later, passed on to wire once it is.
     /// </summary>
-    private Resolved? EvaluateArgumentValue(Expression expression)
+    private Resolved EvaluateArgumentValue(Expression expression)
     {
-        var deferred = TryDefer(expression);
-        return deferred != null ? Resolved.Of(deferred) : Evaluate(expression);
+        return (Resolved)TryDefer(expression) ?? Evaluate(expression);
     }
 
     /// <summary>
     /// Visits the body in a new scope whose inputs <paramref name="bindInputs"/> fills, and gives each output's value.
     /// </summary>
-    private Dictionary<string, Resolved?> Expand(FunctionDefinition function, Action<Scope> bindInputs)
+    private Dictionary<string, Resolved> Expand(FunctionDefinition function, Action<Scope> bindInputs)
     {
         var scope = new Scope(function);
         CollectDefinitions(scope, function.Body);
@@ -320,7 +319,7 @@ internal sealed partial class GraphBuilder
         _callStack.RemoveAt(_callStack.Count - 1);
         _scope = caller;
 
-        Dictionary<string, Resolved?> outputs = [];
+        Dictionary<string, Resolved> outputs = [];
         foreach (var output in function.Outputs)
         {
             outputs.Add(output.Name, scope.Names.TryGetValue(output.Name, out var value) ? value : null);
@@ -340,31 +339,10 @@ internal sealed partial class GraphBuilder
             if (_brokenFunctions.Contains(function) || _expandedFunctions.Contains(function))
                 continue;
 
-            var blockCount = _graph.Blocks.Count;
-            var wireCount = _graph.Wires.Count;
-            var placedWireCount = _graph.PlacedWires.Count;
-            var wiresIntoPlacedCount = _wiresIntoPlaced.Count;
-            var deferredWireCount = _deferredWires.Count;
-            var expansions = _expansions;
-            var placedInputLines = new Dictionary<(BlockNode Block, int Connector), int>(_placedInputLines);
-
+            var snapshot = new Snapshot(this);
             Expand(function, scope => scope.FailedNames.UnionWith(function.Inputs.Select(i => i.Name)));
-            ConnectDeferredWires(deferredWireCount);
-
-            _graph.RemoveFrom(blockCount, wireCount, placedWireCount);
-            _wiresIntoPlaced.RemoveRange(wiresIntoPlacedCount, _wiresIntoPlaced.Count - wiresIntoPlacedCount);
-            _deferredWires.RemoveRange(deferredWireCount, _deferredWires.Count - deferredWireCount);
-            _expansions = expansions;
-            foreach (var literal in _literals.Where(l => l.Value.Block.Index >= blockCount).ToList())
-            {
-                _literals.Remove(literal.Key);
-            }
-
-            _placedInputLines.Clear();
-            foreach (var line in placedInputLines)
-            {
-                _placedInputLines.Add(line.Key, line.Value);
-            }
+            ConnectDeferredWires(snapshot.DeferredWireCount);
+            snapshot.Restore();
         }
     }
 

@@ -6,7 +6,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 
 internal sealed partial class GraphBuilder
 {
-    private BlockOutput? VisitUnary(UnaryExpression unary)
+    private OutputValue VisitUnary(UnaryExpression unary)
     {
         var operand = EvaluateFeed(unary.Operand);
         if (operand == null)
@@ -16,14 +16,14 @@ internal sealed partial class GraphBuilder
         List<Func<InputFeed>> inputs = [];
         foreach (var literal in op.LeadingLiterals)
         {
-            inputs.Add(() => InputFeed.Of(GetLiteral(unary, literal)));
+            inputs.Add(() => new OutputValue(GetLiteral(unary, literal)));
         }
 
-        inputs.Add(() => operand.Value);
+        inputs.Add(() => operand);
         return AddOperatorBlock(unary, op.Block, inputs);
     }
 
-    private BlockOutput? VisitBinary(BinaryExpression binary)
+    private OutputValue VisitBinary(BinaryExpression binary)
     {
         var left = EvaluateFeed(binary.Left);
         var right = EvaluateFeed(binary.Right);
@@ -31,13 +31,13 @@ internal sealed partial class GraphBuilder
             return null;
 
         var op = binary.Operator;
-        return AddOperatorBlock(binary, op.Block, [() => left.Value, () => right.Value]);
+        return AddOperatorBlock(binary, op.Block, [() => left, () => right]);
     }
 
     /// <summary>
     /// Each input is asked for after the block is placed, so a Generator it creates comes after the block.
     /// </summary>
-    private BlockOutput AddOperatorBlock(SyntaxNode origin, OperatorBlock operatorBlock, IReadOnlyList<Func<InputFeed>> inputs)
+    private OutputValue AddOperatorBlock(SyntaxNode origin, OperatorBlock operatorBlock, IReadOnlyList<Func<InputFeed>> inputs)
     {
         var type = operatorBlock.Type;
         var block = AddBlock(origin, type, type.DefaultStyle, operatorBlock.Setting);
@@ -46,6 +46,6 @@ internal sealed partial class GraphBuilder
             Connect(inputs[i](), block, type.Inputs[i].Index);
         }
 
-        return new BlockOutput(block, block.Outputs[0].Index);
+        return new OutputValue(block, block.Outputs[0].Index);
     }
 }

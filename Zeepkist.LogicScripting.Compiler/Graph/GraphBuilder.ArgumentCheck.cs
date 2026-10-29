@@ -63,12 +63,12 @@ internal sealed partial class GraphBuilder
             return false;
         }
 
-        public void WireByPosition(int input, InputFeed? feed)
+        public void WireByPosition(int input, InputFeed feed)
         {
             Inputs[input] = WiredInput.ByPosition(feed);
         }
 
-        public void WireByName(NamedArgument argument, int input, InputFeed? feed)
+        public void WireByName(NamedArgument argument, int input, InputFeed feed)
         {
             if (Inputs[input]?.IsByPosition == true)
             {
