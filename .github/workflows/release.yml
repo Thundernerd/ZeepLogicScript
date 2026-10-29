@@ -6,7 +6,7 @@ on:
 
 env:
   GAME_ID: 3213 # Zeepkist
-  MOD_ID: 0 # TODO: set once the mod.io page exists
+  MOD_ID: 6488388
 
 permissions:
   contents: read
