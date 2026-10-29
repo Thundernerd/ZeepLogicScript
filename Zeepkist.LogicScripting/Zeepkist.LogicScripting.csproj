@@ -38,6 +38,10 @@
   </ItemGroup>
   
   <ItemGroup>
+    <InternalsVisibleTo Include="Zeepkist.LogicScripting.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Zeepkist.LogicScripting.Compiler\Zeepkist.LogicScripting.Compiler.csproj" />
   </ItemGroup>
 
