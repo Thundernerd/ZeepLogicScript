@@ -37,9 +37,7 @@ public class WindowStateStoreTests
 
         _store.Save(state);
 
-        var json = JObject.Parse(_storage.ReadJson(FileName));
-        Assert.Equal(120, (float)json["Blocks"]["Size"]);
-        Assert.Null(json["Level"]);
+        AssertSavedBlocksPanelSize(120);
     }
 
     [Fact]
@@ -49,9 +47,7 @@ public class WindowStateStoreTests
 
         _store.Save(_store.Load());
 
-        var json = JObject.Parse(_storage.ReadJson(FileName));
-        Assert.Equal(120, (float)json["Blocks"]["Size"]);
-        Assert.Null(json["Level"]);
+        AssertSavedBlocksPanelSize(120);
     }
 
     [Theory]
@@ -77,5 +73,12 @@ public class WindowStateStoreTests
         var state = _store.Load();
 
         Assert.True(state.IsSameAs(new WindowState()));
+    }
+
+    private void AssertSavedBlocksPanelSize(float size)
+    {
+        var json = JObject.Parse(_storage.ReadJson(FileName));
+        Assert.Equal(size, (float)json["Blocks"]["Size"]);
+        Assert.Null(json["Level"]);
     }
 }

@@ -10,7 +10,7 @@ namespace TNRD.Zeepkist.LogicScripting.Tests;
 
 /// <summary>
 /// An <see cref="IModStorage"/> that keeps its JSON files in memory and reads and writes them with Json.NET, as
-/// ZeepSDK's storage does. Only the JSON file members are implemented.
+/// ZeepSDK's storage does.
 /// </summary>
 internal sealed class MemoryStorage : IModStorage
 {
@@ -38,10 +38,15 @@ internal sealed class MemoryStorage : IModStorage
 
     public StorageResult<TData> TryLoadFromJson<TData>(string name)
     {
-        // StorageResult has no public constructor, so this calls the factory ZeepSDK uses itself
-        var fromValue = typeof(StorageResult<TData>).GetMethod("FromValue", BindingFlags.NonPublic | BindingFlags.Static);
         var value = JsonConvert.DeserializeObject<TData>(_jsonFiles[name]);
-        return (StorageResult<TData>)fromValue.Invoke(null, [value]);
+        return (StorageResult<TData>)StorageResultFactory<TData>("FromValue").Invoke(null, [value]);
+    }
+
+    // StorageResult has no public constructor, so this calls the factories ZeepSDK uses itself
+    private static MethodInfo StorageResultFactory<TData>(string name)
+    {
+        return typeof(StorageResult<TData>).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(typeof(StorageResult<TData>).FullName, name);
     }
 
     public TData LoadFromJson<TData>(string name)
