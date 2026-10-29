@@ -28,6 +28,14 @@ public static class ScriptText
     }
 
     /// <summary>
+    /// Whether the character can come right before an argument: a call's opening parenthesis, a comma, or a space.
+    /// </summary>
+    public static bool IsArgumentSeparator(char c)
+    {
+        return c is '(' or ',' or ' ';
+    }
+
+    /// <summary>
     /// What to underline for each error: the token that starts where the error is, or else the one character there.
     /// At the end of a line it's empty. The text is lexed once for all of them.
     /// </summary>

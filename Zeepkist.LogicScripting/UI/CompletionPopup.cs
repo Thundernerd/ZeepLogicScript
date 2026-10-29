@@ -229,10 +229,10 @@ internal sealed class CompletionPopup
     /// <summary>
     /// Call after the editor handled its input, with the text and caret it ended with.
     /// </summary>
-    public void Update(TextSnapshot snapshot, bool typedName, bool typedOpenParen, bool focused)
+    public void Update(TextSnapshot snapshot, bool typedName, bool typedSeparator, bool focused)
     {
         TookEscape &= focused;
-        _session.Update(snapshot, typedName, _assist.CompletionWhileTyping, focused, typedOpenParen);
+        _session.Update(snapshot, typedName, _assist.CompletionWhileTyping, focused, typedSeparator);
     }
 
     private ImRect GetRowRect(int index)
