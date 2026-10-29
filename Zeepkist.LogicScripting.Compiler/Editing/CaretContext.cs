@@ -37,7 +37,7 @@ public sealed class CaretContext
         text ??= string.Empty;
         caret = Math.Max(0, Math.Min(caret, text.Length));
         var word = FindWord(text, caret);
-        var kind = IsInCommentOrString(text, caret) || (word.Length > 0 && IsDigit(text[word.Start]))
+        var kind = IsInCommentOrString(text, caret) || (word.Length > 0 && Lexer.IsDigit(text[word.Start]))
             ? CaretContextKind.None
             : GetKind(text, word);
 
@@ -116,11 +116,6 @@ public sealed class CaretContext
 
     private static bool IsNameCharacter(char c)
     {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || IsDigit(c);
-    }
-
-    private static bool IsDigit(char c)
-    {
-        return c >= '0' && c <= '9';
+        return Lexer.IsNameStart(c) || Lexer.IsDigit(c);
     }
 }

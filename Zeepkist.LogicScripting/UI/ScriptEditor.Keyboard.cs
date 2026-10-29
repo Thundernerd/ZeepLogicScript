@@ -91,7 +91,7 @@ internal sealed partial class ScriptEditor
             if (textChanged)
             {
                 text = buffer.ToString();
-                typedName |= IsNameStart(evt.Char);
+                typedName |= ScriptText.IsNameStart(evt.Char);
                 _history.Record(before, new TextSnapshot(text, _state.Caret, _state.Selection), gui.Input.Time);
                 changed = true;
 
@@ -171,11 +171,6 @@ internal sealed partial class ScriptEditor
     {
         return (evt.Modifiers & (EventModifiers.Control | EventModifiers.Command)) != 0
             && (evt.Modifiers & EventModifiers.Alt) == 0;
-    }
-
-    private static bool IsNameStart(char c)
-    {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
     }
 
     private static bool IsUnprintable(char c)

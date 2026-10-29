@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
@@ -16,6 +17,14 @@ public static class ScriptText
     {
         text ??= string.Empty;
         return GetIndex(GetLineStarts(text), text.Length, position);
+    }
+
+    /// <summary>
+    /// Whether a name can start with the character, as the lexer reads names.
+    /// </summary>
+    public static bool IsNameStart(char c)
+    {
+        return Lexer.IsNameStart(c);
     }
 
     /// <summary>
