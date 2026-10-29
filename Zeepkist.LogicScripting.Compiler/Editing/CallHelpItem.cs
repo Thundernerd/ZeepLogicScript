@@ -25,7 +25,7 @@ public sealed class CallHelpItem
     public string Detail { get; }
 
     /// <summary>
-    /// The name as the call writes it: a Setting with its colon, since it is only ever given by name.
+    /// A Setting with its colon.
     /// </summary>
     public string Label => IsInput ? Name : $"{Name}:";
 }
