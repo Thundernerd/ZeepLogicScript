@@ -73,7 +73,8 @@ public static class ScriptHighlighter
     }
 
     /// <summary>
-    /// The indexes of both names in each <c>library.function</c> that a Library on this machine has.
+    /// The indexes of both names in each qualified call, <c>library.function(</c>, to a Function a Library on this
+    /// machine has. A name after another dot is an output, like the compiler reads it.
     /// </summary>
     private static HashSet<int> GetLibraryCallTokens(
         List<Token> tokens,
@@ -83,11 +84,13 @@ public static class ScriptHighlighter
         if (libraries == null)
             return indexes;
 
-        for (var i = 0; i + 2 < tokens.Count; i++)
+        for (var i = 0; i + 3 < tokens.Count; i++)
         {
             if (tokens[i].Kind == TokenKind.Name
+                && (i == 0 || tokens[i - 1].Kind != TokenKind.Dot)
                 && tokens[i + 1].Kind == TokenKind.Dot
                 && tokens[i + 2].Kind == TokenKind.Name
+                && tokens[i + 3].Kind == TokenKind.OpenParen
                 && libraries.TryGetValue(tokens[i].Text, out var functions)
                 && functions.Contains(tokens[i + 2].Text))
             {
