@@ -243,6 +243,14 @@ public class LibraryTests
         Assert.Equal(["2:9: In inner.g, line 2: 'x' has a single output; use it without .horn"], diagnostics.Select(e => e.ToString()));
     }
 
+    [Fact]
+    public void CheckLibrary_QualifiedCallIntoItself_ReadsTheTextBeingChecked()
+    {
+        var text = "function f(x) -> y\n    y = me.g(1) & x\nend\nfunction g(x) -> y\n    y = x\nend";
+
+        Assert.Empty(ScriptCompiler.CheckLibrary(text, _ => "function old()\nend", "me"));
+    }
+
     [Theory]
     [InlineData("timing")]
     [InlineData("_t2")]
