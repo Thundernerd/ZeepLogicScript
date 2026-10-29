@@ -1,5 +1,3 @@
-using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
-
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 
 internal sealed partial class GraphBuilder
@@ -9,23 +7,23 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private readonly struct InputFeed
     {
-        private InputFeed(BlockOutput? output, Expression expression)
+        private InputFeed(BlockOutput? output, DeferredValue deferred)
         {
             Output = output;
-            Expression = expression;
+            Deferred = deferred;
         }
 
         public BlockOutput? Output { get; }
-        public Expression Expression { get; }
+        public DeferredValue Deferred { get; }
 
         public static InputFeed Of(BlockOutput output)
         {
             return new InputFeed(output, null);
         }
 
-        public static InputFeed Deferred(Expression expression)
+        public static InputFeed Of(DeferredValue deferred)
         {
-            return new InputFeed(null, expression);
+            return new InputFeed(null, deferred);
         }
     }
 }

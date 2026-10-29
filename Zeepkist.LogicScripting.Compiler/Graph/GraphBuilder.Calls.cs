@@ -80,7 +80,7 @@ internal sealed partial class GraphBuilder
                 return;
 
             default:
-                if (_delayDepth == 0 || !IsForwardReference(value))
+                if (_scope.DelayDepth == 0 || !IsForwardReference(value))
                     Evaluate(value);
 
                 return;
@@ -88,19 +88,22 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// Why a call to something other than a Block Function or a Placed Block Reference is wrong, or null when its
+    /// Why a call to something other than a Block Function, a Function or a Placed Block Reference is wrong, or null when its
     /// name's definition already reported why it failed.
     /// </summary>
     private string GetUnknownFunctionMessage(string function)
     {
-        if (_failedNames.Contains(function))
+        if (_scope.FailedNames.Contains(function))
             return null;
 
-        if (_names.ContainsKey(function))
+        if (_scope.Names.ContainsKey(function))
             return $"'{function}' isn't a placed block, so it can't be called; only names defined with {PlacedFunction}(...) can";
 
-        if (_definitions.TryGetValue(function, out var later))
+        if (_scope.Definitions.TryGetValue(function, out var later))
             return $"'{function}' is defined later, on line {later.Position.Line}";
+
+        if (GetOutOfScopeMessage(function) is { } outOfScope)
+            return outOfScope;
 
         return BlockManifest.TryGetPlacedOnly(function, out _)
             ? $"'{function}' is placed by hand; a Script can only refer to one with {PlacedFunction}(...)"

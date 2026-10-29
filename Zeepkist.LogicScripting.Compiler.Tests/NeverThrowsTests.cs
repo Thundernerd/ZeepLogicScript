@@ -30,7 +30,10 @@ public class NeverThrowsTests
         "s = placed(\"S\")\nd = placed(\"D\")\npower_display(s.x & d.x)",
         "x = delay(later, ticks: 2)\nlater = passthrough(x, style: skinny_2h)",
         "r = random(min: -5, max: 5)\nc = counter(r)\npower_display(math(c, 2, op: pow) != 1 | c >= 3 ^ c < 2)",
-        "toggler(1, targets: [placed(\"T\"), placed(\"L\")])\ndeath(1)"
+        "toggler(1, targets: [placed(\"T\"), placed(\"L\")])\ndeath(1)",
+        "function edge(x) -> rising\n    prev = delay(x, ticks: 1)\n    rising = x & !prev\nend\npower_display(edge(player_input().horn))",
+        "l = latch(b: 0, a: 1)\npower_display(l.q)\nfunction latch(a, b) -> q, not_q\n    q = delay(!b & (a | q), ticks: 1)\n    not_q = !q\nend",
+        "function light(lamp, x)\n    lamp(intensity: x)\n    t = placed(\"T\")\nend\nlight(placed(\"L\"), 1)\nx = delay(same(later), ticks: 1)\nlater = 1\nfunction same(v) -> w\nw = v\nend"
     ];
 
     private static readonly Dictionary<string, PlacedBlock> _level = new()
@@ -48,7 +51,7 @@ public class NeverThrowsTests
 
     private static readonly string[] _tokens =
     [
-        "x", "y", "later", "default", "true", "false", "placed", "logic", "power_display", "delay", "toggler", "targets",
+        "x", "y", "later", "default", "function", "end", "->", "f", "f(x)", "function f(x) -> y\n", "\nend\n", "true", "false", "placed", "logic", "power_display", "delay", "toggler", "targets",
         "player_input", "demultiplexer", "multiplexer", "math", "op", "ticks", "hide", "style", "ch1", "horn", "and",
         "\"W\"", "\"G\"", "\"OTHER\"", "0", "1", "-1", "99999999999999999999", "2147483648", "\"T\"", "\"L\"", "\"", "(", ")", "[", "]", ",", ":",
         ".", "=", "==", "!=", "&", "&&", "|", "||", "^", "!", "~", "-", "+", "*", "/", "%", "<", ">", "<=", ">=", "<<",
@@ -240,6 +243,9 @@ public class NeverThrowsTests
     [InlineData("((((\n))))")]
     [InlineData(")))\n(((")]
     [InlineData("]]]\n[[[")]
+    [InlineData("function f(\nend")]
+    [InlineData("function f(x) -> y\n")]
+    [InlineData("function f(x) -> (y\nend")]
     public void UnterminatedStringsAndBrackets(string text)
     {
         AssertNeverThrows(text);

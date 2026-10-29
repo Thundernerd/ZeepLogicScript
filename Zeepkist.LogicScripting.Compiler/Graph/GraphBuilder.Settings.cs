@@ -110,7 +110,7 @@ internal sealed partial class GraphBuilder
             {
                 failed = true;
             }
-            else if (!value.Value.Block.IsPlaced)
+            else if (value.Value.Block?.IsPlaced != true)
             {
                 Error(item, $"'{Describe(item)}' isn't a placed block; {setting.Name} takes names defined with {PlacedFunction}(...)");
                 failed = true;

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -18,7 +19,9 @@ public static class ScriptHighlighter
         var lineStarts = ScriptText.GetLineStarts(text);
         List<HighlightSpan> spans = [];
         var end = 0;
-        foreach (var token in Lexer.Tokenize(text, []))
+        var tokens = Lexer.Tokenize(text, []);
+        var functions = GetFunctionNames(tokens);
+        foreach (var token in tokens)
         {
             if (token.Kind is TokenKind.NewLine or TokenKind.End)
                 continue;
@@ -26,12 +29,22 @@ public static class ScriptHighlighter
             var start = ScriptText.GetIndex(lineStarts, text.Length, token.Position);
             AddComments(text, end, start, spans);
             var length = GetLength(text, token, start);
-            spans.Add(new HighlightSpan(start, length, GetKind(token)));
+            spans.Add(new HighlightSpan(start, length, GetKind(token, functions)));
             end = start + length;
         }
 
         AddComments(text, end, text.Length, spans);
         return spans;
+    }
+
+    /// <summary>
+    /// The names the Script's own Functions are defined with, so their calls get the same color as a Block Function's.
+    /// </summary>
+    private static HashSet<string> GetFunctionNames(List<Token> tokens)
+    {
+        return new HashSet<string>(tokens
+            .Where((t, i) => t.Kind == TokenKind.Name && i > 0 && tokens[i - 1].Kind == TokenKind.Name && tokens[i - 1].Text == FunctionDefinition.Keyword)
+            .Select(t => t.Text));
     }
 
     /// <summary>
@@ -61,17 +74,18 @@ public static class ScriptHighlighter
         return closing < text.Length && text[closing] == '"' ? token.Text.Length + 2 : token.Text.Length + 1;
     }
 
-    private static HighlightKind GetKind(Token token)
+    private static HighlightKind GetKind(Token token, HashSet<string> functions)
     {
         return token.Kind switch
         {
-            TokenKind.Name when token.Text is "default" or "true" or "false" => HighlightKind.Keyword,
-            TokenKind.Name when token.Text == "placed" || BlockManifest.TryGetFunction(token.Text, out _)
+            TokenKind.Name when token.Text is "default" or "true" or "false" or FunctionDefinition.Keyword or FunctionDefinition.EndKeyword
+                => HighlightKind.Keyword,
+            TokenKind.Name when token.Text == "placed" || BlockManifest.TryGetFunction(token.Text, out _) || functions.Contains(token.Text)
                 => HighlightKind.Function,
             TokenKind.Name => HighlightKind.Name,
             TokenKind.Integer => HighlightKind.Number,
             TokenKind.String => HighlightKind.String,
-            TokenKind.Operator or TokenKind.Equals => HighlightKind.Operator,
+            TokenKind.Operator or TokenKind.Equals or TokenKind.Arrow => HighlightKind.Operator,
             _ => HighlightKind.Punctuation
         };
     }

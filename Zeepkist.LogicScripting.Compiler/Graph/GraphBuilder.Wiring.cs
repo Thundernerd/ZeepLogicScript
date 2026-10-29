@@ -7,7 +7,6 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 internal sealed partial class GraphBuilder
 {
     private readonly List<DeferredWire> _deferredWires = [];
-    private int _delayDepth;
 
     /// <summary>
     /// What feeds an input. Inside <c>delay(...)</c> a name may not be defined yet; its Wire is then connected
@@ -15,10 +14,14 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private InputFeed? EvaluateFeed(Expression expression)
     {
-        if (_delayDepth > 0 && IsForwardReference(expression))
-            return InputFeed.Deferred(expression);
+        if (_scope.DelayDepth > 0 && IsForwardReference(expression))
+            return InputFeed.Of(new DeferredValue(expression, _scope));
 
-        var output = EvaluateOutput(expression);
+        var value = Evaluate(expression);
+        if (value?.Deferred != null)
+            return InputFeed.Of(value.Value.Deferred);
+
+        var output = ToOutput(expression, value);
         return output == null ? null : InputFeed.Of(output.Value);
     }
 
@@ -28,13 +31,13 @@ internal sealed partial class GraphBuilder
     private void EnterArguments(BlockType type)
     {
         if (type == BlockManifest.Delay)
-            _delayDepth++;
+            _scope.DelayDepth++;
     }
 
     private void LeaveArguments(BlockType type)
     {
         if (type == BlockManifest.Delay)
-            _delayDepth--;
+            _scope.DelayDepth--;
     }
 
     private void Connect(InputFeed feed, BlockNode to, int toConnector)
@@ -42,16 +45,40 @@ internal sealed partial class GraphBuilder
         if (feed.Output != null)
             _graph.AddWire(feed.Output.Value, to, toConnector);
         else
-            _deferredWires.Add(new DeferredWire(feed.Expression, to, toConnector));
+            _deferredWires.Add(new DeferredWire(feed.Deferred, to, toConnector));
     }
 
-    private void ConnectDeferredWires()
+    /// <summary>
+    /// Connects the deferred Wires from <paramref name="start"/> on, each looked up in the scope it was written in.
+    /// </summary>
+    private void ConnectDeferredWires(int start)
     {
-        foreach (var wire in _deferredWires)
+        var scope = _scope;
+        for (var i = start; i < _deferredWires.Count; i++)
         {
-            var output = EvaluateOutput(wire.From);
+            var wire = _deferredWires[i];
+            var output = Resolve(wire.From);
             if (output != null)
                 _graph.AddWire(output.Value, wire.To, wire.ToConnector);
+        }
+
+        _scope = scope;
+    }
+
+    /// <summary>
+    /// A value passed into a Function can itself be deferred in its caller's scope, so this follows it outward until
+    /// it reaches a block.
+    /// </summary>
+    private BlockOutput? Resolve(DeferredValue deferred)
+    {
+        while (true)
+        {
+            _scope = deferred.Scope;
+            var value = Evaluate(deferred.Expression);
+            if (value?.Deferred == null)
+                return ToOutput(deferred.Expression, value);
+
+            deferred = value.Value.Deferred;
         }
     }
 }

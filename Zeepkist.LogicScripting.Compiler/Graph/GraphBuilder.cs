@@ -11,8 +11,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 /// Checks the parsed Script and turns it into a block graph: one block per Block Function call or operator,
 /// one shared Generator per distinct literal value. Names are defined before use, once each; only inside
 /// <c>delay(...)</c> can a name refer to a later definition or to itself, so every cycle within the Script passes
-/// through a Delay (ADR 0002). Placed Block References reach blocks already in the level; Wires into them are checked
-/// for loops.
+/// through a Delay (ADR 0002). Each call to a Function expands its body. Placed Block References reach blocks already
+/// in the level; Wires into them are checked for loops.
 /// </summary>
 internal sealed partial class GraphBuilder
 {
@@ -22,6 +22,17 @@ internal sealed partial class GraphBuilder
     private readonly BlockGraph _graph = new();
     private readonly Dictionary<long, BlockOutput> _literals = [];
 
+    /// <summary>
+    /// Every error so far, so a Function's body reports each of its errors once however often it's expanded.
+    /// </summary>
+    private readonly HashSet<(int Line, int Column, string Message)> _reported = [];
+
+    /// <summary>
+    /// How deep <see cref="Evaluate"/> recurses. The parser caps each expression, but a Function's body is visited
+    /// inside the expression that calls it, so the depths add up.
+    /// </summary>
+    private int _depth;
+
     private GraphBuilder(
         List<Diagnostic> diagnostics,
         IReadOnlyCollection<int> disabledBlockIds,
@@ -30,6 +41,7 @@ internal sealed partial class GraphBuilder
         _diagnostics = diagnostics;
         _disabledBlockIds = disabledBlockIds;
         _findPlacedBlock = findPlacedBlock;
+        _scope = _topScope;
     }
 
     /// <param name="statements">The parsed Script.</param>
@@ -43,14 +55,16 @@ internal sealed partial class GraphBuilder
         Func<string, PlacedBlock> findPlacedBlock)
     {
         var builder = new GraphBuilder(diagnostics, disabledBlockIds, findPlacedBlock);
-        builder.CollectDefinitions(statements);
+        builder.CollectFunctions(statements);
+        builder.CollectDefinitions(builder._topScope, statements);
 
         foreach (var statement in statements)
         {
             builder.Visit(statement);
         }
 
-        builder.ConnectDeferredWires();
+        builder.CheckUncalledFunctions();
+        builder.ConnectDeferredWires(0);
         builder.CheckDependencyLoops();
         builder.ApplyDefaults();
         return builder._graph;
@@ -63,8 +77,14 @@ internal sealed partial class GraphBuilder
             case Definition definition:
                 VisitDefinition(definition);
                 break;
+            case DefaultStatement defaultStatement when _scope.Function != null:
+                Error(defaultStatement, "A default line goes outside functions");
+                break;
             case DefaultStatement defaultStatement:
                 VisitDefault(defaultStatement);
+                break;
+            case ExpressionStatement { Expression: CallExpression call } when IsFunctionCall(call):
+                ExpandCall(call);
                 break;
             case ExpressionStatement { Expression: CallExpression call } when call.Function != PlacedFunction:
                 VisitCall(call);
@@ -80,6 +100,22 @@ internal sealed partial class GraphBuilder
     /// Null after reporting why the expression stands for nothing.
     /// </summary>
     private Resolved? Evaluate(Expression expression)
+    {
+        if (_depth >= Parser.MaxDepth)
+            return Fail(expression, $"This nests more than {Parser.MaxDepth} deep, counting the functions it's called from; split it into definitions");
+
+        _depth++;
+        try
+        {
+            return EvaluateUnchecked(expression);
+        }
+        finally
+        {
+            _depth--;
+        }
+    }
+
+    private Resolved? EvaluateUnchecked(Expression expression)
     {
         switch (expression)
         {
@@ -116,6 +152,9 @@ internal sealed partial class GraphBuilder
                 VisitReferenceCall(call);
                 return Fail(call, $"Wiring into '{call.Function}' gives no value; put it on its own line");
 
+            case CallExpression call when IsFunctionCall(call):
+                return VisitFunctionCall(call);
+
             case CallExpression call:
                 var block = VisitCall(call);
                 if (block == null)
@@ -133,22 +172,24 @@ internal sealed partial class GraphBuilder
         }
     }
 
-    private BlockOutput? EvaluateOutput(Expression expression)
+    /// <summary>
+    /// The one output an expression's value stands for, or null after reporting why there isn't one.
+    /// </summary>
+    private BlockOutput? ToOutput(Expression expression, Resolved? value)
     {
-        var value = Evaluate(expression);
         if (value == null)
             return null;
 
         if (value.Value.Output != null)
             return value.Value.Output;
 
-        if (value.Value.Block.Outputs.Count == 0)
+        if (value.Value.Block?.Outputs.Count == 0)
         {
             Error(expression, $"'{Describe(expression)}' has no output to use as a value");
             return null;
         }
 
-        var first = value.Value.Block.Outputs[0].Name;
+        var first = value.Value.FunctionOutputs?.Function.Outputs[0].Name ?? value.Value.Block.Outputs[0].Name;
         var example = expression is NameExpression name ? $"{name.Name}.{first}" : $"{Describe(expression)}().{first}";
         Error(expression, $"'{Describe(expression)}' has several outputs; pick one, like {example}");
         return null;
@@ -159,6 +200,21 @@ internal sealed partial class GraphBuilder
         var target = Evaluate(member.Target);
         if (target == null)
             return null;
+
+        if (target.Value.Deferred is { } deferred)
+        {
+            var deferredMember = new MemberExpression(member.Position, deferred.Expression, member.Output);
+            return Resolved.Of(new DeferredValue(deferredMember, deferred.Scope));
+        }
+
+        if (target.Value.FunctionOutputs is { } outputs)
+        {
+            if (outputs.Values.TryGetValue(member.Output, out var value))
+                return value;
+
+            var function = outputs.Function;
+            return Fail(member, $"'{function.Name.Name}' has no output '{member.Output}'; use {string.Join(", ", function.Outputs.Select(o => o.Name))}");
+        }
 
         var block = target.Value.Block;
         if (target.Value.Output != null)
@@ -230,11 +286,17 @@ internal sealed partial class GraphBuilder
 
     private void Error(SyntaxNode node, string message)
     {
-        _diagnostics.Add(new Diagnostic(node.Position, message));
+        Report(node.Position, message);
     }
 
     private void ValueError(NamedArgument argument, string message)
     {
-        _diagnostics.Add(new Diagnostic(argument.ValuePosition, message));
+        Report(argument.ValuePosition, message);
+    }
+
+    private void Report(Position position, string message)
+    {
+        if (_reported.Add((position.Line, position.Column, message)))
+            _diagnostics.Add(new Diagnostic(position, message));
     }
 }
