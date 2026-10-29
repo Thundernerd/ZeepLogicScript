@@ -32,9 +32,6 @@ internal sealed class BlockGraph
         return block;
     }
 
-    /// <summary>
-    /// Takes out everything added after the graph had these counts.
-    /// </summary>
     public void RemoveFrom(int blockCount, int wireCount, int placedWireCount)
     {
         Blocks.RemoveRange(blockCount, Blocks.Count - blockCount);

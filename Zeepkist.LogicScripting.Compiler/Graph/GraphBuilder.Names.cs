@@ -26,23 +26,9 @@ internal sealed partial class GraphBuilder
 
     private void VisitDefinition(Definition definition)
     {
-        if (BlockManifest.TryGetFunction(definition.Name, out _))
+        if (GetNameError(definition.Name) is { } nameError)
         {
-            Error(definition, $"'{definition.Name}' is a Block Function and can't be used as a name");
-            Evaluate(definition.Value);
-            return;
-        }
-
-        if (IsReserved(definition.Name))
-        {
-            Error(definition, $"'{definition.Name}' is a reserved word and can't be used as a name");
-            Evaluate(definition.Value);
-            return;
-        }
-
-        if (_functions.ContainsKey(definition.Name))
-        {
-            Error(definition, $"'{definition.Name}' is a function and can't be used as a name");
+            Error(definition, nameError);
             Evaluate(definition.Value);
             return;
         }
@@ -69,6 +55,23 @@ internal sealed partial class GraphBuilder
             _scope.FailedNames.Add(definition.Name);
         else
             _scope.Names.Add(definition.Name, value.Value);
+    }
+
+    /// <summary>
+    /// Why a name can't be defined, or null when it can.
+    /// </summary>
+    private string GetNameError(string name)
+    {
+        return GetReservedNameError(name)
+            ?? (_functions.ContainsKey(name) ? $"'{name}' is a function and can't be used as a name" : null);
+    }
+
+    private static string GetReservedNameError(string name)
+    {
+        if (BlockManifest.TryGetFunction(name, out _))
+            return $"'{name}' is a Block Function and can't be used as a name";
+
+        return IsReserved(name) ? $"'{name}' is a reserved word and can't be used as a name" : null;
     }
 
     /// <summary>

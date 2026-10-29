@@ -29,9 +29,6 @@ internal sealed partial class GraphBuilder
         public Dictionary<string, Resolved> Names { get; } = [];
         public HashSet<string> FailedNames { get; } = [];
 
-        /// <summary>
-        /// The definition being visited.
-        /// </summary>
         public Definition Current { get; set; }
 
         /// <summary>

@@ -14,8 +14,8 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private InputFeed? EvaluateFeed(Expression expression)
     {
-        if (_scope.DelayDepth > 0 && IsForwardReference(expression))
-            return InputFeed.Of(new DeferredValue(expression, _scope));
+        if (TryDefer(expression) is { } deferred)
+            return InputFeed.Of(deferred);
 
         var value = Evaluate(expression);
         if (value?.Deferred != null)
@@ -23,6 +23,14 @@ internal sealed partial class GraphBuilder
 
         var output = ToOutput(expression, value);
         return output == null ? null : InputFeed.Of(output.Value);
+    }
+
+    /// <summary>
+    /// Inside <c>delay(...)</c>, a name defined later in this scope, to look up once it is; otherwise null.
+    /// </summary>
+    private DeferredValue TryDefer(Expression expression)
+    {
+        return _scope.DelayDepth > 0 && IsForwardReference(expression) ? new DeferredValue(expression, _scope) : null;
     }
 
     /// <summary>
