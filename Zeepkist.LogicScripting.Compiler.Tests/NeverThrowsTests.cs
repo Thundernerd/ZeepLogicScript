@@ -339,7 +339,7 @@ public class NeverThrowsTests
     }
 
     /// <summary>
-    /// Accepts the first item too, so a word span that doesn't fit the text would fail here.
+    /// Accepts the first item too, so a word span that doesn't fit the text would fail here. Reads the call's help too.
     /// </summary>
     private static void Complete(TextSnapshot snapshot, IReadOnlyList<DefinedName> definedNames)
     {
@@ -347,6 +347,8 @@ public class NeverThrowsTests
         var items = Completion.GetItems(context, definedNames);
         if (items.Count > 0)
             Completion.Accept(context, items[0]);
+
+        CallHelp.At(snapshot.Text, snapshot.Caret, uid => _level.GetValueOrDefault(uid));
     }
 
     private static CompileResult Compile(string text)
