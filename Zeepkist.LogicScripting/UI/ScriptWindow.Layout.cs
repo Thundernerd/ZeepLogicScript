@@ -43,7 +43,8 @@ internal sealed partial class ScriptWindow
     private bool _showReference;
 
     /// <summary>
-    /// Opening tries again after a failure, and logs the next one.
+    /// Opening tries again after a failure, and logs the next one. A failure in the work before the toggle key is
+    /// read, such as saving Drafts, leaves only ZeepSDK's menu bar to reopen the window.
     /// </summary>
     public void SetOpen(bool open)
     {

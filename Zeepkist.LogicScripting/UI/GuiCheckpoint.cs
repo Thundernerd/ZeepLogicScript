@@ -37,17 +37,16 @@ internal readonly struct GuiCheckpoint
     }
 
     /// <summary>
-    /// Canvas settings are popped one by one rather than cut off, so the mesh drawn next uses the restored ones. A
-    /// pushed style only knows its offset, not its type, so the whole style sheet is put back instead.
+    /// Canvas settings are popped one by one rather than cut off, so the mesh drawn next uses the restored ones. Layout
+    /// frames are cut off instead: popping one adds its size to its parent's. A pushed style only knows its offset, not
+    /// its type, so the whole style sheet is put back instead.
     /// </summary>
     public void Restore(ImGui gui)
     {
         while (gui.Canvas.settingsStack.Count > _canvasSettings)
             gui.Canvas.PopSettings();
 
-        while (gui.Layout.frames.Count > _layoutFrames)
-            gui.Layout.Pop();
-
+        gui.Layout.frames.Count = _layoutFrames;
         gui.idsStack.Count = _ids;
         gui.readOnlyStack.Count = _readOnly;
         gui.controlScopesStack.Count = _controlScopes;

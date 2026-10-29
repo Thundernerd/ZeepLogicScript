@@ -92,19 +92,21 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
 
     /// <summary>
     /// ZeepSDK draws every drawer in one loop without catching, so an exception here would stop the drawers after this
-    /// one, and come back every frame with the editor's input still blocked.
+    /// one, and come back every frame with the editor's input still blocked. Taking the checkpoint is guarded too: it
+    /// reads Imui's private fields, which a game update can rename.
     /// </summary>
     public void OnZeepGUI(ImGui gui)
     {
-        var checkpoint = GuiCheckpoint.Take(gui);
+        GuiCheckpoint? checkpoint = null;
         try
         {
+            checkpoint = GuiCheckpoint.Take(gui);
             DrawFrame(gui);
         }
         catch (Exception e)
         {
-            checkpoint.Restore(gui);
-            OnFailed(e);
+            OnFailed(gui, e);
+            checkpoint?.Restore(gui);
         }
     }
 
@@ -147,20 +149,24 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     /// Logs only the first failure until the window is opened again, as most come back every frame. The highlight is
     /// left for the next frame, which removes it with the window closed: it's game code, and may be what failed.
     /// </summary>
-    private void OnFailed(Exception e)
+    private void OnFailed(ImGui gui, Exception e)
     {
         var wasOpen = _state.Open;
+        if (!_failed)
+        {
+            _failed = true;
+            _logger.LogError($"The Script window failed: {e}");
+            MessengerApi.LogError(wasOpen
+                ? $"The Logic Script window ran into an error and closed. Details are in {LogFile}"
+                : $"Logic Scripting ran into an error. Details are in {LogFile}");
+        }
+
+        // A field that was active when drawing stopped would otherwise take focus, and the keyboard, on reopening
+        if (wasOpen)
+            gui.ResetActiveControl();
+
         _state.Open = false;
         UnblockEditor();
-
-        if (_failed)
-            return;
-
-        _failed = true;
-        _logger.LogError($"The Script window failed: {e}");
-        MessengerApi.LogError(wasOpen
-            ? $"The Logic Script window ran into an error and closed. Details are in {LogFile}"
-            : $"Logic Script ran into an error. Details are in {LogFile}");
     }
 
     /// <summary>
