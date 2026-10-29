@@ -218,11 +218,13 @@ internal sealed class CompletionPopup
                     break;
 
                 case KeyCode.Return or KeyCode.KeypadEnter or KeyCode.Tab:
+                    // Using the event clears it, and evt refers to it
+                    var character = evt.Key == KeyCode.Tab ? '\t' : '\n';
                     gui.Input.UseKeyboardEvent(i);
 
                     // Unity sends the key's character as an event of its own, which would still type a line break or
                     // indent
-                    UseCharacter(gui, evt.Key == KeyCode.Tab ? '\t' : '\n');
+                    UseCharacter(gui, character);
                     return Accept(_selected);
             }
         }

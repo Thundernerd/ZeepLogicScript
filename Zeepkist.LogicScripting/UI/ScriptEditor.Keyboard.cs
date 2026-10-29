@@ -86,12 +86,14 @@ internal sealed partial class ScriptEditor
             if (!ImTextEdit.HandleKeyboardEvent(gui, in evt, ref _state, ref buffer, textRect, in _layout, true, editable, out var textChanged))
                 continue;
 
+            // Using the event clears it, and evt refers to it
+            var typed = evt.Char;
             _state.BlinkTime = gui.Input.Time;
             gui.Input.UseKeyboardEvent(i);
             if (textChanged)
             {
                 text = buffer.ToString();
-                typedName |= ScriptText.IsNameStart(evt.Char);
+                typedName |= ScriptText.IsNameStart(typed);
                 _history.Record(before, new TextSnapshot(text, _state.Caret, _state.Selection), gui.Input.Time);
                 changed = true;
 
