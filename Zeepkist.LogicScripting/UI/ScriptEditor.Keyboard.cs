@@ -65,6 +65,8 @@ internal sealed partial class ScriptEditor
             var before = new TextSnapshot(text, _state.Caret, _state.Selection);
             if (RunShortcut(in evt, before, buffer, editable) is { } after)
             {
+                // Using the event clears it, and evt refers to it
+                var newLine = evt.Char == '\n';
                 gui.Input.UseKeyboardEvent(i);
                 _state.Caret = after.Caret;
                 _state.Selection = after.Selection;
@@ -75,7 +77,7 @@ internal sealed partial class ScriptEditor
                     buffer = new ImTextEditBuffer(text, gui.Arena, 0);
 
                     // Enter is typing, which the typing after it joins; every other shortcut is a step of its own
-                    if (evt.Char == '\n')
+                    if (newLine)
                         _history.Record(before, after, gui.Input.Time);
                     else
                         _history.RecordStep(before, after, gui.Input.Time);

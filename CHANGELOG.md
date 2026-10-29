@@ -23,6 +23,10 @@ All notable changes to Logic Scripting are listed here.
   If you installed the mod by hand, delete the old `net.tnrd.zeepkist.logicscripting.dll` from `BepInEx/plugins`:
   with both files there, BepInEx loads the mod twice.
 
+### Fixed
+
+- Undo in the Script editor takes back a line break together with the typing after it, instead of on its own.
+
 ## 0.1.0-alpha.1
 
 The first pre-release.
