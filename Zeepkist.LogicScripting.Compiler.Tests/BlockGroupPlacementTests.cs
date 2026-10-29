@@ -74,12 +74,33 @@ public class BlockGroupPlacementTests
     }
 
     [Fact]
-    public void ABlockTurnedOnItsOwn_UsesItsOwnFootprint()
+    public void ABlockTurnedOnItsOwn_IsMeasuredInTheGroupsYaw()
     {
-        // A Date Timer reaches a cell toward +X and two along +Z; turned 180° that is -X and -Z
+        // A Date Timer turned 180° by hand would reach toward -X and -Z, but the recompile turns it back
         var dateTimer = new GroupBlock(0, 0, 180, BlockManifest.DateTimer.DefaultStyle);
 
-        Assert.Equal((-16f, -32f), BlockGroupPlacement.GetOrigin([dateTimer], [Compiled(0, 0, 0)], 0));
+        Assert.Equal((0f, 0f), BlockGroupPlacement.GetOrigin([dateTimer], [Compiled(0, 0, 0)], 0));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void AGroupWithAHandEditedBlock_RecompilesWhereItWas(int quarterTurns)
+    {
+        // Each block in turn, the corner's among them, turned and tilted by hand
+        var blocks = Blocks(ScriptCompiler.Compile("player_input()\ndate_timer()\n" + Script, quarterTurns));
+        var moved = blocks.Select(b => InLevel(b, 104, -40)).ToList();
+
+        for (var edited = 0; edited < moved.Count; edited++)
+        {
+            var block = moved[edited];
+            var oldBlocks = moved.ToList();
+            oldBlocks[edited] = new GroupBlock(block.X, block.Z, block.Yaw + 127, block.Style, isReshaped: true);
+
+            Assert.Equal((104f, -40f), BlockGroupPlacement.GetOrigin(oldBlocks, blocks, quarterTurns));
+        }
     }
 
     [Theory]
@@ -118,7 +139,24 @@ public class BlockGroupPlacementTests
     [InlineData(new[] { 89.9f, 359.9f, 0.1f }, 0)]
     public void TheYaw_IsTheMajorityRoundedToQuarterTurns(float[] yaws, int expected)
     {
-        Assert.Equal(expected, BlockGroupPlacement.GetMajorityQuarterTurns(yaws));
+        Assert.Equal(expected, BlockGroupPlacement.GetMajorityQuarterTurns(yaws.Select(y => OneCell(0, 0, y)).ToList()));
+    }
+
+    [Fact]
+    public void AReshapedBlock_IsLeftOutOfTheYaw()
+    {
+        // Tilted by hand, a block's yaw is no longer a quarter turn of the group's
+        var blocks = new[] { OneCell(0, 0, 90), Reshaped(0, 0, 0), Reshaped(0, 0, 0) };
+
+        Assert.Equal(1, BlockGroupPlacement.GetMajorityQuarterTurns(blocks));
+    }
+
+    [Fact]
+    public void AnAllReshapedGroup_TakesTheYawFromAllBlocks()
+    {
+        var blocks = new[] { Reshaped(0, 0, 180), Reshaped(0, 0, 180), Reshaped(0, 0, 90) };
+
+        Assert.Equal(2, BlockGroupPlacement.GetMajorityQuarterTurns(blocks));
     }
 
     private static IReadOnlyList<CompiledBlock> Blocks(CompileResult result)
@@ -157,6 +195,11 @@ public class BlockGroupPlacementTests
     private static GroupBlock OneCell(float x, float z, float yaw = 0)
     {
         return new GroupBlock(x, z, yaw, BlockManifest.Delay.DefaultStyle);
+    }
+
+    private static GroupBlock Reshaped(float x, float z, float yaw = 0)
+    {
+        return new GroupBlock(x, z, yaw, BlockManifest.Delay.DefaultStyle, isReshaped: true);
     }
 
     private static CompiledBlock Compiled(int x, int z, int yaw)

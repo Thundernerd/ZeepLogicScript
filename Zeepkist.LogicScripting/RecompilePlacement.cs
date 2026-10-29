@@ -10,6 +10,10 @@ namespace TNRD.Zeepkist.LogicScripting;
 
 internal sealed class RecompilePlacement : CompilePlacement
 {
+    // How far a block may be off Compile's scale and level before it counts as reshaped by hand
+    private const float ScaleTolerance = 0.001f;
+    private const float TiltToleranceDegrees = 0.1f;
+
     private readonly List<BlockProperties> _group;
 
     /// <param name="group">The Script's Block Group; not empty.</param>
@@ -18,9 +22,11 @@ internal sealed class RecompilePlacement : CompilePlacement
         _group = group;
 
         // The carrier's yaw, so hand-turning other blocks of the group never turns a recompile; the majority without one
-        var carrier = group.FirstOrDefault(LevelScripts.IsCarrier);
-        var yawBlocks = carrier != null ? [carrier] : group;
-        QuarterTurns = BlockGroupPlacement.GetMajorityQuarterTurns(yawBlocks.Select(b => b.transform.eulerAngles.y));
+        // or when the carrier itself was reshaped
+        var blocks = group.Select(ToGroupBlock).ToList();
+        var carrier = group.FindIndex(LevelScripts.IsCarrier);
+        var yawBlocks = carrier >= 0 && !blocks[carrier].IsReshaped ? [blocks[carrier]] : blocks;
+        QuarterTurns = BlockGroupPlacement.GetMajorityQuarterTurns(yawBlocks);
     }
 
     public override IReadOnlyList<BlockProperties> Group => _group;
@@ -48,7 +54,19 @@ internal sealed class RecompilePlacement : CompilePlacement
     {
         var position = block.transform.position;
         var style = BlockManifest.TryGetBlock(block.blockID, out _, out var found) ? found : null;
-        return new GroupBlock(position.x, position.z, block.transform.eulerAngles.y, style);
+        return new GroupBlock(position.x, position.z, block.transform.eulerAngles.y, style, IsReshaped(block));
+    }
+
+    /// <summary>
+    /// Whether the block is scaled or tilted away from how <see cref="CompiledBlockJson"/> places it.
+    /// </summary>
+    private static bool IsReshaped(BlockProperties block)
+    {
+        var scale = block.transform.localScale;
+        var isScaled = Mathf.Abs(scale.x - 1) > ScaleTolerance
+            || Mathf.Abs(scale.y - 1) > ScaleTolerance
+            || Mathf.Abs(scale.z - 1) > ScaleTolerance;
+        return isScaled || Vector3.Angle(block.transform.up, Vector3.up) > TiltToleranceDegrees;
     }
 
     protected override string NotStoredNote => "the Script is no longer stored in the level";
