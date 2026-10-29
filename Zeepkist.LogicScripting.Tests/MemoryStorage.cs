@@ -38,8 +38,16 @@ internal sealed class MemoryStorage : IModStorage
 
     public StorageResult<TData> TryLoadFromJson<TData>(string name)
     {
-        var value = JsonConvert.DeserializeObject<TData>(_jsonFiles[name]);
-        return (StorageResult<TData>)StorageResultFactory<TData>("FromValue").Invoke(null, [value]);
+        try
+        {
+            var value = JsonConvert.DeserializeObject<TData>(_jsonFiles[name]);
+            return (StorageResult<TData>)StorageResultFactory<TData>("FromValue").Invoke(null, [value]);
+        }
+        catch (JsonException exception)
+        {
+            return (StorageResult<TData>)StorageResultFactory<TData>("FromValueFailure")
+                .Invoke(null, ["Failed to load JSON.", exception]);
+        }
     }
 
     // StorageResult has no public constructor, so this calls the factories ZeepSDK uses itself

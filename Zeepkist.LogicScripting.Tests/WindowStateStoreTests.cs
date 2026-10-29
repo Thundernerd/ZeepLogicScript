@@ -75,6 +75,16 @@ public class WindowStateStoreTests
         Assert.True(state.IsSameAs(new WindowState()));
     }
 
+    [Fact]
+    public void AnUnreadableFile_LoadsAClosedNeverPlacedWindow()
+    {
+        _storage.WriteJson(FileName, "{ not json");
+
+        var state = _store.Load();
+
+        Assert.True(state.IsSameAs(new WindowState()));
+    }
+
     private void AssertSavedBlocksPanelSize(float size)
     {
         var json = JObject.Parse(_storage.ReadJson(FileName));
