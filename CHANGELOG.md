@@ -10,6 +10,8 @@ All notable changes to Logic Scripting are listed here.
   It can be turned off for typing with **Completion while typing** in the mod's settings.
 - Completion lists the names your Script defines above the line, with their block type,
   and every name inside `delay(...)`.
+- Functions: `function name(inputs) -> outputs` … `end` names wiring you use more than once.
+  Each call places the body's blocks inline, so the level still plays without the mod.
 
 ## 0.1.0-alpha.1
 

@@ -91,6 +91,12 @@ internal static class Lexer
 
                 tokens.Add(new Token(TokenKind.Name, text.Substring(start, index - start), position, new TextSpan(start, index - start)));
             }
+            else if (c == '-' && index + 1 < text.Length && text[index + 1] == '>')
+            {
+                // Ahead of the operators, which would read it as - then >
+                tokens.Add(new Token(TokenKind.Arrow, "->", position, new TextSpan(index, 2)));
+                index += 2;
+            }
             else if (MatchOperator(text, index, position) is { } op)
             {
                 tokens.Add(op);
@@ -122,8 +128,8 @@ internal static class Lexer
         var matched = new bool[tokens.Count];
         for (var i = 0; i < tokens.Count; i++)
         {
-            // A definition can't sit inside parentheses, so the ones still open before it were never closed
-            if (IsDefinitionStart(tokens, i))
+            // A statement can't start inside parentheses, so the ones still open before it were never closed
+            if (IsStatementStart(tokens, i))
             {
                 open.Clear();
             }
@@ -160,13 +166,21 @@ internal static class Lexer
         return joined;
     }
 
-    private static bool IsDefinitionStart(List<Token> tokens, int index)
+    /// <summary>
+    /// A line that starts a definition or a Function, or is a Function's <c>end</c>.
+    /// </summary>
+    private static bool IsStatementStart(List<Token> tokens, int index)
     {
-        return index > 0
-            && index + 1 < tokens.Count
-            && tokens[index - 1].Kind == TokenKind.NewLine
-            && tokens[index].Kind == TokenKind.Name
-            && tokens[index + 1].Kind == TokenKind.Equals;
+        if (index == 0 || index + 1 >= tokens.Count || tokens[index - 1].Kind != TokenKind.NewLine || tokens[index].Kind != TokenKind.Name)
+            return false;
+
+        var next = tokens[index + 1].Kind;
+        return tokens[index].Text switch
+        {
+            FunctionDefinition.Keyword => next == TokenKind.Name,
+            FunctionDefinition.EndKeyword => next is TokenKind.NewLine or TokenKind.End,
+            _ => next == TokenKind.Equals
+        };
     }
 
     private static int SkipDigits(string text, int index)

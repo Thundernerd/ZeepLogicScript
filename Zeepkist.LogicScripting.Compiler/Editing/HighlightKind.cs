@@ -8,19 +8,19 @@ public enum HighlightKind
     Name,
 
     /// <summary>
-    /// A Block Function or <c>placed</c>.
+    /// A Block Function, one of the Script's own Functions, or <c>placed</c>.
     /// </summary>
     Function,
 
     /// <summary>
-    /// <c>default</c>, <c>true</c> and <c>false</c>.
+    /// <c>default</c>, <c>true</c>, <c>false</c>, <c>function</c> and <c>end</c>.
     /// </summary>
     Keyword,
     Number,
     String,
 
     /// <summary>
-    /// An operator, or the <c>=</c> of a definition.
+    /// An operator, the <c>=</c> of a definition, or the <c>-></c> before a Function's outputs.
     /// </summary>
     Operator,
     Punctuation,

@@ -53,6 +53,20 @@ public class ScriptHighlighterTests
             Render("x = logic(\n  1\n)"));
     }
 
+    [Fact]
+    public void FunctionWords_AreKeywords_AndCallsToLocalFunctions_AreFunctions()
+    {
+        const string Text = "y = f(1)\nfunction f(x) -> r\nend";
+
+        Assert.Equal(
+            [
+                "y:Name", "=:Operator", "f:Function", "(:Punctuation", "1:Number", "):Punctuation",
+                "function:Keyword", "f:Function", "(:Punctuation", "x:Name", "):Punctuation", "->:Operator", "r:Name",
+                "end:Keyword"
+            ],
+            Render(Text));
+    }
+
     private static string[] Render(string text)
     {
         return ScriptHighlighter.Highlight(text).Select(s => $"{text.Substring(s.Start, s.Length)}:{s.Kind}").ToArray();

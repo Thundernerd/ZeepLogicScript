@@ -5,8 +5,8 @@ using System.Globalization;
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 /// <summary>
-/// Recursive-descent parser for one statement per line. A syntax error skips the rest of its line, so every line
-/// still gets checked.
+/// Recursive-descent parser for one statement per line, and for Functions, which wrap lines of their own. A syntax error
+/// skips the rest of its line, so every line still gets checked.
 /// </summary>
 internal sealed partial class Parser
 {
@@ -43,25 +43,151 @@ internal sealed partial class Parser
             if (Current.Kind == TokenKind.NewLine)
             {
                 _index++;
-                continue;
             }
-
-            try
+            else if (IsFunctionStart())
             {
-                statements.Add(ParseStatement());
-                if (Current.Kind != TokenKind.NewLine && Current.Kind != TokenKind.End)
-                    throw Error(Current, $"Expected the end of the line, found {Describe(Current)}");
+                var function = ParseFunction();
+                if (function != null)
+                    statements.Add(function);
             }
-            catch (SyntaxError error)
+            else if (IsEndLine())
             {
-                _diagnostics.Add(error.Diagnostic);
-                SkipLine();
-                if (error.ContinuesOnNextLine)
-                    SkipContinuationLine();
+                _diagnostics.Add(new Diagnostic(Current.Position, $"'{FunctionDefinition.EndKeyword}' has no function to close"));
+                _index++;
+            }
+            else
+            {
+                ParseLine(statements);
             }
         }
 
         return statements;
+    }
+
+    private void ParseLine(List<Statement> statements)
+    {
+        try
+        {
+            statements.Add(ParseStatement());
+            if (Current.Kind != TokenKind.NewLine && Current.Kind != TokenKind.End)
+                throw Error(Current, $"Expected the end of the line, found {Describe(Current)}");
+        }
+        catch (SyntaxError error)
+        {
+            _diagnostics.Add(error.Diagnostic);
+            SkipLine();
+            if (error.ContinuesOnNextLine)
+                SkipContinuationLine();
+        }
+    }
+
+    /// <summary>
+    /// A Function's first line, its body and its <c>end</c>; null when the first line has no name to call it by.
+    /// Indentation is only style, so the body ends at the first <c>end</c> line. A Function can't be defined inside
+    /// another, so a <c>function</c> line before it ends this one, to be read as the next Function.
+    /// </summary>
+    private FunctionDefinition ParseFunction()
+    {
+        var keyword = Current;
+        _index++;
+        FunctionParameter name = null;
+        List<FunctionParameter> inputs = [];
+        List<FunctionParameter> outputs = [];
+        var isComplete = true;
+        try
+        {
+            name = ParseParameter("the function's name");
+            ExpectOpenParen();
+            if (Current.Kind == TokenKind.CloseParen)
+                _index++;
+            else
+                ParseParameters(inputs, "an input name", TokenKind.CloseParen, "',' or ')'");
+
+            if (Current.Kind == TokenKind.Arrow)
+            {
+                _index++;
+                ParseParameters(outputs, "an output name", null, "',' or the end of the line");
+            }
+            else if (Current.Kind != TokenKind.NewLine && Current.Kind != TokenKind.End)
+            {
+                throw Error(Current, $"Expected '->' or the end of the line, found {Describe(Current)}");
+            }
+        }
+        catch (SyntaxError error)
+        {
+            _diagnostics.Add(error.Diagnostic);
+            SkipLine();
+            isComplete = false;
+        }
+
+        var shownName = name == null ? "This function" : $"Function '{name.Name}'";
+        List<Statement> body = [];
+        while (true)
+        {
+            if (Current.Kind == TokenKind.End)
+            {
+                _diagnostics.Add(new Diagnostic(keyword.Position, $"{shownName} has no {FunctionDefinition.EndKeyword}"));
+                isComplete = false;
+                break;
+            }
+
+            if (Current.Kind == TokenKind.NewLine)
+            {
+                _index++;
+            }
+            else if (IsFunctionStart())
+            {
+                var message = $"{shownName} has no {FunctionDefinition.EndKeyword} before this one; functions can't be defined inside each other";
+                _diagnostics.Add(new Diagnostic(Current.Position, message));
+                isComplete = false;
+                break;
+            }
+            else if (IsEndLine())
+            {
+                _index++;
+                break;
+            }
+            else
+            {
+                ParseLine(body);
+            }
+        }
+
+        return name == null ? null : new FunctionDefinition(keyword.Position, name, inputs, outputs, body, isComplete);
+    }
+
+    /// <summary>
+    /// Names separated by commas, up to <paramref name="close"/>, or to the end of the line when it's null.
+    /// </summary>
+    private void ParseParameters(List<FunctionParameter> parameters, string expected, TokenKind? close, string expectedAfter)
+    {
+        while (true)
+        {
+            parameters.Add(ParseParameter(expected));
+            if (Current.Kind == TokenKind.Comma)
+            {
+                _index++;
+                continue;
+            }
+
+            if (close == null)
+            {
+                if (Current.Kind != TokenKind.NewLine && Current.Kind != TokenKind.End)
+                    throw Error(Current, $"Expected {expectedAfter}, found {Describe(Current)}");
+
+                return;
+            }
+
+            Expect(close.Value, expectedAfter);
+            return;
+        }
+    }
+
+    private FunctionParameter ParseParameter(string expected)
+    {
+        var token = Current;
+        Expect(TokenKind.Name, expected);
+        return new FunctionParameter(token.Position, token.Text);
     }
 
     private Statement ParseStatement()
@@ -287,6 +413,21 @@ internal sealed partial class Parser
         return Current.Kind == TokenKind.Name && Peek(1).Kind == TokenKind.Equals;
     }
 
+    /// <summary>
+    /// <c>function = ...</c> is a definition, so it gets the reserved-word error instead.
+    /// </summary>
+    private bool IsFunctionStart()
+    {
+        return Current.Kind == TokenKind.Name && Current.Text == FunctionDefinition.Keyword && Peek(1).Kind != TokenKind.Equals;
+    }
+
+    private bool IsEndLine()
+    {
+        return Current.Kind == TokenKind.Name
+            && Current.Text == FunctionDefinition.EndKeyword
+            && Peek(1).Kind is TokenKind.NewLine or TokenKind.End;
+    }
+
     private bool IsNamedArgument(int offset)
     {
         return Peek(offset).Kind == TokenKind.Name && Peek(offset + 1).Kind == TokenKind.Colon;
@@ -332,7 +473,8 @@ internal sealed partial class Parser
 
     /// <summary>
     /// Skips the line after a statement that broke off mid-expression, since it most likely holds the rest of that
-    /// expression and would only add a second error. A line that starts a definition is kept.
+    /// expression and would only add a second error. A line that starts a definition or a Function, or ends one, is
+    /// kept.
     /// </summary>
     private void SkipContinuationLine()
     {
@@ -340,7 +482,7 @@ internal sealed partial class Parser
             return;
 
         _index++;
-        if (IsDefinitionStart())
+        if (IsDefinitionStart() || IsFunctionStart() || IsEndLine())
             return;
 
         SkipLine();

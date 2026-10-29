@@ -32,6 +32,13 @@ internal sealed class BlockGraph
         return block;
     }
 
+    public void RemoveFrom(int blockCount, int wireCount, int placedWireCount)
+    {
+        Blocks.RemoveRange(blockCount, Blocks.Count - blockCount);
+        Wires.RemoveRange(wireCount, Wires.Count - wireCount);
+        PlacedWires.RemoveRange(placedWireCount, PlacedWires.Count - placedWireCount);
+    }
+
     public GraphWire AddWire(BlockOutput from, BlockNode to, int toConnector)
     {
         var wire = new GraphWire(from.Block, from.Connector, to, toConnector);

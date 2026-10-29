@@ -26,18 +26,18 @@ internal sealed partial class GraphBuilder
         if (call.Arguments.Count != 1 || call.NamedArguments.Count > 0 || call.Arguments[0] is not StringLiteral uid)
             return Fail(call, $"{PlacedFunction}(...) takes one UID in quotes, like {PlacedFunction}(\"AbC12\")");
 
-        var name = _current?.Value == call ? _current.Name : null;
+        var name = _scope.Current?.Value == call ? _scope.Current.Name : null;
         var placed = _findPlacedBlock(uid.Value);
         if (placed == null)
         {
-            _graph.PlacedBlockReferences.Add(new PlacedBlockReference(call.Position, name, uid.Value, null));
+            AddPlacedBlockReference(new PlacedBlockReference(call.Position, name, uid.Value, null));
             return Fail(uid, $"No block in this level has UID \"{uid.Value}\"");
         }
 
         var type = BlockManifest.GetPlacedType(placed.BlockId);
         var style = type.Styles.FirstOrDefault(s => s.BlockId == placed.BlockId);
 
-        _graph.PlacedBlockReferences.Add(new PlacedBlockReference(call.Position, name, uid.Value, type));
+        AddPlacedBlockReference(new PlacedBlockReference(call.Position, name, uid.Value, type));
         if (style != null && _disabledBlockIds.Contains(style.BlockId))
             return Fail(call, $"'{type.Describe(style)}' doesn't match this game version and is turned off");
 
@@ -53,9 +53,18 @@ internal sealed partial class GraphBuilder
         return block.Outputs.Count == 1 ? Resolved.Of(new BlockOutput(block, block.Outputs[0].Index)) : Resolved.Of(block);
     }
 
+    /// <summary>
+    /// Once per <c>placed(...)</c> in the text, though a Function's body may be expanded several times.
+    /// </summary>
+    private void AddPlacedBlockReference(PlacedBlockReference reference)
+    {
+        if (!_graph.PlacedBlockReferences.Exists(r => r.Position.CompareTo(reference.Position) == 0))
+            _graph.PlacedBlockReferences.Add(reference);
+    }
+
     private bool IsReferenceCall(CallExpression call)
     {
-        return _names.TryGetValue(call.Function, out var value) && value.Block.IsPlaced;
+        return _scope.Names.TryGetValue(call.Function, out var value) && value.Block?.IsPlaced == true;
     }
 
     /// <summary>
@@ -64,7 +73,7 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private void VisitReferenceCall(CallExpression call)
     {
-        var block = _names[call.Function].Block;
+        var block = _scope.Names[call.Function].Block;
         var type = block.Type;
         if (type.Inputs.Count == 0)
         {
@@ -106,9 +115,13 @@ internal sealed partial class GraphBuilder
 
         for (var i = 0; i < check.Inputs.Length; i++)
         {
-            var output = check.Inputs[i]?.Feed?.Output;
-            if (output != null)
-                WireIntoPlaced(call, check.Inputs[i].Value.IsByPosition, i, output.Value, block);
+            if (check.Inputs[i] is not { Feed: { } feed } wired)
+                continue;
+
+            if (feed.Output != null)
+                WireIntoPlaced(call, wired.IsByPosition, i, feed.Output.Value, block);
+            else
+                Error(GetInputOrigin(call, wired.IsByPosition, i, block.Type), "A name defined later can't be wired into a placed block; only delay(...) can refer ahead");
         }
     }
 
@@ -126,9 +139,7 @@ internal sealed partial class GraphBuilder
     private void WireIntoPlaced(CallExpression call, bool isByPosition, int input, BlockOutput from, BlockNode block)
     {
         var connector = block.Type.Inputs[input];
-        SyntaxNode origin = isByPosition
-            ? call.Arguments[input]
-            : call.NamedArguments.First(a => a.Name == connector.Name);
+        var origin = GetInputOrigin(call, isByPosition, input, block.Type);
 
         if (block.Placed.WiredInputs.Contains(connector.Index))
         {
@@ -142,8 +153,14 @@ internal sealed partial class GraphBuilder
             return;
         }
 
-        _placedInputLines.Add((block, connector.Index), call.Position.Line);
+        // A body may be expanded several times, so name the line it was called from
+        _placedInputLines.Add((block, connector.Index), _scope.Function == null ? call.Position.Line : _statementLine);
         _wiresIntoPlaced.Add((_graph.AddWire(from, block, connector.Index), origin));
+    }
+
+    private static SyntaxNode GetInputOrigin(CallExpression call, bool isByPosition, int input, BlockType type)
+    {
+        return isByPosition ? call.Arguments[input] : call.NamedArguments.First(a => a.Name == type.Inputs[input].Name);
     }
 
     /// <summary>

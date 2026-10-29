@@ -14,6 +14,7 @@ internal enum TokenKind
     Colon,
     Dot,
     Equals,
+    Arrow,
     NewLine,
     End
 }
