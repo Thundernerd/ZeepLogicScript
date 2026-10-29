@@ -1,9 +1,11 @@
+using System;
+
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 internal sealed class BinaryExpression : Expression
 {
     public BinaryExpression(Position position, BinaryOperator op, Expression left, Expression right)
-        : base(position)
+        : base(position, 1 + Math.Max(left.Depth, right.Depth))
     {
         Operator = op;
         Left = left;

@@ -10,9 +10,16 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 /// </summary>
 internal sealed partial class Parser
 {
+    /// <summary>
+    /// How deep an expression may nest, counting operators, calls, lists and parentheses; far more than a Script needs,
+    /// and shallow enough that parsing and compiling it can't overflow the stack.
+    /// </summary>
+    public const int MaxDepth = 50;
+
     private readonly List<Token> _tokens;
     private readonly List<Diagnostic> _diagnostics;
     private int _index;
+    private int _depth;
 
     private Parser(List<Token> tokens, List<Diagnostic> diagnostics)
     {
@@ -95,13 +102,29 @@ internal sealed partial class Parser
                 throw DanglingOperator(Current);
 
             var right = ParseBinary(op.Precedence + 1);
-            left = new BinaryExpression(token.Position, op, left, right);
+            left = CheckDepth(new BinaryExpression(token.Position, op, left, right), token);
         }
 
         return left;
     }
 
     private Expression ParseUnary()
+    {
+        var token = Current;
+        if (++_depth > MaxDepth)
+            throw TooDeep(token);
+
+        try
+        {
+            return CheckDepth(ParseUnaryUnchecked(), token);
+        }
+        finally
+        {
+            _depth--;
+        }
+    }
+
+    private Expression ParseUnaryUnchecked()
     {
         var token = Current;
         if (token.UnaryOperator is not { } op)
@@ -113,6 +136,18 @@ internal sealed partial class Parser
             return ParseInteger(Current, token, op.Symbol);
 
         return new UnaryExpression(token.Position, op, ParseUnary());
+    }
+
+    /// <summary>
+    /// The parser's own recursion only bounds how deep the parentheses go; a long run of operators builds a deep
+    /// expression in a loop.
+    /// </summary>
+    private static Expression CheckDepth(Expression expression, Token token)
+    {
+        if (expression.Depth > MaxDepth)
+            throw TooDeep(token);
+
+        return expression;
     }
 
     private static bool IsTouchingInteger(Token sign, Token next)
@@ -325,6 +360,11 @@ internal sealed partial class Parser
     private static SyntaxError Error(Token token, string message)
     {
         return new SyntaxError(new Diagnostic(token.Position, message), false);
+    }
+
+    private static SyntaxError TooDeep(Token token)
+    {
+        return Error(token, $"This nests more than {MaxDepth} deep; split it into definitions");
     }
 
     /// <param name="lineEnd">The line break right after a binary operator.</param>

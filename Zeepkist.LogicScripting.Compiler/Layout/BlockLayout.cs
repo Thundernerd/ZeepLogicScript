@@ -108,6 +108,8 @@ internal static class BlockLayout
         var columns = new int[graph.Blocks.Count];
         var known = new bool[graph.Blocks.Count];
 
+        // Recursing stays shallow however long the Script: blocks are built after the ones that feed them, and only a
+        // Delay's input can come from a later one, so a block's sources are known by the time it's reached
         int GetColumn(BlockNode block)
         {
             if (known[block.Index])

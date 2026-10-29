@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -8,7 +9,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 internal sealed class CallExpression : Expression
 {
     public CallExpression(Position position, string function, List<Expression> arguments, List<NamedArgument> namedArguments)
-        : base(position)
+        : base(position, 1 + GetDepth(arguments.Concat(namedArguments.Select(a => a.Value))))
     {
         Function = function;
         Arguments = arguments;
