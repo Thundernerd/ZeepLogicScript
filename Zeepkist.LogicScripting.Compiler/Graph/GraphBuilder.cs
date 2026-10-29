@@ -33,6 +33,11 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private int _depth;
 
+    /// <summary>
+    /// The line of the top-level statement being visited, where a Function's body is expanded from.
+    /// </summary>
+    private int _statementLine;
+
     private GraphBuilder(
         List<Diagnostic> diagnostics,
         IReadOnlyCollection<int> disabledBlockIds,
@@ -60,6 +65,7 @@ internal sealed partial class GraphBuilder
 
         foreach (var statement in statements)
         {
+            builder._statementLine = statement.Position.Line;
             builder.Visit(statement);
         }
 

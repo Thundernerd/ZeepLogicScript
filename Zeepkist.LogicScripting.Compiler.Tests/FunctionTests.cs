@@ -141,6 +141,16 @@ public class FunctionTests
     }
 
     [Fact]
+    public void PlacedInputWiredByTwoCalls_NamesTheFirstCallsLine()
+    {
+        var result = Compile(
+            "function light(x)\n    lamp = placed(\"L\")\n    lamp(intensity: x)\nend\nlight(1)\nlight(2)",
+            Level());
+
+        Assert.Equal(["3:10: Input 'intensity' of 'lamp' is already wired on line 5"], result.Errors.Select(e => e.ToString()));
+    }
+
+    [Fact]
     public void Placed_IsAllowedInABody()
     {
         var result = Compile(

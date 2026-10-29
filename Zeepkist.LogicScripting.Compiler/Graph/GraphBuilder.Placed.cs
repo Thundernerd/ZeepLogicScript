@@ -153,7 +153,8 @@ internal sealed partial class GraphBuilder
             return;
         }
 
-        _placedInputLines.Add((block, connector.Index), call.Position.Line);
+        // A body may be expanded several times, so name the line it was called from
+        _placedInputLines.Add((block, connector.Index), _scope.Function == null ? call.Position.Line : _statementLine);
         _wiresIntoPlaced.Add((_graph.AddWire(from, block, connector.Index), origin));
     }
 
