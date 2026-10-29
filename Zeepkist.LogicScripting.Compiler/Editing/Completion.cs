@@ -14,7 +14,8 @@ public static class Completion
 
     /// <summary>
     /// The items whose label starts with the typed prefix, then those that only contain it, each in alphabetical
-    /// order; at the start of an argument, the named arguments come before the expressions. Case is ignored. Of the
+    /// order, or for a Setting's values, in the order the Setting stores them; at the start of an argument, the named
+    /// arguments come before the expressions. Case is ignored. A Number Setting lists nothing. Of the
     /// <paramref name="definedNames"/>, only those defined before the caret's statement are offered, unless the caret is
     /// inside <c>delay(...)</c>.
     /// </summary>
@@ -32,6 +33,7 @@ public static class Completion
                 .ToList(),
             CaretContextKind.ArgumentName => Match(context, GetArgumentItems(context, definedNames)),
             CaretContextKind.DefaultSetting => Match(context, [ArgumentItem(BlockSetting.Hide)]),
+            CaretContextKind.SettingValue => Match(context, GetValueItems(context), sort: false),
             _ => []
         };
     }
@@ -69,10 +71,11 @@ public static class Completion
         return new TextSnapshot(text.Remove(word.Start, word.Length).Insert(word.Start, inserted), caret);
     }
 
-    private static List<CompletionItem> Match(CaretContext context, IEnumerable<CompletionItem> candidates)
+    private static List<CompletionItem> Match(CaretContext context, IEnumerable<CompletionItem> candidates, bool sort = true)
     {
         List<CompletionItem> items = [.. candidates];
-        items.Sort(CompareLabels);
+        if (sort)
+            items.Sort(CompareLabels);
 
         var prefix = context.Prefix;
         var starting = items.Where(i => i.Label.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
@@ -111,6 +114,34 @@ public static class Completion
         {
             return context.GivenArguments.Contains(name);
         }
+    }
+
+    private static IEnumerable<CompletionItem> GetValueItems(CaretContext context)
+    {
+        return GetValues(context).Select(v => new CompletionItem(v, CompletionKind.Value, string.Empty));
+    }
+
+    private static IEnumerable<string> GetValues(CaretContext context)
+    {
+        if (context.Callee == null)
+            return GetValues(BlockSetting.Hide);
+
+        var type = BlockManifest.TryGetFunction(context.Callee, out var function) ? function : null;
+        if (context.SettingName == BlockType.StyleName && type is { HasStyles: true })
+            return type.Styles.Select(s => s.Name);
+
+        var setting = type?.FindSetting(context.SettingName);
+        return setting == null ? [] : GetValues(setting);
+    }
+
+    private static IEnumerable<string> GetValues(BlockSetting setting)
+    {
+        return setting.Type switch
+        {
+            SettingType.Bool => ["true", "false"],
+            SettingType.Option or SettingType.Player => setting.Options,
+            _ => []
+        };
     }
 
     private static IEnumerable<CompletionItem> GetInputItems(CaretContext context, BlockType type)

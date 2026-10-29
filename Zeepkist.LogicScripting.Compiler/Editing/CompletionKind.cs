@@ -12,5 +12,10 @@ public enum CompletionKind
     /// <summary>
     /// A named argument, labeled with its colon: accepting it writes the colon and a space too.
     /// </summary>
-    Argument
+    Argument,
+
+    /// <summary>
+    /// A value a Setting takes: an option word, <c>true</c> or <c>false</c>, a player or a style.
+    /// </summary>
+    Value
 }
