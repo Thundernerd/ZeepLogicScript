@@ -42,10 +42,13 @@ Modkist installs BepInEx and ZeepSDK.
 
 Compile places the blocks where the editor places a new block, in front of the camera.
 Signals flow toward the right of the screen.
-Compile is one undo step, so **Ctrl+Z** takes the whole thing back.
+Compile is one undo step in the level editor:
+click outside the text, then **Ctrl+Z** takes the whole thing back.
+Inside the text, Ctrl+Z undoes your typing.
 
+The blocks one Compile places are the Script's Block Group.
 Compile the Script again after you change it.
-The new blocks replace the old ones, at the same spot.
+The new group replaces the old one, at the same spot.
 
 ### Things to know
 
@@ -141,7 +144,7 @@ Use parentheses to group: `(a | b) & c`.
 Logic operators count any Signal of 1 or more as on.
 Compare operators give 1 for true and 0 for false.
 
-### Block functions
+### Calling blocks
 
 Each block function places one block.
 The function is named after the block, like `delay` or `player_input`;
@@ -206,7 +209,8 @@ That's why a name can only refer ahead inside `delay`.
 
 Compile only places blocks whose position doesn't matter.
 For triggers, sensors, lights, cannons and movers, place the block yourself and refer to it with `placed(...)`.
-Any other block can be a Toggler target the same way.
+A logic block you placed by hand works the same way, with all its inputs and outputs.
+Any other block, like a wall, can be a Toggler target.
 
 Select the blocks in the level and click **Insert selected** in the Placed blocks panel.
 It writes a line like this for each of them:
@@ -217,6 +221,11 @@ trigger_1 = placed("trigger-uid")
 
 The text in quotes is the block's UID.
 The examples in this README use made-up UIDs; Insert selected writes the real ones.
+It skips blocks that belong to a Script's Block Group.
+
+Insert selected names a block after its type, like `trigger_1` or `lamp_1`,
+and a block that isn't a logic block `block_1`.
+You can rename them; the examples call a wall `wall_1`.
 
 Use the name to read the block's outputs, and call it to wire its inputs:
 
@@ -234,7 +243,9 @@ Each input takes one wire, counting the wires that are already in the level.
 - Counter, Toggle Latch, Random, Timer, Resettable Ticker, Death, State Changer, Physics Cannon and Dynamic Mover
   react when their input goes from 0 to exactly 1.
   A value that jumps from 0 to 5 does nothing.
-  Turn it into 0 or 1 first, with `x > 0` or `digitizer(x)`.
+  Simple Memory's and Cheese Memory's `write`, Parking, Force Giver's `enable`
+  and Property Multiplier's `apply` and `reset` need exactly 1 too.
+  Turn a value into 0 or 1 first, with `x > 0` or `digitizer(x)`.
 - `power_display(x)` shows a Signal's value in the editor's test mode.
   Use it to see what a sensor or telemetry block puts out.
 
@@ -258,7 +269,7 @@ The trigger counts the bodies inside it, so `> 0` turns it into on or off.
 ```logic
 default hide: true
 
-finish_1 = placed("trigger-1-uid")
+finish_1 = placed("trigger-finish-uid")
 wall_1 = placed("wall-uid")
 
 laps = counter(finish_1 > 0)
@@ -291,7 +302,7 @@ toggler(done, targets: [wall_1])
 Each block function, with the name the block has in the editor's block list.
 The editor's names end in "Logic Block", left out here.
 
-### Block functions
+### Functions
 
 | Function | In-game block | Inputs | Outputs |
 |---|---|---|---|
@@ -354,7 +365,7 @@ The editor's names end in "Logic Block", left out here.
 Every block function also takes `hide`.
 The Property Multiplier's multipliers aren't in the language yet; set them in the editor.
 
-### Blocks you place by hand
+### Placed-only blocks
 
 These blocks can only be reached with `placed(...)`.
 Insert selected names them after the type, like `lamp_1`.

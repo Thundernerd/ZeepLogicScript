@@ -20,7 +20,7 @@ The first pre-release.
   and any block as a Toggler target.
   **Insert selected** writes these lines for the blocks you selected.
 - Errors with line and column while you type, with a suggestion when an argument name is misspelled.
-- A code editor with line numbers, colours, and shortcuts for undo, duplicate, move and comment lines.
+- A code editor with line numbers, colors, and shortcuts for undo, duplicate, move and comment lines.
 - Scripts are stored in the level when you compile them; typed text is kept as a Draft on your machine.
 - Script list with rename, select and delete, and an Orphaned Groups list for compiled blocks whose Script is gone.
 - A Reference tab that lists every block function with its inputs, outputs and settings.
