@@ -52,6 +52,80 @@ public class CompletionSessionTests
         Assert.False(session.IsOpen);
     }
 
+    [Theory]
+    [InlineData("x = logic(")]
+    [InlineData("x = logic(1, ")]
+    [InlineData("x = logic(1, delay(")]
+    public void TypingACallsParenthesis_OpensWithItsNamedArguments(string text)
+    {
+        var session = new CompletionSession();
+
+        session.Update(new TextSnapshot(text, text.Length), typedName: false, whileTyping: true, focused: true, typedOpenParen: true);
+
+        Assert.True(session.IsOpen);
+        Assert.Equal(CompletionKind.Argument, session.Items[0].Kind);
+    }
+
+    [Fact]
+    public void TypingAPlacedBlockReferencesParenthesis_OpensWithItsInputs()
+    {
+        var session = new CompletionSession(uid => uid == "L" ? new PlacedBlock(BlockManifest.Lamp.DefaultStyle.BlockId) : null);
+        const string Text = "lamp_1 = placed(\"L\")\nlamp_1(";
+
+        session.Update(new TextSnapshot(Text, Text.Length), typedName: false, whileTyping: true, focused: true, typedOpenParen: true);
+
+        Assert.True(session.IsOpen);
+        Assert.Equal("angle:", session.Items[0].Label);
+    }
+
+    [Theory]
+    [InlineData("x = (")]
+    [InlineData("x = placed(")]
+    [InlineData("a = logic(1, 2)\nx = a(")]
+    public void TypingAParenthesis_StaysClosed_WithoutNamedArguments(string text)
+    {
+        var session = new CompletionSession();
+
+        session.Update(new TextSnapshot(text, text.Length), typedName: false, whileTyping: true, focused: true, typedOpenParen: true);
+
+        Assert.False(session.IsOpen);
+    }
+
+    [Fact]
+    public void TypingACallsParenthesis_StaysClosed_WhenNotCompletingWhileTyping()
+    {
+        var session = new CompletionSession();
+
+        session.Update(new TextSnapshot("x = logic(", 10), typedName: false, whileTyping: false, focused: true, typedOpenParen: true);
+
+        Assert.False(session.IsOpen);
+    }
+
+    [Fact]
+    public void TypingACallsParenthesis_WhileTheListIsOpen_ListsItsNamedArguments()
+    {
+        var session = Open("x = logic");
+
+        session.Update(new TextSnapshot("x = logic(", 10), typedName: false, whileTyping: true, focused: true, typedOpenParen: true);
+
+        Assert.True(session.IsOpen);
+        Assert.Equal(10, session.WordStart);
+        Assert.Equal(CompletionKind.Argument, session.Items[0].Kind);
+    }
+
+    [Fact]
+    public void AfterACallsParenthesis_TypingFiltersTheList_AndACommaClosesIt()
+    {
+        var session = new CompletionSession();
+        session.Update(new TextSnapshot("x = logic(", 10), typedName: false, whileTyping: true, focused: true, typedOpenParen: true);
+
+        session.Update(new TextSnapshot("x = logic(o", 11), typedName: true, whileTyping: true, focused: true);
+        Assert.Equal("op:", session.Items[0].Label);
+
+        session.Update(new TextSnapshot("x = logic(1,", 12), typedName: false, whileTyping: true, focused: true);
+        Assert.False(session.IsOpen);
+    }
+
     [Fact]
     public void Closes_WhenNothingMatches()
     {

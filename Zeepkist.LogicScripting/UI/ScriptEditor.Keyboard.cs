@@ -10,12 +10,21 @@ internal sealed partial class ScriptEditor
 {
     /// <summary>
     /// Every edit is recorded in the history; a caret move without an edit ends the current typing step.
-    /// <paramref name="typedName"/> is set when a character that can start a name was typed.
+    /// <paramref name="typedName"/> is set when a character that can start a name was typed, and
+    /// <paramref name="typedOpenParen"/> when an opening parenthesis was.
     /// </summary>
-    private bool HandleKeyboard(ImGui gui, ref ImTextEditBuffer buffer, ImRect textRect, bool editable, out bool compileRequested, out bool typedName)
+    private bool HandleKeyboard(
+        ImGui gui,
+        ref ImTextEditBuffer buffer,
+        ImRect textRect,
+        bool editable,
+        out bool compileRequested,
+        out bool typedName,
+        out bool typedOpenParen)
     {
         compileRequested = false;
         typedName = false;
+        typedOpenParen = false;
         var changed = false;
         var text = Text;
         for (var i = 0; i < gui.Input.KeyboardEventsCount; i++)
@@ -94,6 +103,7 @@ internal sealed partial class ScriptEditor
             {
                 text = buffer.ToString();
                 typedName |= ScriptText.IsNameStart(typed);
+                typedOpenParen |= typed == '(';
                 _history.Record(before, new TextSnapshot(text, _state.Caret, _state.Selection), gui.Input.Time);
                 changed = true;
 

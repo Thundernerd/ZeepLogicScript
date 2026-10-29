@@ -143,6 +143,7 @@ internal sealed partial class ScriptEditor
 
         var changed = false;
         var typedName = false;
+        var typedOpenParen = false;
         if (selected)
         {
             ImTextEdit.DrawCaret(gui, _state.Caret, _state.BlinkTime, textRect, in _layout, in stateStyle, in buffer);
@@ -156,10 +157,10 @@ internal sealed partial class ScriptEditor
                 changed = true;
             }
 
-            changed |= HandleKeyboard(gui, ref buffer, textRect, !gui.IsReadOnly, out compileRequested, out typedName);
+            changed |= HandleKeyboard(gui, ref buffer, textRect, !gui.IsReadOnly, out compileRequested, out typedName, out typedOpenParen);
         }
 
-        _completion.Update(GetSnapshot(), typedName, completing && gui.IsControlActive(Id));
+        _completion.Update(GetSnapshot(), typedName, typedOpenParen, completing && gui.IsControlActive(Id));
 
         gui.RegisterControl(Id, rect);
         gui.EndScrollable();
