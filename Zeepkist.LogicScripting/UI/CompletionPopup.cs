@@ -18,6 +18,11 @@ internal sealed class CompletionPopup
     private const int MaxRows = 8;
     private const float MaxWidth = 480;
 
+    /// <summary>
+    /// The gap between a label and its detail, in layout spacings.
+    /// </summary>
+    private const float DetailGap = 4;
+
     private readonly ConfigEntry<bool> _whileTyping;
     private CaretContext _context;
     private IReadOnlyList<CompletionItem> _items = [];
@@ -25,7 +30,7 @@ internal sealed class CompletionPopup
     private float _labelWidth;
     private float _detailWidth;
     private bool _open;
-    private bool _invoked;
+    private bool _openedByShortcut;
     private bool _openRequested;
     private bool _pressAccepted;
     private int _selected;
@@ -52,7 +57,7 @@ internal sealed class CompletionPopup
     public void Close()
     {
         _open = false;
-        _invoked = false;
+        _openedByShortcut = false;
         _rect = default;
     }
 
@@ -71,7 +76,7 @@ internal sealed class CompletionPopup
         var spacing = gui.Style.Layout.Spacing;
         _rowHeight = lineHeight + spacing;
         var rows = Mathf.Min(MaxRows, _items.Count);
-        var width = Mathf.Min(MaxWidth, _labelWidth + (_detailWidth > 0 ? spacing * 4 + _detailWidth : 0) + (spacing * 2) + padding.Horizontal);
+        var width = Mathf.Min(MaxWidth, _labelWidth + (_detailWidth > 0 ? (spacing * DetailGap) + _detailWidth : 0) + (spacing * 2) + padding.Horizontal);
         var height = (rows * _rowHeight) + padding.Vertical;
         var lineBottom = wordPosition.y - lineHeight;
         var y = lineBottom - height >= bounds.Y ? lineBottom - height : wordPosition.y;
@@ -103,7 +108,7 @@ internal sealed class CompletionPopup
             var detailColor = i == _selected ? itemStyle.Normal.FrontColor : WindowColors.Muted;
             gui.Text(item.Label, in settings, labelColor, label);
             if (item.Detail.Length > 0)
-                gui.Text(item.Detail, in detailSettings, detailColor, detail.WithPadding(left: spacing * 4));
+                gui.Text(item.Detail, in detailSettings, detailColor, detail.WithPadding(left: spacing * DetailGap));
         }
 
         gui.EndPopup();
@@ -192,7 +197,7 @@ internal sealed class CompletionPopup
             if (evt.Key == KeyCode.Space && control)
             {
                 _openRequested = true;
-                _invoked = true;
+                _openedByShortcut = true;
                 gui.Input.UseKeyboardEvent(i);
                 continue;
             }
@@ -226,15 +231,15 @@ internal sealed class CompletionPopup
     }
 
     /// <summary>
-    /// Call after the editor handled its input, with the text and caret it ended with. Opens the list on Ctrl+Space,
-    /// or when a name character was typed and completion while typing is on; closes it when the caret leaves the word,
-    /// when nothing matches, or when the editor loses focus or selects text.
+    /// Call after the editor handled its input, with the text and caret it ended with. An empty prefix keeps the list
+    /// open only when Ctrl+Space opened it.
     /// </summary>
-    public void Update(string text, int caret, int selection, bool typedName, bool focused)
+    public void Update(TextSnapshot snapshot, bool typedName, bool focused)
     {
         var requested = _openRequested || (typedName && _whileTyping.Value);
         _openRequested = false;
-        if (!focused || selection != 0)
+        TookEscape &= focused;
+        if (!focused || snapshot.Selection != 0)
         {
             Close();
             return;
@@ -243,10 +248,10 @@ internal sealed class CompletionPopup
         if (!_open && !requested)
             return;
 
-        if (_context == null || _context.Text != text || _context.Caret != caret)
+        if (_context == null || _context.Text != snapshot.Text || _context.Caret != snapshot.Caret)
         {
             var wordStart = _context?.Word.Start;
-            _context = CaretContext.At(text, caret);
+            _context = CaretContext.At(snapshot.Text, snapshot.Caret);
             _items = Completion.GetItems(_context);
             _selected = 0;
             _firstRow = 0;
@@ -257,7 +262,7 @@ internal sealed class CompletionPopup
         if (requested)
             _open = true;
 
-        if (_items.Count == 0 || (_context.Prefix.Length == 0 && !_invoked))
+        if (_items.Count == 0 || (_context.Prefix.Length == 0 && !_openedByShortcut))
             Close();
     }
 
@@ -293,9 +298,6 @@ internal sealed class CompletionPopup
         return row >= _firstRow && row < Mathf.Min(_items.Count, _firstRow + MaxRows) ? row : -1;
     }
 
-    /// <summary>
-    /// The widest label and detail, measured again only when the items change.
-    /// </summary>
     private void Measure(ImGui gui)
     {
         if (ReferenceEquals(_measuredItems, _items))

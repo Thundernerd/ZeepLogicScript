@@ -160,7 +160,7 @@ internal sealed partial class ScriptEditor
             changed |= HandleKeyboard(gui, ref buffer, textRect, !gui.IsReadOnly, out compileRequested, out typedName);
         }
 
-        _completion.Update(Text, _state.Caret, _state.Selection, typedName, completing && gui.IsControlActive(Id));
+        _completion.Update(GetSnapshot(), typedName, completing && gui.IsControlActive(Id));
 
         gui.RegisterControl(Id, rect);
         gui.EndScrollable();
