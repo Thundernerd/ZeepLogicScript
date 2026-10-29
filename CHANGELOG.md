@@ -13,6 +13,13 @@ All notable changes to Logic Scripting are listed here.
 - Functions: `function name(inputs) -> outputs` … `end` names wiring you use more than once.
   Each call places the body's blocks inline, so the level still plays without the mod.
 
+### Changed
+
+- The mod's file is now `Zeepkist.LogicScripting.dll`, next to `Zeepkist.LogicScripting.Compiler.dll`.
+  Settings, Drafts and the window layout are kept.
+  If you installed the mod by hand, delete the old `net.tnrd.zeepkist.logicscripting.dll` from `BepInEx/plugins`:
+  with both files there, BepInEx loads only one of them.
+
 ## 0.1.0-alpha.1
 
 The first pre-release.
