@@ -31,8 +31,7 @@ public static class DefinedNames
             if (GraphBuilder.IsReserved(name))
                 continue;
 
-            var type = ReadType(tokens, i + 2, findPlacedBlock, out var mode);
-            var isPlaced = type != null && tokens[i + 2].Text == GraphBuilder.PlacedFunction;
+            var type = ReadType(tokens, i + 2, findPlacedBlock, out var mode, out var isPlaced);
             names.Add(new DefinedName(name, tokens[i].Span, type, mode, isPlaced));
         }
 
@@ -42,9 +41,15 @@ public static class DefinedNames
     /// <summary>
     /// The type of the value starting at <paramref name="start"/> when the whole value is one call.
     /// </summary>
-    private static BlockType ReadType(List<Token> tokens, int start, Func<string, PlacedBlock> findPlacedBlock, out string mode)
+    private static BlockType ReadType(
+        List<Token> tokens,
+        int start,
+        Func<string, PlacedBlock> findPlacedBlock,
+        out string mode,
+        out bool isPlaced)
     {
         mode = null;
+        isPlaced = false;
         if (start + 1 >= tokens.Count || tokens[start].Kind != TokenKind.Name || tokens[start + 1].Kind != TokenKind.OpenParen)
             return null;
 
@@ -55,6 +60,7 @@ public static class DefinedNames
             var uid = tokens[start + 2];
             var block = uid.Kind == TokenKind.String ? findPlacedBlock?.Invoke(uid.Text) : null;
             type = block == null ? null : BlockManifest.GetPlacedType(block.BlockId);
+            isPlaced = type != null;
         }
         else if (!BlockManifest.TryGetFunction(function, out type))
         {
@@ -65,6 +71,7 @@ public static class DefinedNames
         if (tokens[end].Kind is not (TokenKind.NewLine or TokenKind.End))
         {
             mode = null;
+            isPlaced = false;
             return null;
         }
 
