@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,9 +12,20 @@ public static class BlockReference
     private const string None = "–";
 
     /// <summary>
-    /// One per <see cref="BlockManifest.All"/> type, in its order.
+    /// One per <see cref="BlockCategory.All"/> category, in its order, with every <see cref="BlockManifest.All"/> type
+    /// in it.
     /// </summary>
-    public static IReadOnlyList<BlockReferenceEntry> Entries { get; } = BlockManifest.All.Select(Describe).ToList();
+    public static IReadOnlyList<BlockReferenceSection> Sections { get; } = BlockCategory.All.Select(DescribeCategory).ToList();
+
+    private static BlockReferenceSection DescribeCategory(BlockCategory category)
+    {
+        var entries = BlockManifest.All
+            .Where(t => t.Category == category)
+            .OrderBy(t => t.Function, StringComparer.Ordinal)
+            .Select(Describe)
+            .ToList();
+        return new BlockReferenceSection(category, entries);
+    }
 
     private static BlockReferenceEntry Describe(BlockType type)
     {

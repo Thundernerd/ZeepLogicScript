@@ -13,6 +13,8 @@ All notable changes to Logic Scripting are listed here.
 - Completion lists a call's inputs and settings by name, without the ones it already has, and `hide:` after `default`.
   Typing a call's `(`, or a comma or space before its next argument, opens the list with them,
   and so does choosing a block function from the list.
+- The Reference tab lists the blocks under four headings, Inputs, Operators, Outputs and Movers,
+  split the same way as the subfolders of the game's logic block folder, and sorted by name. A heading can be collapsed, and stays collapsed when you reopen the window.
 - Functions: `function name(inputs) -> outputs` … `end` names wiring you use more than once.
   Each call places the body's blocks inline, so the level still plays without the mod.
 

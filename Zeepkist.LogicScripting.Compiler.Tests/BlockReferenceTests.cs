@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
@@ -8,11 +9,49 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Tests;
 public class BlockReferenceTests
 {
     [Fact]
-    public void Entries_ListEveryManifestType_InManifestOrder()
+    public void EveryManifestType_HasACategory()
     {
-        var functions = BlockReference.Entries.Select(e => e.Function).ToList();
+        foreach (var type in BlockManifest.All)
+            Assert.True(BlockCategory.All.Contains(type.Category), type.Function);
+    }
 
-        Assert.Equal(BlockManifest.All.Select(t => t.Function), functions);
+    [Fact]
+    public void Sections_ListEveryManifestTypeOnce()
+    {
+        var functions = BlockReference.Sections.SelectMany(s => s.Entries).Select(e => e.Function);
+
+        Assert.Equal(BlockManifest.All.Select(t => t.Function).OrderBy(f => f), functions.OrderBy(f => f));
+    }
+
+    [Fact]
+    public void Sections_FollowTheCategoryOrder()
+    {
+        Assert.Equal(BlockCategory.All, BlockReference.Sections.Select(s => s.Category));
+    }
+
+    [Fact]
+    public void Section_SortsItsEntriesByName()
+    {
+        foreach (var section in BlockReference.Sections)
+        {
+            var functions = section.Entries.Select(e => e.Function).ToList();
+            Assert.Equal(functions.OrderBy(f => f, StringComparer.Ordinal), functions);
+        }
+    }
+
+    [Theory]
+    [InlineData("generator", "Inputs")]
+    [InlineData("trigger", "Inputs")]
+    [InlineData("logic", "Operators")]
+    [InlineData("delay", "Operators")]
+    [InlineData("lamp", "Outputs")]
+    [InlineData("toggler", "Outputs")]
+    [InlineData("dynamic_mover", "Movers")]
+    public void Entry_IsInTheBlockBrowsersFolder(string function, string category)
+    {
+        var section = BlockReference.Sections.Single(s => s.Entries.Any(e => e.Function == function));
+
+        Assert.Equal(category, section.Category.Name);
     }
 
     [Fact]
@@ -105,6 +144,6 @@ public class BlockReferenceTests
 
     private static BlockReferenceEntry Find(string function)
     {
-        return BlockReference.Entries.Single(e => e.Function == function);
+        return BlockReference.Sections.SelectMany(s => s.Entries).Single(e => e.Function == function);
     }
 }
