@@ -14,7 +14,7 @@ namespace TNRD.Zeepkist.LogicScripting.Storage;
 /// </remarks>
 internal sealed class WindowState
 {
-    // Every panel, so copying, comparing and loading can't miss one when a panel is added or renamed
+    // Every panel, so adding or renaming one means updating this list rather than copying, comparing and loading
     private static readonly (Func<WindowState, PanelState> Get, Action<WindowState, PanelState> Set)[] _panels =
     [
         (state => state.Scripts, (state, panel) => state.Scripts = panel),
@@ -59,7 +59,7 @@ internal sealed class WindowState
     /// <summary>
     /// Gives each panel the default layout when the file set it to null, which overrides the property's default.
     /// </summary>
-    public void FillMissingPanels()
+    public void ReplaceNullPanels()
     {
         foreach (var (get, set) in _panels)
         {
