@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <AssemblyName>Zeepkist.LogicScripting</AssemblyName>
-    <!-- Pinned, because PluginInfoProps takes the GUID from AssemblyName; it also names the config file and the ZeepSDK storage folder -->
+    <!-- Pinned so the config file and ZeepSDK storage folder keep their names; PluginInfoProps would otherwise take the GUID from AssemblyName -->
     <BepInExPluginGuid>net.tnrd.zeepkist.logicscripting</BepInExPluginGuid>
     <Version>0.1.0</Version>
     <LangVersion>latest</LangVersion>
