@@ -272,9 +272,13 @@ public class NeverThrowsTests
             ScriptText.GetIndex(text, position);
         }
 
+        Complete(new TextSnapshot(text, -1));
+        Complete(new TextSnapshot(text, text.Length + 1));
+
         foreach (var snapshot in GetSnapshots(text))
         {
             Edit(snapshot);
+            Complete(snapshot);
         }
 
         return result;
@@ -323,6 +327,17 @@ public class NeverThrowsTests
         EditCommands.MoveLines(snapshot, 1);
         EditCommands.Duplicate(snapshot);
         EditCommands.DeleteLines(snapshot);
+    }
+
+    /// <summary>
+    /// Accepts the first item too, so a word span that doesn't fit the text would fail here.
+    /// </summary>
+    private static void Complete(TextSnapshot snapshot)
+    {
+        var context = CaretContext.At(snapshot.Text, snapshot.Caret);
+        var items = Completion.GetItems(context);
+        if (items.Count > 0)
+            Completion.Accept(context, items[0]);
     }
 
     private static CompileResult Compile(string text)

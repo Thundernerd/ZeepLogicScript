@@ -229,12 +229,12 @@ internal static class Lexer
         };
     }
 
-    private static bool IsDigit(char c)
+    internal static bool IsDigit(char c)
     {
         return c >= '0' && c <= '9';
     }
 
-    private static bool IsNameStart(char c)
+    internal static bool IsNameStart(char c)
     {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
     }

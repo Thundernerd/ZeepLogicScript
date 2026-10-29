@@ -10,14 +10,14 @@ internal static class FieldFocus
 {
     /// <summary>
     /// Call right after drawing the field. Escape gives up focus, so the player can go back to the level without
-    /// clicking it.
+    /// clicking it, unless the field already used it, as the Script editor does to close its completion list.
     /// </summary>
-    public static bool Update(ImGui gui, uint fieldId)
+    public static bool Update(ImGui gui, uint fieldId, bool escapeUsed = false)
     {
         if (!gui.IsControlActive(fieldId))
             return false;
 
-        if (!Input.GetKeyDown(KeyCode.Escape))
+        if (escapeUsed || !Input.GetKeyDown(KeyCode.Escape))
             return true;
 
         gui.ResetActiveControl();

@@ -2,6 +2,13 @@
 
 All notable changes to Logic Scripting are listed here.
 
+## Unreleased
+
+### Added
+
+- Completion in the Script editor: a list of block functions while you type a name, or on Ctrl+Space.
+  It can be turned off for typing with **Completion while typing** in the mod's settings.
+
 ## 0.1.0-alpha.1
 
 The first pre-release.

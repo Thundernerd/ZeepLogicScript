@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BepInEx.Configuration;
 using Imui.Controls;
 using Imui.Core;
 using Imui.IO.Events;
@@ -17,14 +18,16 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal sealed partial class ScriptEditor
 {
     private readonly EditHistory _history = new();
+    private readonly CompletionPopup _completion;
     private ImTextEditState _state;
     private ImTextLayout _layout = new() { Lines = new ImTextLine[64] };
     private IReadOnlyList<TextSpan> _errors = [];
     private bool _focusRequested;
 
-    public ScriptEditor(string text)
+    public ScriptEditor(string text, ConfigEntry<bool> completionWhileTyping)
     {
         Text = text;
+        _completion = new CompletionPopup(completionWhileTyping);
     }
 
     public string Text { get; private set; } = string.Empty;
@@ -40,6 +43,11 @@ internal sealed partial class ScriptEditor
     public uint Id { get; private set; }
 
     /// <summary>
+    /// Whether Escape closed the completion list this frame, which leaves the field focused.
+    /// </summary>
+    public bool TookEscape => _completion.TookEscape;
+
+    /// <summary>
     /// Spans are character indices into <see cref="Text"/>.
     /// </summary>
     public void SetErrors(IReadOnlyList<TextSpan> errors)
@@ -52,6 +60,7 @@ internal sealed partial class ScriptEditor
     /// </summary>
     public void Replace(string text, int caret, double time)
     {
+        _completion.Close();
         var before = GetSnapshot();
         Text = text ?? string.Empty;
         _state.Caret = Mathf.Clamp(caret, 0, Text.Length);
@@ -65,6 +74,7 @@ internal sealed partial class ScriptEditor
     /// </summary>
     public void JumpTo(Position position)
     {
+        _completion.Close();
         _state.Caret = ScriptText.GetIndex(Text, position);
         _state.Selection = 0;
         _state.Flag |= ImTextEditStateFlag.NeedScrollToCaret;
@@ -120,14 +130,37 @@ internal sealed partial class ScriptEditor
 
         DrawText(gui, textRect, textBounds, palette);
         DrawErrors(gui, textRect, palette);
+
+        // The list takes its clicks and keys before the editor, which would otherwise lose focus or move the caret
+        var completing = selected && !gui.IsReadOnly;
+        TextSnapshot? completed = null;
+        if (completing)
+        {
+            DrawCompletion(gui, textRect, textBounds, in buffer);
+            completed = _completion.HandleMouse(gui);
+        }
+
         HandleMouse(gui, ref buffer, textRect, selected, hovered);
 
         var changed = false;
+        var typedName = false;
         if (selected)
         {
             ImTextEdit.DrawCaret(gui, _state.Caret, _state.BlinkTime, textRect, in _layout, in stateStyle, in buffer);
-            changed = HandleKeyboard(gui, ref buffer, textRect, !gui.IsReadOnly, out compileRequested);
+            if (completing)
+                completed ??= _completion.HandleKeyboard(gui);
+
+            if (completed is { } accepted)
+            {
+                Replace(accepted.Text, accepted.Caret, gui.Input.Time);
+                buffer = new ImTextEditBuffer(Text, gui.Arena, 0);
+                changed = true;
+            }
+
+            changed |= HandleKeyboard(gui, ref buffer, textRect, !gui.IsReadOnly, out compileRequested, out typedName);
         }
+
+        _completion.Update(GetSnapshot(), typedName, completing && gui.IsControlActive(Id));
 
         gui.RegisterControl(Id, rect);
         gui.EndScrollable();
@@ -174,6 +207,25 @@ internal sealed partial class ScriptEditor
                 gui.ResetActiveControl();
                 break;
         }
+    }
+
+    /// <summary>
+    /// At the word being completed, kept inside the visible text, and inside the window so its clicks never reach the
+    /// level.
+    /// </summary>
+    private void DrawCompletion(ImGui gui, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer)
+    {
+        if (_completion.WordStart is not { } wordStart)
+            return;
+
+        var position = ImTextEdit.CaretToViewPosition(Mathf.Min(wordStart, buffer.Length), gui.TextDrawer, textRect, in _layout, in buffer);
+        position.x = Mathf.Clamp(position.x, textBounds.X, textBounds.Right);
+        position.y = Mathf.Clamp(position.y, textBounds.Bottom + _layout.LineHeight, textBounds.Top);
+        var bounds = gui.WindowManager.TryGetDrawingWindowId(out var window)
+            ? gui.WindowManager.GetWindowState(window).Rect
+            : gui.Canvas.SafeScreenRect;
+
+        _completion.Draw(gui, position, _layout.LineHeight, bounds);
     }
 
     private void MoveCaretToMouse(ImGui gui, ref ImTextEditBuffer buffer, ImRect textRect)
