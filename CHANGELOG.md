@@ -13,6 +13,7 @@ All notable changes to Logic Scripting are listed here.
 - Completion lists a call's inputs and settings by name, without the ones it already has, and `hide:` after `default`.
   Typing a call's `(`, or a comma or space before its next argument, opens the list with them,
   and so does choosing a block function from the list.
+- Inside a call, a box above the line shows its inputs and settings, highlighting the one you're writing.
 - Functions: `function name(inputs) -> outputs` … `end` names wiring you use more than once.
   Each call places the body's blocks inline, so the level still plays without the mod.
 

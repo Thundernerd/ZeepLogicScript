@@ -45,6 +45,11 @@ internal sealed class CompletionPopup
     /// <inheritdoc cref="CompletionSession.WordStart"/>
     public int? WordStart => _session.WordStart;
 
+    /// <summary>
+    /// Where the list was drawn this frame; empty while it's closed.
+    /// </summary>
+    public ImRect Rect => _session.IsOpen ? _rect : default;
+
     public void Close()
     {
         _session.Close();
