@@ -27,6 +27,7 @@ internal sealed class CompletionPopup
     private bool _open;
     private bool _invoked;
     private bool _openRequested;
+    private bool _pressAccepted;
     private int _selected;
     private int _firstRow;
     private ImRect _rect;
@@ -114,10 +115,25 @@ internal sealed class CompletionPopup
     /// </summary>
     public TextSnapshot? HandleMouse(ImGui gui)
     {
+        ref readonly var evt = ref gui.Input.MouseEvent;
+
+        // The list closes on the press that accepts a row, so the drag and release after it would reach the editor
+        // and move its caret
+        if (_pressAccepted)
+        {
+            if (evt.Type is ImMouseEventType.Up or ImMouseEventType.Click or ImMouseEventType.Down)
+                _pressAccepted = false;
+
+            if (evt.Type is ImMouseEventType.BeginDrag or ImMouseEventType.Drag or ImMouseEventType.Up or ImMouseEventType.Click)
+            {
+                gui.Input.UseMouseEvent();
+                return null;
+            }
+        }
+
         if (!_open || _rect.W <= 0)
             return null;
 
-        ref readonly var evt = ref gui.Input.MouseEvent;
         if (!_rect.Contains(gui.Input.MousePosition))
         {
             if (evt.Type == ImMouseEventType.Down)
@@ -132,7 +148,10 @@ internal sealed class CompletionPopup
             case ImMouseEventType.Down when evt.LeftButton:
                 var row = GetRowAt(gui.Input.MousePosition);
                 if (row >= 0)
+                {
                     accepted = Accept(row);
+                    _pressAccepted = true;
+                }
 
                 break;
 
