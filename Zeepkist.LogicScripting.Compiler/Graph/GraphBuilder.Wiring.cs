@@ -12,17 +12,17 @@ internal sealed partial class GraphBuilder
     /// What feeds an input. Inside <c>delay(...)</c> a name may not be defined yet; its Wire is then connected
     /// once every definition has been visited.
     /// </summary>
-    private InputFeed? EvaluateFeed(Expression expression)
+    private InputFeed EvaluateFeed(Expression expression)
     {
         if (TryDefer(expression) is { } deferred)
-            return InputFeed.Of(deferred);
+            return deferred;
 
         var value = Evaluate(expression);
-        if (value?.Deferred != null)
-            return InputFeed.Of(value.Value.Deferred);
+        if (value is InputFeed feed)
+            return feed;
 
-        var output = ToOutput(expression, value);
-        return output == null ? null : InputFeed.Of(output.Value);
+        ReportNoSingleOutput(expression, value);
+        return null;
     }
 
     /// <summary>
@@ -50,10 +50,15 @@ internal sealed partial class GraphBuilder
 
     private void Connect(InputFeed feed, BlockNode to, int toConnector)
     {
-        if (feed.Output != null)
-            _graph.AddWire(feed.Output.Value, to, toConnector);
-        else
-            _deferredWires.Add(new DeferredWire(feed.Deferred, to, toConnector));
+        switch (feed)
+        {
+            case OutputValue output:
+                _graph.AddWire(output.Output, to, toConnector);
+                break;
+            case DeferredValue deferred:
+                _deferredWires.Add(new DeferredWire(deferred, to, toConnector));
+                break;
+        }
     }
 
     /// <summary>
@@ -82,11 +87,17 @@ internal sealed partial class GraphBuilder
         while (true)
         {
             _scope = deferred.Scope;
-            var value = Evaluate(deferred.Expression);
-            if (value?.Deferred == null)
-                return ToOutput(deferred.Expression, value);
-
-            deferred = value.Value.Deferred;
+            switch (Evaluate(deferred.Expression))
+            {
+                case DeferredValue next:
+                    deferred = next;
+                    break;
+                case OutputValue output:
+                    return output.Output;
+                case var value:
+                    ReportNoSingleOutput(deferred.Expression, value);
+                    return null;
+            }
         }
     }
 }

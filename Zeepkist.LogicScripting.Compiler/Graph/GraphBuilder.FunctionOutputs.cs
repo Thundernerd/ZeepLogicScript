@@ -8,9 +8,9 @@ internal sealed partial class GraphBuilder
     /// <summary>
     /// What one call to a Function with several outputs gives, to pick an output from with a dot.
     /// </summary>
-    private sealed class FunctionOutputs
+    private sealed class FunctionOutputs : Resolved
     {
-        public FunctionOutputs(FunctionDefinition function, Dictionary<string, Resolved?> values)
+        public FunctionOutputs(FunctionDefinition function, Dictionary<string, Resolved> values)
         {
             Function = function;
             Values = values;
@@ -21,6 +21,6 @@ internal sealed partial class GraphBuilder
         /// <summary>
         /// Null for an output whose definition failed, which already reported why.
         /// </summary>
-        public Dictionary<string, Resolved?> Values { get; }
+        public Dictionary<string, Resolved> Values { get; }
     }
 }

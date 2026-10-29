@@ -21,7 +21,7 @@ internal sealed partial class GraphBuilder
     /// <summary>
     /// Null after reporting why the reference reaches no block. Several references to one UID share one block.
     /// </summary>
-    private Resolved? VisitPlaced(CallExpression call)
+    private Resolved VisitPlaced(CallExpression call)
     {
         if (call.Arguments.Count != 1 || call.NamedArguments.Count > 0 || call.Arguments[0] is not StringLiteral uid)
             return Fail(call, $"{PlacedFunction}(...) takes one UID in quotes, like {PlacedFunction}(\"AbC12\")");
@@ -50,7 +50,7 @@ internal sealed partial class GraphBuilder
             _placedNodes.Add(uid.Value, block);
         }
 
-        return block.Outputs.Count == 1 ? Resolved.Of(new BlockOutput(block, block.Outputs[0].Index)) : Resolved.Of(block);
+        return ValueOf(block);
     }
 
     /// <summary>
@@ -64,7 +64,22 @@ internal sealed partial class GraphBuilder
 
     private bool IsReferenceCall(CallExpression call)
     {
-        return _scope.Names.TryGetValue(call.Function, out var value) && value.Block?.IsPlaced == true;
+        return _scope.Names.TryGetValue(call.Function, out var value) && GetPlacedBlock(value) != null;
+    }
+
+    /// <summary>
+    /// The placed block a value comes from, or null when it doesn't come from one.
+    /// </summary>
+    private static BlockNode GetPlacedBlock(Resolved value)
+    {
+        var block = value switch
+        {
+            OutputValue output => output.Output.Block,
+            BlockValue blockValue => blockValue.Block,
+            _ => null
+        };
+
+        return block is { IsPlaced: true } ? block : null;
     }
 
     /// <summary>
@@ -73,7 +88,7 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private void VisitReferenceCall(CallExpression call)
     {
-        var block = _scope.Names[call.Function].Block;
+        var block = GetPlacedBlock(_scope.Names[call.Function]);
         var type = block.Type;
         if (type.Inputs.Count == 0)
         {
@@ -118,8 +133,8 @@ internal sealed partial class GraphBuilder
             if (check.Inputs[i] is not { Feed: { } feed } wired)
                 continue;
 
-            if (feed.Output != null)
-                WireIntoPlaced(call, wired.IsByPosition, i, feed.Output.Value, block);
+            if (feed is OutputValue output)
+                WireIntoPlaced(call, wired.IsByPosition, i, output.Output, block);
             else
                 Error(GetInputOrigin(call, wired.IsByPosition, i, block.Type), "A name defined later can't be wired into a placed block; only delay(...) can refer ahead");
         }

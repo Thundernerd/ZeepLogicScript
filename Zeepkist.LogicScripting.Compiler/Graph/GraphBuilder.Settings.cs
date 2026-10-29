@@ -106,23 +106,24 @@ internal sealed partial class GraphBuilder
         foreach (var item in items)
         {
             var value = Evaluate(item);
+            var block = GetPlacedBlock(value);
             if (value == null)
             {
                 failed = true;
             }
-            else if (value.Value.Block?.IsPlaced != true)
+            else if (block == null)
             {
                 Error(item, $"'{Describe(item)}' isn't a placed block; {setting.Name} takes names defined with {PlacedFunction}(...)");
                 failed = true;
             }
-            else if (!uids.Add(value.Value.Block.Uid))
+            else if (!uids.Add(block.Uid))
             {
                 Error(item, $"'{Describe(item)}' is already a target");
                 failed = true;
             }
             else
             {
-                targets.Add(Setting.Text(setting.Key + uids.Count.ToString(CultureInfo.InvariantCulture), value.Value.Block.Uid));
+                targets.Add(Setting.Text(setting.Key + uids.Count.ToString(CultureInfo.InvariantCulture), block.Uid));
             }
         }
 

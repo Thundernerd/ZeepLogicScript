@@ -105,7 +105,7 @@ internal sealed partial class GraphBuilder
     /// <summary>
     /// Null after reporting why the expression stands for nothing.
     /// </summary>
-    private Resolved? Evaluate(Expression expression)
+    private Resolved Evaluate(Expression expression)
     {
         if (_depth >= Parser.MaxDepth)
             return Fail(expression, $"This nests more than {Parser.MaxDepth} deep, counting the functions it's called from; split it into definitions");
@@ -121,12 +121,12 @@ internal sealed partial class GraphBuilder
         }
     }
 
-    private Resolved? EvaluateUnchecked(Expression expression)
+    private Resolved EvaluateUnchecked(Expression expression)
     {
         switch (expression)
         {
             case IntegerLiteral literal:
-                return Resolved.Of(GetLiteral(literal, literal.Value));
+                return new OutputValue(GetLiteral(literal, literal.Value));
 
             case StringLiteral text:
                 return Fail(text, $"Text in quotes is only for the UID in {PlacedFunction}(...)");
@@ -146,10 +146,10 @@ internal sealed partial class GraphBuilder
                 return VisitMember(member);
 
             case UnaryExpression unary:
-                return Resolved.Of(VisitUnary(unary));
+                return VisitUnary(unary);
 
             case BinaryExpression binary:
-                return Resolved.Of(VisitBinary(binary));
+                return VisitBinary(binary);
 
             case CallExpression { Function: PlacedFunction } call:
                 return VisitPlaced(call);
@@ -166,12 +166,9 @@ internal sealed partial class GraphBuilder
                 if (block == null)
                     return null;
 
-                return block.Outputs.Count switch
-                {
-                    0 => Fail(call, $"'{call.Function}' has no output to use as a value"),
-                    1 => Resolved.Of(new BlockOutput(block, block.Outputs[0].Index)),
-                    _ => Resolved.Of(block)
-                };
+                return block.Outputs.Count == 0
+                    ? Fail(call, $"'{call.Function}' has no output to use as a value")
+                    : ValueOf(block);
 
             default:
                 return null;
@@ -179,52 +176,69 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// The one output an expression's value stands for, or null after reporting why there isn't one.
+    /// A block with one output stands for that output.
     /// </summary>
-    private BlockOutput? ToOutput(Expression expression, Resolved? value)
+    private static Resolved ValueOf(BlockNode block)
     {
-        if (value == null)
-            return null;
-
-        if (value.Value.Output != null)
-            return value.Value.Output;
-
-        if (value.Value.Block?.Outputs.Count == 0)
-        {
-            Error(expression, $"'{Describe(expression)}' has no output to use as a value");
-            return null;
-        }
-
-        var first = value.Value.FunctionOutputs?.Function.Outputs[0].Name ?? value.Value.Block.Outputs[0].Name;
-        var example = expression is NameExpression name ? $"{name.Name}.{first}" : $"{Describe(expression)}().{first}";
-        Error(expression, $"'{Describe(expression)}' has several outputs; pick one, like {example}");
-        return null;
+        return block.Outputs.Count == 1
+            ? new OutputValue(new BlockOutput(block, block.Outputs[0].Index))
+            : new BlockValue(block);
     }
 
-    private Resolved? VisitMember(MemberExpression member)
+    /// <summary>
+    /// Reports why a value that should be one output isn't. A null value already reported why it stands for nothing.
+    /// </summary>
+    private void ReportNoSingleOutput(Expression expression, Resolved value)
     {
-        var target = Evaluate(member.Target);
-        if (target == null)
-            return null;
-
-        if (target.Value.Deferred is { } deferred)
+        string first;
+        switch (value)
         {
-            var deferredMember = new MemberExpression(member.Position, deferred.Expression, member.Output);
-            return Resolved.Of(new DeferredValue(deferredMember, deferred.Scope));
+            case BlockValue { Block.Outputs.Count: 0 }:
+                Error(expression, $"'{Describe(expression)}' has no output to use as a value");
+                return;
+            case BlockValue block:
+                first = block.Block.Outputs[0].Name;
+                break;
+            case FunctionOutputs outputs:
+                first = outputs.Function.Outputs[0].Name;
+                break;
+            default:
+                return;
         }
 
-        if (target.Value.FunctionOutputs is { } outputs)
+        var example = expression is NameExpression name ? $"{name.Name}.{first}" : $"{Describe(expression)}().{first}";
+        Error(expression, $"'{Describe(expression)}' has several outputs; pick one, like {example}");
+    }
+
+    private Resolved VisitMember(MemberExpression member)
+    {
+        BlockNode block;
+        switch (Evaluate(member.Target))
         {
-            if (outputs.Values.TryGetValue(member.Output, out var value))
-                return value;
+            case null:
+                return null;
 
-            var function = outputs.Function;
-            return Fail(member, $"'{function.Name.Name}' has no output '{member.Output}'; use {string.Join(", ", function.Outputs.Select(o => o.Name))}");
+            case DeferredValue deferred:
+                var deferredMember = new MemberExpression(member.Position, deferred.Expression, member.Output);
+                return new DeferredValue(deferredMember, deferred.Scope);
+
+            case FunctionOutputs outputs:
+                if (outputs.Values.TryGetValue(member.Output, out var value))
+                    return value;
+
+                var function = outputs.Function;
+                return Fail(member, $"'{function.Name.Name}' has no output '{member.Output}'; use {string.Join(", ", function.Outputs.Select(o => o.Name))}");
+
+            case OutputValue:
+                return Fail(member, $"'{Describe(member.Target)}' has a single output; use it without .{member.Output}");
+
+            case BlockValue blockValue:
+                block = blockValue.Block;
+                break;
+
+            default:
+                return null;
         }
-
-        var block = target.Value.Block;
-        if (target.Value.Output != null)
-            return Fail(member, $"'{Describe(member.Target)}' has a single output; use it without .{member.Output}");
 
         if (block.Outputs.Count == 0)
             return Fail(member, $"'{Describe(member.Target)}' has no outputs");
@@ -233,7 +247,7 @@ internal sealed partial class GraphBuilder
         foreach (var output in block.Outputs)
         {
             if (output.Name == member.Output)
-                return Resolved.Of(new BlockOutput(block, output.Index));
+                return new OutputValue(new BlockOutput(block, output.Index));
 
             names.Add(output.Name);
         }
@@ -284,7 +298,7 @@ internal sealed partial class GraphBuilder
         return _graph.AddBlock(type, style, settings);
     }
 
-    private Resolved? Fail(SyntaxNode node, string message)
+    private Resolved Fail(SyntaxNode node, string message)
     {
         Error(node, message);
         return null;
