@@ -283,6 +283,14 @@ public class FunctionTests
         Assert.Equal([error], result.Errors.Select(e => e.ToString()));
     }
 
+    [Fact]
+    public void DeferredArgumentMember_Error_UsesTheBodysName()
+    {
+        var result = Compile("function f(a) -> y\n    y = a.horn\nend\nx = delay(f(later), ticks: 1)\nlater = player_input().horn\npower_display(x)");
+
+        Assert.Equal(["2:11: 'a' has a single output; use it without .horn"], result.Errors.Select(e => e.ToString()));
+    }
+
     [Theory]
     [InlineData("function f(x) -> y\n    y = x\n", "1:1: Function 'f' has no end")]
     [InlineData("function f(x) -> y\n    y = x\nfunction g()\nend", "3:1: Function 'f' has no end before this one; functions can't be defined inside each other")]

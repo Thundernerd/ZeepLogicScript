@@ -87,15 +87,21 @@ internal sealed partial class GraphBuilder
         while (true)
         {
             _scope = deferred.Scope;
-            switch (Evaluate(deferred.Expression))
+            var value = Evaluate(deferred.Expression);
+            foreach (var member in deferred.Members)
+            {
+                value = SelectMember(member, value);
+            }
+
+            switch (value)
             {
                 case DeferredValue next:
                     deferred = next;
                     break;
                 case OutputValue output:
                     return output.Output;
-                case var value:
-                    ReportNoSingleOutput(deferred.Expression, value);
+                default:
+                    ReportNoSingleOutput(deferred.Members.Count > 0 ? deferred.Members[deferred.Members.Count - 1] : deferred.Expression, value);
                     return null;
             }
         }

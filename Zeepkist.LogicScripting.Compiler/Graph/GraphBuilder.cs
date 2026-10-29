@@ -212,15 +212,22 @@ internal sealed partial class GraphBuilder
 
     private Resolved VisitMember(MemberExpression member)
     {
+        return SelectMember(member, Evaluate(member.Target));
+    }
+
+    /// <summary>
+    /// The output <paramref name="member"/> picks from <paramref name="target"/>, the value of its target.
+    /// </summary>
+    private Resolved SelectMember(MemberExpression member, Resolved target)
+    {
         BlockNode block;
-        switch (Evaluate(member.Target))
+        switch (target)
         {
             case null:
                 return null;
 
             case DeferredValue deferred:
-                var deferredMember = new MemberExpression(member.Position, deferred.Expression, member.Output);
-                return new DeferredValue(deferredMember, deferred.Scope);
+                return deferred.WithMember(member);
 
             case FunctionOutputs outputs:
                 if (outputs.Values.TryGetValue(member.Output, out var value))
