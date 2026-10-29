@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
@@ -12,13 +11,11 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 /// </summary>
 internal sealed partial class GraphBuilder
 {
-    /// <summary>
-    /// How deep Functions may call each other.
-    /// </summary>
     public const int MaxFunctionDepth = 8;
 
     /// <summary>
-    /// The levels of expression nesting one expansion counts as, for the stack it takes to visit a body.
+    /// Visiting a body takes about as much stack as two levels of an operator expression, so an expansion counts as
+    /// two levels against <see cref="Parser.MaxDepth"/>.
     /// </summary>
     private const int ExpansionDepth = 2;
 
@@ -36,7 +33,7 @@ internal sealed partial class GraphBuilder
     private readonly HashSet<FunctionDefinition> _brokenFunctions = [];
 
     private readonly HashSet<FunctionDefinition> _expandedFunctions = [];
-    private readonly List<FunctionDefinition> _calling = [];
+    private readonly List<FunctionDefinition> _callStack = [];
     private int _expansions;
 
     /// <summary>
@@ -110,28 +107,23 @@ internal sealed partial class GraphBuilder
 
     private bool CheckParameterName(FunctionParameter parameter)
     {
-        if (!_functions.ContainsKey(parameter.Name))
-            return CheckName(parameter);
+        var message = GetNameError(parameter.Name);
+        if (message != null)
+            Error(parameter, message);
 
-        Error(parameter, $"'{parameter.Name}' is a function and can't be used as a name");
-        return false;
+        return message == null;
     }
 
+    /// <summary>
+    /// A Function's own name is checked before every Function is known, so another Function's name doesn't count.
+    /// </summary>
     private bool CheckName(FunctionParameter parameter)
     {
-        if (BlockManifest.TryGetFunction(parameter.Name, out _))
-        {
-            Error(parameter, $"'{parameter.Name}' is a Block Function and can't be used as a name");
-            return false;
-        }
+        var message = GetReservedNameError(parameter.Name);
+        if (message != null)
+            Error(parameter, message);
 
-        if (IsReserved(parameter.Name))
-        {
-            Error(parameter, $"'{parameter.Name}' is a reserved word and can't be used as a name");
-            return false;
-        }
-
-        return true;
+        return message == null;
     }
 
     private bool IsFunctionCall(CallExpression call)
@@ -191,17 +183,17 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private bool CanExpand(CallExpression call, FunctionDefinition function)
     {
-        var calling = _calling.IndexOf(function);
+        var calling = _callStack.IndexOf(function);
         if (calling >= 0)
         {
-            var through = _calling.Skip(calling + 1).Select(f => $"'{f.Name.Name}'").ToList();
+            var through = _callStack.Skip(calling + 1).Select(f => $"'{f.Name.Name}'").ToList();
             Error(call, through.Count == 0
                 ? $"'{call.Function}' calls itself, and a function can't"
                 : $"'{call.Function}' calls itself through {string.Join(", ", through)}, and a function can't");
             return false;
         }
 
-        if (_calling.Count >= MaxFunctionDepth)
+        if (_callStack.Count >= MaxFunctionDepth)
         {
             Error(call, $"Functions call each other more than {MaxFunctionDepth} deep here");
             return false;
@@ -301,10 +293,8 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private Resolved? EvaluateArgumentValue(Expression expression)
     {
-        if (_scope.DelayDepth > 0 && IsForwardReference(expression))
-            return Resolved.Of(new DeferredValue(expression, _scope));
-
-        return Evaluate(expression);
+        var deferred = TryDefer(expression);
+        return deferred != null ? Resolved.Of(deferred) : Evaluate(expression);
     }
 
     /// <summary>
@@ -318,7 +308,7 @@ internal sealed partial class GraphBuilder
 
         var caller = _scope;
         _scope = scope;
-        _calling.Add(function);
+        _callStack.Add(function);
         _expandedFunctions.Add(function);
         _depth += ExpansionDepth;
         foreach (var statement in function.Body)
@@ -327,7 +317,7 @@ internal sealed partial class GraphBuilder
         }
 
         _depth -= ExpansionDepth;
-        _calling.RemoveAt(_calling.Count - 1);
+        _callStack.RemoveAt(_callStack.Count - 1);
         _scope = caller;
 
         Dictionary<string, Resolved?> outputs = [];
@@ -355,6 +345,7 @@ internal sealed partial class GraphBuilder
             var placedWireCount = _graph.PlacedWires.Count;
             var wiresIntoPlacedCount = _wiresIntoPlaced.Count;
             var deferredWireCount = _deferredWires.Count;
+            var expansions = _expansions;
             var placedInputLines = new Dictionary<(BlockNode Block, int Connector), int>(_placedInputLines);
 
             Expand(function, scope => scope.FailedNames.UnionWith(function.Inputs.Select(i => i.Name)));
@@ -363,6 +354,7 @@ internal sealed partial class GraphBuilder
             _graph.RemoveFrom(blockCount, wireCount, placedWireCount);
             _wiresIntoPlaced.RemoveRange(wiresIntoPlacedCount, _wiresIntoPlaced.Count - wiresIntoPlacedCount);
             _deferredWires.RemoveRange(deferredWireCount, _deferredWires.Count - deferredWireCount);
+            _expansions = expansions;
             foreach (var literal in _literals.Where(l => l.Value.Block.Index >= blockCount).ToList())
             {
                 _literals.Remove(literal.Key);
