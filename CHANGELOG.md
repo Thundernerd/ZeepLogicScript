@@ -11,6 +11,7 @@ All notable changes to Logic Scripting are listed here.
 - Completion lists the names your Script defines above the line, with their block type,
   and every name inside `delay(...)`.
 - Completion lists a call's inputs and settings by name, without the ones it already has, and `hide:` after `default`.
+  Typing a call's `(` opens the list with them.
 - Functions: `function name(inputs) -> outputs` … `end` names wiring you use more than once.
   Each call places the body's blocks inline, so the level still plays without the mod.
 
