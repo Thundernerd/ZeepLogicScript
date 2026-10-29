@@ -191,15 +191,16 @@ public class NeverThrowsTests
     }
 
     [Fact]
-    public void LongChainOfDefinitions()
+    public void LongChainOfDefinitions_Compiles()
     {
-        StringBuilder text = new("x0 = player_input()\n");
+        StringBuilder text = new("x0 = player_input().horn\n");
         for (var i = 1; i < 20_000; i++)
         {
             text.Append($"x{i} = x{i - 1} & 1\n");
         }
 
-        AssertNeverThrows(text.ToString());
+        var result = AssertNeverThrows(text.ToString());
+        Assert.True(result.Succeeded, string.Join("\n", result.Errors));
     }
 
     [Fact]
@@ -245,32 +246,55 @@ public class NeverThrowsTests
         AssertNeverThrows(text + "\npower_display(1)");
     }
 
-    private static void AssertNeverThrows(string text)
+    private static CompileResult AssertNeverThrows(string text)
     {
         try
         {
-            var result = Compile(text);
-            ScriptHighlighter.Highlight(text);
-            ScriptText.GetErrorSpans(text, result.Errors.Select(e => e.Position).Concat(_oddPositions));
-            foreach (var position in _oddPositions)
-            {
-                ScriptText.GetIndex(text, position);
-            }
-
-            foreach (var snapshot in GetSnapshots(text))
-            {
-                Edit(snapshot);
-            }
+            return SmallStack.Run(() => Read(text));
         }
         catch (Exception exception)
         {
             Assert.Fail($"{Escape(text)}\n{exception}");
+            return null;
         }
     }
 
     /// <summary>
-    /// The caret at the start, middle and end, with nothing selected and with a selection either way.
+    /// Everything the editor does with the text while the player types.
     /// </summary>
+    private static CompileResult Read(string text)
+    {
+        var result = Compile(text);
+        AssertSpansInOrder(text, ScriptHighlighter.Highlight(text));
+        ScriptText.GetErrorSpans(text, result.Errors.Select(e => e.Position).Concat(_oddPositions));
+        foreach (var position in _oddPositions)
+        {
+            ScriptText.GetIndex(text, position);
+        }
+
+        foreach (var snapshot in GetSnapshots(text))
+        {
+            Edit(snapshot);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The editor draws the text run by run between the spans, so they have to follow each other inside the text.
+    /// </summary>
+    private static void AssertSpansInOrder(string text, IReadOnlyList<HighlightSpan> spans)
+    {
+        var end = 0;
+        foreach (var span in spans)
+        {
+            Assert.True(
+                span.Start >= end && span.Length >= 0 && span.Start + span.Length <= text.Length,
+                $"Span {span.Start}+{span.Length} after {end} in {text.Length} characters");
+            end = span.Start + span.Length;
+        }
+    }
+
     private static IEnumerable<TextSnapshot> GetSnapshots(string text)
     {
         foreach (var caret in new[] { 0, text.Length / 2, text.Length })
@@ -287,7 +311,11 @@ public class NeverThrowsTests
         EditCommands.Indent(snapshot);
         EditCommands.Outdent(snapshot);
         EditCommands.NewLine(snapshot);
+        EditCommands.MoveTo(snapshot, 0, false);
+        EditCommands.MoveTo(snapshot, snapshot.Text.Length, true);
+        EditCommands.Home(snapshot, false);
         EditCommands.Home(snapshot, true);
+        EditCommands.End(snapshot, false);
         EditCommands.End(snapshot, true);
         EditCommands.DeleteTo(snapshot, 0);
         EditCommands.DeleteTo(snapshot, snapshot.Text.Length);
@@ -299,7 +327,7 @@ public class NeverThrowsTests
 
     private static CompileResult Compile(string text)
     {
-        return ScriptCompiler.Compile(text, 1, [], uid => _level.TryGetValue(uid, out var block) ? block : null);
+        return ScriptCompiler.Compile(text, 1, [], uid => _level.GetValueOrDefault(uid));
     }
 
     private static string Escape(string text)
