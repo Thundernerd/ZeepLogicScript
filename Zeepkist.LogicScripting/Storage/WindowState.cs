@@ -8,7 +8,7 @@ namespace TNRD.Zeepkist.LogicScripting.Storage;
 /// </summary>
 /// <remarks>
 /// A file saved before the panels had a <see cref="PanelState"/> each has none of their keys, so its panels load with
-/// the default layout. The Blocks panel was saved as Level before it was renamed, which <see cref="Level"/> still reads.
+/// the default layout. The Blocks panel was saved as Level before it was renamed, which <see cref="LegacyLevel"/> still reads.
 /// </remarks>
 internal sealed class WindowState
 {
@@ -21,8 +21,8 @@ internal sealed class WindowState
     public PanelState Blocks { get; set; } = new();
     public PanelState Errors { get; set; } = new();
 
-    [JsonProperty]
-    private PanelState Level
+    [JsonProperty("Level")]
+    private PanelState LegacyLevel
     {
         set => Blocks = value;
     }
