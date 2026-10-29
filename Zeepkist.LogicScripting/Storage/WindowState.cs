@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace TNRD.Zeepkist.LogicScripting.Storage;
 
 /// <summary>
@@ -6,7 +8,7 @@ namespace TNRD.Zeepkist.LogicScripting.Storage;
 /// </summary>
 /// <remarks>
 /// A file saved before the panels had a <see cref="PanelState"/> each has none of their keys, so its panels load with
-/// the default layout.
+/// the default layout. The Blocks panel was saved as Level before it was renamed, which <see cref="LegacyLevel"/> still reads.
 /// </remarks>
 internal sealed class WindowState
 {
@@ -16,14 +18,20 @@ internal sealed class WindowState
     public float Width { get; set; }
     public float Height { get; set; }
     public PanelState Scripts { get; set; } = new();
-    public PanelState Level { get; set; } = new();
+    public PanelState Blocks { get; set; } = new();
     public PanelState Errors { get; set; } = new();
+
+    [JsonProperty("Level")]
+    private PanelState LegacyLevel
+    {
+        set => Blocks = value;
+    }
 
     public WindowState Copy()
     {
         var copy = (WindowState)MemberwiseClone();
         copy.Scripts = Scripts.Copy();
-        copy.Level = Level.Copy();
+        copy.Blocks = Blocks.Copy();
         copy.Errors = Errors.Copy();
         return copy;
     }
@@ -36,7 +44,7 @@ internal sealed class WindowState
             && Width == other.Width
             && Height == other.Height
             && Scripts.IsSameAs(other.Scripts)
-            && Level.IsSameAs(other.Level)
+            && Blocks.IsSameAs(other.Blocks)
             && Errors.IsSameAs(other.Errors);
     }
 }

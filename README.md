@@ -74,10 +74,11 @@ The new group replaces the old one, at the same spot.
 - **Orphaned Groups**: compiled blocks whose Script text the level no longer holds,
   for example because you deleted the block that holds the text.
   You can delete them, untag them into plain blocks, or select them.
-- **Placed blocks**: the blocks you placed by hand that the Script refers to.
-  Select blocks in the level and click **Insert selected** to add them to the Script.
-- **Reference**: every block function, with its inputs, outputs and settings.
-  Type in the filter to search.
+- **Blocks**: two tabs.
+  - **Placed blocks**: the blocks you placed by hand that the Script refers to.
+    Select blocks in the level and click **Insert selected** to add them to the Script.
+  - **Reference**: every block function, with its inputs, outputs and settings.
+    Type in the filter to search.
 
 The text editor knows the usual shortcuts:
 Ctrl+Z / Ctrl+Y to undo and redo, Ctrl+D to duplicate a line, Ctrl+Shift+K to delete a line,
@@ -217,7 +218,7 @@ For triggers, sensors, lights, cannons and movers, place the block yourself and 
 A logic block you placed by hand works the same way, with all its inputs and outputs.
 Any other block, like a wall, can be a Toggler target.
 
-Select the blocks in the level and click **Insert selected** in the Placed blocks panel.
+Select the blocks in the level and click **Insert selected** in the Placed blocks tab.
 It writes a line like this for each of them:
 
 ```logic
