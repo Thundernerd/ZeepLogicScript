@@ -221,7 +221,7 @@ public class CompletionTests
     {
         var labels = Labels("logic(a, |");
 
-        Assert.Equal(["a:", "b:", "hide:", "op:", "op_in:"], labels.Take(5));
+        Assert.Equal(["b:", "hide:", "op:", "op_in:"], labels.Take(4));
         Assert.Contains("logic", labels);
     }
 
@@ -231,7 +231,29 @@ public class CompletionTests
         Assert.DoesNotContain("op:", Labels("logic(a, op: and, |"));
         Assert.DoesNotContain("op:", Labels("logic(a, |, op: and)"));
         Assert.DoesNotContain("op:", Labels("logic(a, |\n    op: and)"));
+        Assert.DoesNotContain("op:", Labels("x = logic(\n    a,\n    op: and,\n    |"));
         Assert.Contains("op:", Labels("logic(a, o|p: and)"));
+    }
+
+    [Theory]
+    [InlineData("logic(|", "a:")]
+    [InlineData("logic(1, |", "b:")]
+    [InlineData("logic(op: and, 1, |", "b:")]
+    [InlineData("logic(\n    1,\n    |", "b:")]
+    [InlineData("logic(1, b|", "b:")]
+    [InlineData("logic(f(1, 2), |", "b:")]
+    public void Items_InACall_LeaveOutTheInputsItsPositionalArgumentsGive(string text, string first)
+    {
+        Assert.Equal(first, Labels(text).First(l => l.EndsWith(':')));
+    }
+
+    [Theory]
+    [InlineData("logic(1, 2, |")]
+    [InlineData("logic(1, |, 2)")]
+    [InlineData("logic(1, | , 2)")]
+    public void Items_InACall_NoInputsLeft_OnlyItsSettings(string text)
+    {
+        Assert.Equal(["hide:", "op:", "op_in:"], Labels(text).Where(l => l.EndsWith(':')));
     }
 
     [Fact]
@@ -280,7 +302,7 @@ public class CompletionTests
             .Where(i => i.Kind == CompletionKind.Argument)
             .Select(i => i.Label);
 
-        Assert.Equal(["angle:", "blue:", "green:", "intensity:", "range:", "red:"], labels);
+        Assert.Equal(["angle:", "blue:", "green:", "range:", "red:"], labels);
     }
 
     [Theory]

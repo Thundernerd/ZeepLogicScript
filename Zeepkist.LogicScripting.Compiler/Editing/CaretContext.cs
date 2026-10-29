@@ -20,7 +20,8 @@ public sealed class CaretContext
         int statementStart,
         bool canReferAhead,
         string callee,
-        IReadOnlyCollection<string> givenArguments)
+        IReadOnlyCollection<string> givenArguments,
+        int positionalArguments)
     {
         Text = text;
         Caret = caret;
@@ -30,6 +31,7 @@ public sealed class CaretContext
         CanReferAhead = canReferAhead;
         Callee = callee;
         GivenArguments = givenArguments;
+        PositionalArguments = positionalArguments;
     }
 
     public string Text { get; }
@@ -70,6 +72,12 @@ public sealed class CaretContext
     /// </summary>
     public IReadOnlyCollection<string> GivenArguments { get; }
 
+    /// <summary>
+    /// How many positional arguments the <see cref="Callee"/>'s call has, apart from the one the word starts; they
+    /// give its first inputs.
+    /// </summary>
+    public int PositionalArguments { get; }
+
     public static CaretContext At(string text, int caret)
     {
         text ??= string.Empty;
@@ -77,16 +85,17 @@ public sealed class CaretContext
         var word = FindWord(text, caret);
         List<TextSpan> comments = [];
         var tokens = Lexer.Tokenize(text, [], comments);
-        var call = FindArgumentCall(tokens, word);
+        var call = FindArgumentCallParen(tokens, word);
         var kind = IsInCommentOrString(tokens, comments, caret) || (word.Length > 0 && Lexer.IsDigit(text[word.Start]))
             ? CaretContextKind.None
             : GetKind(tokens, word, call >= 0);
         var statementStart = FindStatementStart(tokens, word, out var canReferAhead);
         var inCall = kind is CaretContextKind.Argument or CaretContextKind.ArgumentName;
         var callee = inCall ? tokens[call - 1].Text : null;
-        IReadOnlyCollection<string> givenArguments = inCall ? FindGivenArguments(tokens, call, word) : [];
+        var positionalArguments = 0;
+        IReadOnlyCollection<string> givenArguments = inCall ? FindGivenArguments(tokens, call, word, out positionalArguments) : [];
 
-        return new CaretContext(text, caret, kind, word, statementStart, canReferAhead, callee, givenArguments);
+        return new CaretContext(text, caret, kind, word, statementStart, canReferAhead, callee, givenArguments, positionalArguments);
     }
 
     private static TextSpan FindWord(string text, int caret)
@@ -124,7 +133,7 @@ public sealed class CaretContext
     /// </summary>
     private static CaretContextKind GetKind(List<Token> tokens, TextSpan word, bool startsArgument)
     {
-        Token? beforeThat = null;
+        Token? twoBefore = null;
         Token? before = null;
         Token? after = null;
         foreach (var token in tokens)
@@ -132,7 +141,7 @@ public sealed class CaretContext
             var start = token.Span.Start;
             if (start < word.Start)
             {
-                beforeThat = before;
+                twoBefore = before;
                 before = token;
             }
             else if (start >= word.End && token.Kind != TokenKind.End)
@@ -145,7 +154,7 @@ public sealed class CaretContext
         var statementStart = before == null || before.Value.Kind == TokenKind.NewLine;
         if (before?.Kind == TokenKind.Name
             && before.Value.Text == DefaultStatement.Keyword
-            && (beforeThat == null || beforeThat.Value.Kind == TokenKind.NewLine))
+            && (twoBefore == null || twoBefore.Value.Kind == TokenKind.NewLine))
             return CaretContextKind.DefaultSetting;
 
         if (after?.Kind == TokenKind.Colon)
@@ -203,7 +212,7 @@ public sealed class CaretContext
     /// The opening parenthesis of the call the word starts an argument of, right after it or after a comma between
     /// its arguments; -1 when the word doesn't start one.
     /// </summary>
-    private static int FindArgumentCall(List<Token> tokens, TextSpan word)
+    private static int FindArgumentCallParen(List<Token> tokens, TextSpan word)
     {
         Stack<int> open = new();
         var previous = -1;
@@ -240,19 +249,48 @@ public sealed class CaretContext
     }
 
     /// <summary>
-    /// The names of the call's own named arguments, up to its closing parenthesis, or while it's typed, the next
-    /// definition.
+    /// The names of the call's own named arguments, and how many positional arguments it has, apart from the one the
+    /// word starts: up to its closing parenthesis, or while it's typed, the next definition.
     /// </summary>
-    private static HashSet<string> FindGivenArguments(List<Token> tokens, int call, TextSpan word)
+    private static HashSet<string> FindGivenArguments(List<Token> tokens, int call, TextSpan word, out int positionalCount)
     {
         HashSet<string> names = [];
+        positionalCount = 0;
         var depth = 0;
+        var startsArgument = false;
+        var passedWord = false;
         for (var i = call; tokens[i].Kind != TokenKind.End; i++)
         {
-            switch (tokens[i].Kind)
+            var token = tokens[i];
+
+            // A call left open while it's typed carries on to the next line
+            if (token.Kind == TokenKind.NewLine)
+            {
+                if (IsDefinitionStart(tokens, i + 1))
+                    break;
+
+                continue;
+            }
+
+            if (startsArgument)
+            {
+                startsArgument = false;
+
+                // An argument after the caret on the next line has no comma before it yet, so only one that starts
+                // right at the caret is the word's own
+                var isWords = !passedWord && token.Span.Start == word.Start;
+                passedWord |= token.Span.Start >= word.Start;
+                if (!isWords && token.Kind == TokenKind.Name && tokens[i + 1].Kind == TokenKind.Colon)
+                    names.Add(token.Text);
+                else if (!isWords && token.Kind is not (TokenKind.Comma or TokenKind.CloseParen))
+                    positionalCount++;
+            }
+
+            switch (token.Kind)
             {
                 case TokenKind.OpenParen or TokenKind.OpenBracket:
                     depth++;
+                    startsArgument = depth == 1;
                     break;
 
                 case TokenKind.CloseParen or TokenKind.CloseBracket:
@@ -262,14 +300,8 @@ public sealed class CaretContext
 
                     break;
 
-                case TokenKind.NewLine when IsDefinitionStart(tokens, i + 1):
-                    return names;
-
-                case TokenKind.Name when depth == 1
-                    && tokens[i].Span.Start != word.Start
-                    && tokens[i - 1].Kind is TokenKind.OpenParen or TokenKind.Comma
-                    && tokens[i + 1].Kind == TokenKind.Colon:
-                    names.Add(tokens[i].Text);
+                case TokenKind.Comma when depth == 1:
+                    startsArgument = true;
                     break;
             }
         }

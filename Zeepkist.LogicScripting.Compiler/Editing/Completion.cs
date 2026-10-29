@@ -90,31 +90,35 @@ public static class Completion
 
     /// <summary>
     /// The named arguments the call doesn't have yet: a Block Function's inputs and Settings, or a Placed Block
-    /// Reference's inputs, since its Settings can't be changed.
+    /// Reference's inputs, since its Settings can't be changed. Inputs its positional arguments give are left out.
     /// </summary>
     private static IEnumerable<CompletionItem> GetArgumentItems(CaretContext context, IReadOnlyList<DefinedName> definedNames)
     {
-        IEnumerable<CompletionItem> items;
         if (BlockManifest.TryGetFunction(context.Callee, out var type))
         {
-            items = type.Inputs.Select(InputItem).Concat(type.Settings.Select(ArgumentItem));
-            if (type.HasStyles)
+            var items = GetInputItems(context, type)
+                .Concat(type.Settings.Where(s => !IsGiven(s.Name)).Select(ArgumentItem));
+            if (type.HasStyles && !IsGiven(BlockType.StyleName))
                 items = items.Append(new CompletionItem($"{BlockType.StyleName}:", CompletionKind.Argument, string.Join(", ", type.Styles.Select(s => s.Name))));
 
-            items = items.Append(ArgumentItem(BlockSetting.Hide));
-        }
-        else
-        {
-            var placed = definedNames.LastOrDefault(n => n.Name == context.Callee && IsVisible(context, n));
-            items = placed is { IsPlaced: true, Type: not null } ? placed.Type.Inputs.Select(InputItem) : [];
+            return IsGiven(BlockSetting.Hide.Name) ? items : items.Append(ArgumentItem(BlockSetting.Hide));
         }
 
-        return items.Where(i => !context.GivenArguments.Contains(i.Label.TrimEnd(':')));
+        var placed = definedNames.LastOrDefault(n => n.Name == context.Callee && IsVisible(context, n));
+        return placed is { IsPlaced: true, Type: not null } ? GetInputItems(context, placed.Type) : [];
+
+        bool IsGiven(string name)
+        {
+            return context.GivenArguments.Contains(name);
+        }
     }
 
-    private static CompletionItem InputItem(BlockConnector input)
+    private static IEnumerable<CompletionItem> GetInputItems(CaretContext context, BlockType type)
     {
-        return new CompletionItem($"{input.Name}:", CompletionKind.Argument, "input");
+        return type.Inputs
+            .Skip(context.PositionalArguments)
+            .Where(i => !context.GivenArguments.Contains(i.Name))
+            .Select(i => new CompletionItem($"{i.Name}:", CompletionKind.Argument, "input"));
     }
 
     private static CompletionItem ArgumentItem(BlockSetting setting)
