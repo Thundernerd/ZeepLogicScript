@@ -96,7 +96,7 @@ internal sealed class CompletionPopup
             var kind = item.Kind switch
             {
                 CompletionKind.Keyword => HighlightKind.Keyword,
-                CompletionKind.Name => HighlightKind.Name,
+                CompletionKind.Name or CompletionKind.Argument => HighlightKind.Name,
                 _ => HighlightKind.Function
             };
             var labelColor = i == selected ? itemStyle.Normal.FrontColor : palette.Get(kind);

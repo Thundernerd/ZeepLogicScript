@@ -55,6 +55,17 @@ public class DefinedNamesTests
     }
 
     [Theory]
+    [InlineData("x = placed(\"L\")", true)]
+    [InlineData("x = placed(\"OTHER\")", true)]
+    [InlineData("x = placed(\"MISSING\")", false)]
+    [InlineData("x = logic(1, 2)", false)]
+    [InlineData("x = 1", false)]
+    public void Read_WhetherTheValueIsAPlacedBlockReference(string text, bool isPlaced)
+    {
+        Assert.Equal(isPlaced, Read(text)[0].IsPlaced);
+    }
+
+    [Theory]
     [InlineData("t = simple_telemetry(mode: local_velocity)", "local_velocity")]
     [InlineData("t = simple_telemetry(player: 1, mode: global_velocity)", "global_velocity")]
     [InlineData("t = simple_telemetry(\n    mode: basic\n)", "basic")]

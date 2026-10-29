@@ -13,5 +13,20 @@ public enum CaretContextKind
     /// <summary>
     /// Where an expression, or a statement, can start.
     /// </summary>
-    Expression
+    Expression,
+
+    /// <summary>
+    /// Where an argument of a call starts: a named argument or an expression.
+    /// </summary>
+    Argument,
+
+    /// <summary>
+    /// The name of a named argument already followed by its colon.
+    /// </summary>
+    ArgumentName,
+
+    /// <summary>
+    /// The Setting after <c>default</c>.
+    /// </summary>
+    DefaultSetting
 }

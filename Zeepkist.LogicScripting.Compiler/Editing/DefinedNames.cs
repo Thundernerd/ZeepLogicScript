@@ -32,7 +32,8 @@ public static class DefinedNames
                 continue;
 
             var type = ReadType(tokens, i + 2, findPlacedBlock, out var mode);
-            names.Add(new DefinedName(name, tokens[i].Span, type, mode));
+            var isPlaced = type != null && tokens[i + 2].Text == GraphBuilder.PlacedFunction;
+            names.Add(new DefinedName(name, tokens[i].Span, type, mode, isPlaced));
         }
 
         return names;
