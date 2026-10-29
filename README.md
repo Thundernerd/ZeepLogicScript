@@ -93,7 +93,7 @@ To stop it opening by itself, turn off **Completion while typing** in the mod's 
 
 A Script is a list of lines, read from top to bottom.
 Each line places blocks and wires them together.
-A Script has no loops or `if`.
+A Script has no loops or `if`; its functions only name wiring you use more than once.
 For that kind of logic, use blocks that do it while the level plays, like `multiplexer`, `transistor` or `counter`.
 
 ### Lines, names and comments
@@ -243,6 +243,66 @@ lamp_1(red: 255, green: (trigger_1 > 0) * 255)
 
 A Script never changes the settings of a placed block; set those in the editor.
 Each input takes one wire, counting the wires that are already in the level.
+
+### Functions
+
+A function gives a name to wiring you use more than once.
+Write it once, then call it like a block function:
+
+```logic
+function edge(x) -> rising
+    prev = delay(x, ticks: 1)
+    rising = x & !prev
+end
+
+p = player_input(player: 1)
+pressed = edge(p.horn)
+power_display(pressed)
+```
+
+Each call places the blocks of the function's body, wired to what you passed in, as if you had written them out yourself.
+The level doesn't need the mod to play them.
+
+- The first line names the function, its inputs in parentheses, and after `->` its outputs.
+  Everything up to `end` is the body.
+  Indenting the body is only for reading.
+- Pass every input, in order or by name: `edge(p.horn)` or `edge(x: p.horn)`.
+- The body has to define each output.
+  A function with one output is used as a value.
+  With several, pick one with a dot, like a block with several outputs:
+
+  ```logic
+  function sr_latch(set, reset) -> q, not_q
+      q = delay(!reset & (set | q), ticks: 1)
+      not_q = !q
+  end
+
+  trigger_1 = placed("trigger-1-uid")
+  trigger_2 = placed("trigger-2-uid")
+  l = sr_latch(trigger_1, trigger_2)
+  power_display(l.q)
+  ```
+
+- A function without `->` has no outputs; call it on its own line.
+- The body only sees its inputs and its own names, not the names outside it.
+  It can call other functions, but not itself.
+  `delay` works inside it the same way: only inside `delay` can a name refer ahead.
+- You can define a function above or below the lines that call it.
+  Its name can't be a block function's or a name the Script already uses.
+- An input is wired once, however often the body uses it, so `edge(a & b)` places one `logic` block for `a & b`.
+- Pass a placed block in, and the body can call it to wire its inputs:
+
+  ```logic
+  function light(lamp, on)
+      lamp(red: on * 255)
+  end
+
+  trigger_1 = placed("trigger-uid")
+  lamp_1 = placed("lamp-uid")
+  light(lamp_1, trigger_1)
+  ```
+
+- `default hide:` goes outside functions, and applies to the blocks they place too.
 
 ### Tips
 

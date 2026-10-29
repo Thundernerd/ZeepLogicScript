@@ -5,8 +5,12 @@ Domain language for the Logic Scripting BepInEx mod: write logic as text in the 
 ## Language
 
 **Script**:
-The text a player writes in the Logic Scripting window: a list of definitions that describe wiring, read top to bottom. It has no loops, functions or conditionals of its own; those come only from Logic Blocks at runtime. One Script compiles into one Block Group.
+The text a player writes in the Logic Scripting window: a list of definitions that describe wiring, read top to bottom, and the Functions it defines. It has no loops or conditionals of its own; those come only from Logic Blocks at runtime. One Script compiles into one Block Group.
 _Avoid_: program, code file, macro
+
+**Function**:
+A named wiring pattern a Script defines with `function name(inputs) -> outputs` … `end`. Each call expands its body inline into ordinary Logic Blocks, so it places no block of its own. Its body sees only its inputs, its own definitions and other Functions. It's local to the Script that defines it.
+_Avoid_: macro, subroutine, procedure, user function (say Block Function for the built-in ones)
 
 **Compile**:
 Turning a Script into placed, wired Logic Blocks in the open level, as one undoable editor action.
