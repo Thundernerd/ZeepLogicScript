@@ -16,7 +16,7 @@ All notable changes to Logic Scripting are listed here.
 ### Changed
 
 - The mod's file is now `Zeepkist.LogicScripting.dll`, next to `Zeepkist.LogicScripting.Compiler.dll`.
-  Settings, Drafts and the window layout are kept.
+  The mod's settings, Drafts and the window layout are kept.
   If you installed the mod by hand, delete the old `net.tnrd.zeepkist.logicscripting.dll` from `BepInEx/plugins`:
   with both files there, BepInEx loads only one of them.
 
