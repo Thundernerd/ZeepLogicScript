@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zeepkist.LogicScripting.Ana
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zeepkist.LogicScripting.Analyzers.Tests", "Zeepkist.LogicScripting.Analyzers.Tests\Zeepkist.LogicScripting.Analyzers.Tests.csproj", "{94F27BA0-7234-4835-BA35-0BB8E0A6F1E0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zeepkist.LogicScripting.Tests", "Zeepkist.LogicScripting.Tests\Zeepkist.LogicScripting.Tests.csproj", "{EA727215-5806-45BD-983D-9845C7D8651B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -80,6 +82,18 @@ Global
 		{94F27BA0-7234-4835-BA35-0BB8E0A6F1E0}.Release|x64.Build.0 = Release|Any CPU
 		{94F27BA0-7234-4835-BA35-0BB8E0A6F1E0}.Release|x86.ActiveCfg = Release|Any CPU
 		{94F27BA0-7234-4835-BA35-0BB8E0A6F1E0}.Release|x86.Build.0 = Release|Any CPU
+		{EA727215-5806-45BD-983D-9845C7D8651B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA727215-5806-45BD-983D-9845C7D8651B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA727215-5806-45BD-983D-9845C7D8651B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EA727215-5806-45BD-983D-9845C7D8651B}.Debug|x64.Build.0 = Debug|Any CPU
+		{EA727215-5806-45BD-983D-9845C7D8651B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EA727215-5806-45BD-983D-9845C7D8651B}.Debug|x86.Build.0 = Debug|Any CPU
+		{EA727215-5806-45BD-983D-9845C7D8651B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA727215-5806-45BD-983D-9845C7D8651B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA727215-5806-45BD-983D-9845C7D8651B}.Release|x64.ActiveCfg = Release|Any CPU
+		{EA727215-5806-45BD-983D-9845C7D8651B}.Release|x64.Build.0 = Release|Any CPU
+		{EA727215-5806-45BD-983D-9845C7D8651B}.Release|x86.ActiveCfg = Release|Any CPU
+		{EA727215-5806-45BD-983D-9845C7D8651B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
