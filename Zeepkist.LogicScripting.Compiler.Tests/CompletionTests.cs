@@ -128,6 +128,8 @@ public class CompletionTests
     [InlineData("a = logic(1, |")]
     [InlineData("a = logic(\n    1,\n    |\n)")]
     [InlineData("x = logic(1, delay(2), |\na = 1")]
+    [InlineData("a = logic(\n    1,\n    |")]
+    [InlineData("a = logic(\n    |\nb = 1")]
     public void Items_NoNamesDefinedAtOrBelowTheCaret(string text)
     {
         Assert.DoesNotContain("a", NameLabels(text));
@@ -139,9 +141,16 @@ public class CompletionTests
     [InlineData("a = delay(1 & |)")]
     [InlineData("a = delay(logic(1, |))")]
     [InlineData("a = delay(\n    1,\n    ticks: |\n)")]
+    [InlineData("x = delay(\n    |\na = 1")]
     public void Items_AnyName_InsideDelay(string text)
     {
         Assert.Contains("a", NameLabels(text));
+    }
+
+    [Fact]
+    public void Items_NamesAboveADefinition_AfterACallLeftOpen()
+    {
+        Assert.Contains("a", NameLabels("a = logic(\nb = |"));
     }
 
     [Fact]

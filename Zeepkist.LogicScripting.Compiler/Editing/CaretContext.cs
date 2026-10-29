@@ -136,7 +136,8 @@ public sealed class CaretContext
         {
             switch (tokens[i].Kind)
             {
-                case TokenKind.NewLine:
+                // A call left open while it's typed carries on to the next line, unless a definition starts there
+                case TokenKind.NewLine when delayCalls.Count == 0 || IsDefinitionStart(tokens, i + 1):
                     statementStart = tokens[i].Span.End;
                     delayCalls.Clear();
                     break;
@@ -156,6 +157,11 @@ public sealed class CaretContext
 
         canReferAhead = delayCalls.Contains(true);
         return statementStart;
+    }
+
+    private static bool IsDefinitionStart(List<Token> tokens, int index)
+    {
+        return index + 1 < tokens.Count && tokens[index].Kind == TokenKind.Name && tokens[index + 1].Kind == TokenKind.Equals;
     }
 
     private static bool IsNameCharacter(char c)
