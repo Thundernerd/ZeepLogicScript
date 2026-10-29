@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace TNRD.Zeepkist.LogicScripting.Storage;
@@ -12,6 +14,14 @@ namespace TNRD.Zeepkist.LogicScripting.Storage;
 /// </remarks>
 internal sealed class WindowState
 {
+    // Every panel, so copying, comparing and loading can't miss one when a panel is added or renamed
+    private static readonly (Func<WindowState, PanelState> Get, Action<WindowState, PanelState> Set)[] _panels =
+    [
+        (state => state.Scripts, (state, panel) => state.Scripts = panel),
+        (state => state.Blocks, (state, panel) => state.Blocks = panel),
+        (state => state.Errors, (state, panel) => state.Errors = panel),
+    ];
+
     public bool Open { get; set; }
     public float X { get; set; }
     public float Y { get; set; }
@@ -30,9 +40,9 @@ internal sealed class WindowState
     public WindowState Copy()
     {
         var copy = (WindowState)MemberwiseClone();
-        copy.Scripts = Scripts.Copy();
-        copy.Blocks = Blocks.Copy();
-        copy.Errors = Errors.Copy();
+        foreach (var (get, set) in _panels)
+            set(copy, get(this).Copy());
+
         return copy;
     }
 
@@ -43,8 +53,18 @@ internal sealed class WindowState
             && Y == other.Y
             && Width == other.Width
             && Height == other.Height
-            && Scripts.IsSameAs(other.Scripts)
-            && Blocks.IsSameAs(other.Blocks)
-            && Errors.IsSameAs(other.Errors);
+            && _panels.All(panel => panel.Get(this).IsSameAs(panel.Get(other)));
+    }
+
+    /// <summary>
+    /// Gives each panel the default layout when the file set it to null, which overrides the property's default.
+    /// </summary>
+    public void FillMissingPanels()
+    {
+        foreach (var (get, set) in _panels)
+        {
+            if (get(this) == null)
+                set(this, new PanelState());
+        }
     }
 }

@@ -30,11 +30,9 @@ internal sealed class WindowStateStore
         var result = _storage.TryLoadFromJson<WindowState>(FileName);
         if (result.IsSuccess && result.Value != null)
         {
-            // A null panel overrides the property's default, so a hand-edited file could otherwise break the window
+            // A hand-edited file could otherwise break the window
             var state = result.Value;
-            state.Scripts ??= new PanelState();
-            state.Blocks ??= new PanelState();
-            state.Errors ??= new PanelState();
+            state.FillMissingPanels();
             return state;
         }
 
