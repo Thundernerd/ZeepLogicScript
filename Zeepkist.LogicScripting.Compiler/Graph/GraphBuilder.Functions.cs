@@ -339,31 +339,10 @@ internal sealed partial class GraphBuilder
             if (_brokenFunctions.Contains(function) || _expandedFunctions.Contains(function))
                 continue;
 
-            var blockCount = _graph.Blocks.Count;
-            var wireCount = _graph.Wires.Count;
-            var placedWireCount = _graph.PlacedWires.Count;
-            var wiresIntoPlacedCount = _wiresIntoPlaced.Count;
-            var deferredWireCount = _deferredWires.Count;
-            var expansions = _expansions;
-            var placedInputLines = new Dictionary<(BlockNode Block, int Connector), int>(_placedInputLines);
-
+            var snapshot = new Snapshot(this);
             Expand(function, scope => scope.FailedNames.UnionWith(function.Inputs.Select(i => i.Name)));
-            ConnectDeferredWires(deferredWireCount);
-
-            _graph.RemoveFrom(blockCount, wireCount, placedWireCount);
-            _wiresIntoPlaced.RemoveRange(wiresIntoPlacedCount, _wiresIntoPlaced.Count - wiresIntoPlacedCount);
-            _deferredWires.RemoveRange(deferredWireCount, _deferredWires.Count - deferredWireCount);
-            _expansions = expansions;
-            foreach (var literal in _literals.Where(l => l.Value.Block.Index >= blockCount).ToList())
-            {
-                _literals.Remove(literal.Key);
-            }
-
-            _placedInputLines.Clear();
-            foreach (var line in placedInputLines)
-            {
-                _placedInputLines.Add(line.Key, line.Value);
-            }
+            ConnectDeferredWires(snapshot.DeferredWireCount);
+            snapshot.Restore();
         }
     }
 
