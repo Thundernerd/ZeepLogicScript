@@ -16,25 +16,25 @@ public class BlockReferenceTests
     }
 
     [Fact]
-    public void Sections_ListEveryManifestTypeOnce()
+    public void Categories_ListEveryManifestTypeOnce()
     {
-        var functions = BlockReference.Sections.SelectMany(s => s.Entries).Select(e => e.Function);
+        var functions = BlockReference.Categories.SelectMany(c => c.Entries).Select(e => e.Function);
 
         Assert.Equal(BlockManifest.All.Select(t => t.Function).OrderBy(f => f), functions.OrderBy(f => f));
     }
 
     [Fact]
-    public void Sections_FollowTheCategoryOrder()
+    public void Categories_FollowBlockCategoryOrder()
     {
-        Assert.Equal(BlockCategory.All, BlockReference.Sections.Select(s => s.Category));
+        Assert.Equal(BlockCategory.All, BlockReference.Categories.Select(c => c.Category));
     }
 
     [Fact]
-    public void Section_SortsItsEntriesByName()
+    public void Category_SortsItsEntriesByName()
     {
-        foreach (var section in BlockReference.Sections)
+        foreach (var category in BlockReference.Categories)
         {
-            var functions = section.Entries.Select(e => e.Function).ToList();
+            var functions = category.Entries.Select(e => e.Function).ToList();
             Assert.Equal(functions.OrderBy(f => f, StringComparer.Ordinal), functions);
         }
     }
@@ -47,11 +47,11 @@ public class BlockReferenceTests
     [InlineData("lamp", "Outputs")]
     [InlineData("toggler", "Outputs")]
     [InlineData("dynamic_mover", "Movers")]
-    public void Entry_IsInTheBlockBrowsersFolder(string function, string category)
+    public void Entry_IsInTheBlockBrowsersCategory(string function, string category)
     {
-        var section = BlockReference.Sections.Single(s => s.Entries.Any(e => e.Function == function));
+        var listed = BlockReference.Categories.Single(c => c.Entries.Any(e => e.Function == function));
 
-        Assert.Equal(category, section.Category.Name);
+        Assert.Equal(category, listed.Category.Name);
     }
 
     [Fact]
@@ -144,6 +144,6 @@ public class BlockReferenceTests
 
     private static BlockReferenceEntry Find(string function)
     {
-        return BlockReference.Sections.SelectMany(s => s.Entries).Single(e => e.Function == function);
+        return BlockReference.Categories.SelectMany(c => c.Entries).Single(e => e.Function == function);
     }
 }

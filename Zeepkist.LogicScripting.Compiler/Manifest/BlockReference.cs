@@ -15,16 +15,16 @@ public static class BlockReference
     /// One per <see cref="BlockCategory.All"/> category, in its order, with every <see cref="BlockManifest.All"/> type
     /// in it.
     /// </summary>
-    public static IReadOnlyList<BlockReferenceSection> Sections { get; } = BlockCategory.All.Select(DescribeCategory).ToList();
+    public static IReadOnlyList<BlockReferenceCategory> Categories { get; } = BlockCategory.All.Select(DescribeCategory).ToList();
 
-    private static BlockReferenceSection DescribeCategory(BlockCategory category)
+    private static BlockReferenceCategory DescribeCategory(BlockCategory category)
     {
         var entries = BlockManifest.All
             .Where(t => t.Category == category)
             .OrderBy(t => t.Function, StringComparer.Ordinal)
             .Select(Describe)
             .ToList();
-        return new BlockReferenceSection(category, entries);
+        return new BlockReferenceCategory(category, entries);
     }
 
     private static BlockReferenceEntry Describe(BlockType type)

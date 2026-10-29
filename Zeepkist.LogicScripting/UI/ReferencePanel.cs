@@ -52,16 +52,16 @@ internal sealed class ReferencePanel
     {
         var filtering = _filter.Trim().Length > 0;
         var shown = 0;
-        foreach (var section in BlockReference.Sections)
+        foreach (var category in BlockReference.Categories)
         {
-            if (!section.Entries.Any(e => e.Matches(_filter)))
+            if (!category.Entries.Any(e => e.Matches(_filter)))
                 continue;
 
             shown++;
-            if (!DrawHeader(gui, section.Category.Name, collapsed, filtering))
+            if (!DrawHeader(gui, category.Category.Name, collapsed, filtering))
                 continue;
 
-            foreach (var entry in section.Entries)
+            foreach (var entry in category.Entries)
             {
                 if (entry.Matches(_filter))
                     DrawEntry(gui, entry);
