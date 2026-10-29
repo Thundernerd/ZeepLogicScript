@@ -96,7 +96,7 @@ internal sealed class CompletionPopup
             var kind = item.Kind switch
             {
                 CompletionKind.Keyword => HighlightKind.Keyword,
-                CompletionKind.Name => HighlightKind.Name,
+                CompletionKind.Name or CompletionKind.Argument => HighlightKind.Name,
                 _ => HighlightKind.Function
             };
             var labelColor = i == selected ? itemStyle.Normal.FrontColor : palette.Get(kind);
@@ -229,10 +229,10 @@ internal sealed class CompletionPopup
     /// <summary>
     /// Call after the editor handled its input, with the text and caret it ended with.
     /// </summary>
-    public void Update(TextSnapshot snapshot, bool typedName, bool focused)
+    public void Update(TextSnapshot snapshot, bool typedName, bool typedSeparator, bool focused)
     {
         TookEscape &= focused;
-        _session.Update(snapshot, typedName, _assist.CompletionWhileTyping, focused);
+        _session.Update(snapshot, typedName, _assist.CompletionWhileTyping, focused, typedSeparator);
     }
 
     private ImRect GetRowRect(int index)

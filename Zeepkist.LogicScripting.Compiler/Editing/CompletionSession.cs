@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
@@ -16,8 +17,9 @@ public sealed class CompletionSession
     private readonly Func<string, PlacedBlock> _findPlacedBlock;
     private CaretContext _context;
     private IReadOnlyList<DefinedName> _definedNames = [];
-    private bool _openedByShortcut;
+    private bool _opensWithoutPrefix;
     private bool _openRequested;
+    private bool _acceptedFunction;
 
     /// <param name="findPlacedBlock">
     /// The block in the level with a UID, or null when there's none; it gives a Placed Block Reference its type.
@@ -49,24 +51,29 @@ public sealed class CompletionSession
     public void Request()
     {
         _openRequested = true;
-        _openedByShortcut = true;
+        _opensWithoutPrefix = true;
     }
 
     public void Close()
     {
         IsOpen = false;
-        _openedByShortcut = false;
+        _opensWithoutPrefix = false;
     }
 
     /// <summary>
-    /// Call after the editor handled its input, with the text and caret it ended with. Typing a name opens the list
-    /// when <paramref name="whileTyping"/> is on. It closes when the editor loses focus, text gets selected, the caret
-    /// moves to another word, or nothing matches; an empty prefix keeps it open only when <see cref="Request"/> opened
-    /// it.
+    /// Call after the editor handled its input, with the text and caret it ended with. When
+    /// <paramref name="whileTyping"/> is on, typing a name opens the list. So does starting an argument of a call
+    /// that takes named arguments, which lists them: typing a <see cref="ScriptText.IsArgumentSeparator">separator</see>
+    /// or accepting a function, which opens its call. It closes when the editor loses focus, text gets selected, the
+    /// caret moves to another word, or nothing matches; an empty prefix keeps it open only when <see cref="Request"/>
+    /// or an argument's start opened it.
     /// </summary>
-    public void Update(TextSnapshot snapshot, bool typedName, bool whileTyping, bool focused)
+    public void Update(TextSnapshot snapshot, bool typedName, bool whileTyping, bool focused, bool typedSeparator = false)
     {
-        var requested = _openRequested || (typedName && whileTyping);
+        var openedByShortcut = _openRequested;
+        var opensCall = (typedSeparator || _acceptedFunction) && whileTyping && !openedByShortcut;
+        _acceptedFunction = false;
+        var requested = openedByShortcut || (typedName && whileTyping) || opensCall;
         _openRequested = false;
         if (!focused || snapshot.Selection != 0)
         {
@@ -97,7 +104,13 @@ public sealed class CompletionSession
         if (requested)
             IsOpen = true;
 
-        if (Items.Count == 0 || (_context.Prefix.Length == 0 && !_openedByShortcut))
+        // Anywhere but the start of an argument of a call with named arguments, it would list every expression
+        if (opensCall && !Items.Any(i => i.Kind == CompletionKind.Argument))
+            Close();
+        else if (opensCall)
+            _opensWithoutPrefix = true;
+
+        if (Items.Count == 0 || (_context.Prefix.Length == 0 && !_opensWithoutPrefix))
             Close();
     }
 
@@ -127,6 +140,7 @@ public sealed class CompletionSession
 
         var item = Items[index];
         Close();
+        _acceptedFunction = item.Kind == CompletionKind.Function;
         return Completion.Accept(_context, item);
     }
 }

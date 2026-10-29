@@ -7,5 +7,10 @@ public enum CompletionKind
     /// </summary>
     Function,
     Keyword,
-    Name
+    Name,
+
+    /// <summary>
+    /// A named argument, labeled with its colon: accepting it writes the colon and a space too.
+    /// </summary>
+    Argument
 }

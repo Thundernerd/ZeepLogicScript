@@ -86,6 +86,10 @@ Ctrl+/ to comment a line out, Alt+Up / Alt+Down to move lines, and Tab / Shift+T
 
 While you type a name, the editor lists the block functions and defined names that match.
 It only lists names defined on an earlier line, except inside `delay(...)`, which can refer to any of them.
+At the start of an argument it lists the call's inputs and settings by name first, leaving out those the call already has;
+a call to a placed block lists only its inputs. After `default` it lists `hide:`.
+Starting an argument opens the list with the call's named arguments:
+typing the `(` of a call, or a comma or space before its next argument, or choosing a block function from the list.
 Up / Down choose one, Enter or Tab writes it, and Escape closes the list.
 Ctrl+Space opens the list at any time.
 To stop it opening by itself, turn off **Completion while typing** in the mod's settings.

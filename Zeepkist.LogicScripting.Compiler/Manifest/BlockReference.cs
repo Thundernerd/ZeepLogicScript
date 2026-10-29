@@ -51,6 +51,14 @@ public static class BlockReference
 
     private static BlockReferenceRow DescribeSetting(BlockSetting setting)
     {
+        return new BlockReferenceRow(setting.Name, DescribeValues(setting));
+    }
+
+    /// <summary>
+    /// The values a Setting accepts, and whether a call must give it.
+    /// </summary>
+    internal static string DescribeValues(BlockSetting setting)
+    {
         var accepts = setting.Type switch
         {
             SettingType.Number => DescribeNumber(setting),
@@ -59,9 +67,7 @@ public static class BlockReference
             _ => string.Join(", ", setting.Options)
         };
 
-        return new BlockReferenceRow(
-            setting.Name,
-            setting.IsRequired && setting.Type != SettingType.Targets ? $"{accepts} (required)" : accepts);
+        return setting.IsRequired && setting.Type != SettingType.Targets ? $"{accepts} (required)" : accepts;
     }
 
     private static string DescribeNumber(BlockSetting setting)

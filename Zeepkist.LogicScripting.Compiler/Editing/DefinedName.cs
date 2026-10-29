@@ -7,12 +7,13 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 /// </summary>
 public sealed class DefinedName
 {
-    public DefinedName(string name, TextSpan span, BlockType type, string mode)
+    public DefinedName(string name, TextSpan span, BlockType type, string mode, bool isPlaced = false)
     {
         Name = name;
         Span = span;
         Type = type;
         Mode = mode;
+        IsPlaced = isPlaced;
     }
 
     public string Name { get; }
@@ -32,4 +33,9 @@ public sealed class DefinedName
     /// The option written for the call's mode Setting (<c>mode: local_velocity</c>); null when none is written.
     /// </summary>
     public string Mode { get; }
+
+    /// <summary>
+    /// Whether the value is a Placed Block Reference, which the Script can call to wire its inputs.
+    /// </summary>
+    public bool IsPlaced { get; }
 }
