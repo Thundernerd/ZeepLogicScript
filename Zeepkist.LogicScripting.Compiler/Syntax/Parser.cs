@@ -347,8 +347,9 @@ internal sealed partial class Parser
         return new IntegerLiteral(start.Position, value);
     }
 
-    /// <param name="library">The Library before the dot of a qualified call, <c>timing.edge(x)</c>, or null.</param>
-    /// <param name="function">The function's name.</param>
+    /// <summary>
+    /// <paramref name="library"/> is the name before the dot of a qualified call, <c>timing.edge(x)</c>, or null.
+    /// </summary>
     private CallExpression ParseCall(NameExpression library, Token function)
     {
         var position = library?.Position ?? function.Position;

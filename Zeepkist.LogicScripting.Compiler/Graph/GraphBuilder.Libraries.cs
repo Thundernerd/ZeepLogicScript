@@ -32,7 +32,7 @@ internal sealed partial class GraphBuilder
 
     private Dictionary<string, FunctionDefinition> FunctionsOf(Scope scope)
     {
-        return scope.Library?.Functions ?? _functions;
+        return scope.Library?.Functions ?? _scriptFunctions;
     }
 
     /// <summary>

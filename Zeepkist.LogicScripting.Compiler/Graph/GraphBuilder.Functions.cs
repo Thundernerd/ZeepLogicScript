@@ -25,7 +25,10 @@ internal sealed partial class GraphBuilder
     /// </summary>
     public const int MaxExpansions = 1000;
 
-    private readonly Dictionary<string, FunctionDefinition> _functions = [];
+    /// <summary>
+    /// The Functions the text being compiled defines; a Library's own are in its <see cref="LoadedLibrary"/>.
+    /// </summary>
+    private readonly Dictionary<string, FunctionDefinition> _scriptFunctions = [];
 
     /// <summary>
     /// Functions with an error on their first line, already reported. Calls to them only check their arguments.
@@ -155,10 +158,9 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// The value of each output by name, or null after reporting why the call places nothing.
+    /// The value of each output by name, or null after reporting why the call places nothing. A null
+    /// <paramref name="function"/> means the call names none, already reported.
     /// </summary>
-    /// <param name="call">The call.</param>
-    /// <param name="function">The Function it names, or null when there's none, already reported.</param>
     private Dictionary<string, Resolved> ExpandCall(CallExpression call, FunctionDefinition function)
     {
         if (function == null || _brokenFunctions.Contains(function) || !CanExpand(call, function))
@@ -306,10 +308,8 @@ internal sealed partial class GraphBuilder
 
     /// <summary>
     /// Visits the body in a new scope whose inputs <paramref name="bindInputs"/> fills, and gives each output's value.
+    /// <paramref name="callSite"/> is the scope's <see cref="Scope.CallSite"/>.
     /// </summary>
-    /// <param name="function">The Function.</param>
-    /// <param name="callSite">See <see cref="Scope.CallSite"/>.</param>
-    /// <param name="bindInputs">Fills the inputs.</param>
     private Dictionary<string, Resolved> Expand(FunctionDefinition function, Position? callSite, Action<Scope> bindInputs)
     {
         _libraryFunctions.TryGetValue(function, out var library);
@@ -346,7 +346,7 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private void CheckUncalledFunctions()
     {
-        foreach (var function in _functions.Values.ToList())
+        foreach (var function in _scriptFunctions.Values.ToList())
         {
             if (_brokenFunctions.Contains(function) || _expandedFunctions.Contains(function))
                 continue;
