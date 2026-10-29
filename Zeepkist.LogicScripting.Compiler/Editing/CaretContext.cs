@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
@@ -37,9 +39,11 @@ public sealed class CaretContext
         text ??= string.Empty;
         caret = Math.Max(0, Math.Min(caret, text.Length));
         var word = FindWord(text, caret);
-        var kind = IsInCommentOrString(text, caret) || (word.Length > 0 && Lexer.IsDigit(text[word.Start]))
+        List<TextSpan> comments = [];
+        var tokens = Lexer.Tokenize(text, [], comments);
+        var kind = IsInCommentOrString(tokens, comments, caret) || (word.Length > 0 && Lexer.IsDigit(text[word.Start]))
             ? CaretContextKind.None
-            : GetKind(text, word);
+            : GetKind(tokens, word);
 
         return new CaretContext(text, caret, kind, word);
     }
@@ -62,20 +66,13 @@ public sealed class CaretContext
     }
 
     /// <summary>
-    /// Neither can span lines, so the caret's line is read from its start, as the lexer would.
+    /// The caret is inside a comment or string from just after its first character, and stays inside a string up to
+    /// its closing quote.
     /// </summary>
-    private static bool IsInCommentOrString(string text, int caret)
+    private static bool IsInCommentOrString(List<Token> tokens, List<TextSpan> comments, int caret)
     {
-        var inString = false;
-        for (var i = caret > 0 ? text.LastIndexOf('\n', caret - 1) + 1 : 0; i < caret; i++)
-        {
-            if (text[i] == '"')
-                inString = !inString;
-            else if (text[i] == '#' && !inString)
-                return true;
-        }
-
-        return inString;
+        return comments.Any(c => c.Start < caret && caret <= c.End)
+            || tokens.Any(t => t.Kind == TokenKind.String && t.Span.Start < caret && caret <= t.Span.Start + 1 + t.Text.Length);
     }
 
     /// <summary>
@@ -83,15 +80,13 @@ public sealed class CaretContext
     /// operator, an opening parenthesis or bracket, a comma or a named argument's colon. A name at the start of a
     /// statement followed by <c>=</c> is being defined, and one followed by <c>:</c> names an argument.
     /// </summary>
-    private static CaretContextKind GetKind(string text, TextSpan word)
+    private static CaretContextKind GetKind(List<Token> tokens, TextSpan word)
     {
-        var tokens = Lexer.Tokenize(text, []);
-        var lineStarts = ScriptText.GetLineStarts(text);
         Token? before = null;
         Token? after = null;
         foreach (var token in tokens)
         {
-            var start = ScriptText.GetIndex(lineStarts, text.Length, token.Position);
+            var start = token.Span.Start;
             if (start < word.Start)
             {
                 before = token;

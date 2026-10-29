@@ -26,6 +26,7 @@ public class CompletionTests
     [InlineData("x = lo|gic")]
     [InlineData("# a comment\nlo|")]
     [InlineData("x = \"a\" & lo|")]
+    [InlineData("x = \"#\" & lo|")]
     public void Expression_WhereAnExpressionCanStart(string text)
     {
         Assert.Equal(CaretContextKind.Expression, At(text).Kind);

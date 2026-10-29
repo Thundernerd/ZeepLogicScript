@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -10,7 +11,10 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 /// </summary>
 internal static class Lexer
 {
-    public static List<Token> Tokenize(string text, List<Diagnostic> diagnostics)
+    /// <summary>
+    /// Comments make no tokens; when <paramref name="comments"/> is given, each one's span is added to it instead.
+    /// </summary>
+    public static List<Token> Tokenize(string text, List<Diagnostic> diagnostics, List<TextSpan> comments = null)
     {
         List<Token> tokens = [];
         var line = 1;
@@ -29,7 +33,7 @@ internal static class Lexer
 
             if (c == '\n')
             {
-                tokens.Add(new Token(TokenKind.NewLine, "\n", position));
+                tokens.Add(new Token(TokenKind.NewLine, "\n", position, new TextSpan(index, 1)));
                 index++;
                 line++;
                 lineStart = index;
@@ -40,16 +44,19 @@ internal static class Lexer
             }
             else if (c == '#')
             {
+                var start = index;
                 while (index < text.Length && text[index] != '\n')
                 {
                     index++;
                 }
+
+                comments?.Add(new TextSpan(start, index - start));
             }
             else if (IsDigit(c))
             {
                 var start = index;
                 index = SkipDigits(text, index);
-                tokens.Add(new Token(TokenKind.Integer, text.Substring(start, index - start), position));
+                tokens.Add(new Token(TokenKind.Integer, text.Substring(start, index - start), position, new TextSpan(start, index - start)));
 
                 // Keep the whole part as the token, so the rest of the line still parses
                 if (index + 1 < text.Length && text[index] == '.' && IsDigit(text[index + 1]))
@@ -67,11 +74,13 @@ internal static class Lexer
                     index++;
                 }
 
-                tokens.Add(new Token(TokenKind.String, text.Substring(start, index - start), position));
+                var value = text.Substring(start, index - start);
                 if (index < text.Length && text[index] == '"')
                     index++;
                 else
                     diagnostics.Add(new Diagnostic(position, "Text in quotes isn't closed on its line"));
+
+                tokens.Add(new Token(TokenKind.String, value, position, new TextSpan(start - 1, index - start + 1)));
             }
             else if (IsNameStart(c))
             {
@@ -81,7 +90,7 @@ internal static class Lexer
                     index++;
                 }
 
-                tokens.Add(new Token(TokenKind.Name, text.Substring(start, index - start), position));
+                tokens.Add(new Token(TokenKind.Name, text.Substring(start, index - start), position, new TextSpan(start, index - start)));
             }
             else if (MatchOperator(text, index, position) is { } op)
             {
@@ -94,13 +103,13 @@ internal static class Lexer
                 if (kind == null)
                     diagnostics.Add(new Diagnostic(position, $"Unexpected character '{c}'"));
                 else
-                    tokens.Add(new Token(kind.Value, c.ToString(), position));
+                    tokens.Add(new Token(kind.Value, c.ToString(), position, new TextSpan(index, 1)));
 
                 index++;
             }
         }
 
-        tokens.Add(new Token(TokenKind.End, string.Empty, CurrentPosition()));
+        tokens.Add(new Token(TokenKind.End, string.Empty, CurrentPosition(), new TextSpan(index, 0)));
         return JoinParenthesizedLines(tokens);
     }
 
@@ -144,7 +153,7 @@ internal static class Lexer
                 depth--;
 
             if (token.Kind == TokenKind.OpenParen && !matched[i])
-                token = new Token(token.Kind, token.Text, token.Position, true);
+                token = new Token(token.Kind, token.Text, token.Position, token.Span, true);
 
             joined.Add(token);
         }
@@ -190,7 +199,7 @@ internal static class Lexer
         if (binary == null && unary == null)
             return null;
 
-        return new Token(binary, unary, position);
+        return new Token(binary, unary, position, index);
     }
 
     private static T MatchLongest<T>(IEnumerable<T> operators, Func<T, string> getSymbol, string text, int index)
