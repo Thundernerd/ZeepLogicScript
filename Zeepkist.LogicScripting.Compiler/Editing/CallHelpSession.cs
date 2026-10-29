@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
@@ -53,7 +54,7 @@ public sealed class CallHelpSession
         _snapshot = snapshot;
         var help = CallHelp.At(snapshot.Text, snapshot.Caret, _findPlacedBlock);
 
-        if (help?.OpenParen != _dismissedCall)
+        if (_dismissedCall is { } dismissed && (help == null || !help.EnclosingCalls.Contains(dismissed)))
             _dismissedCall = null;
 
         Help = _dismissedCall == null ? help : null;

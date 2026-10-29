@@ -62,9 +62,6 @@ public class CallHelpTests
     [InlineData("x = logic(a, op: an|", "op:")]
     [InlineData("x = logic(a, o|p: and)", "op:")]
     [InlineData("x = logic(a, |op: and)", "op:")]
-    [InlineData("x = logic(a, hide: true, |", "b")]
-    [InlineData("x = logic(op: and, a, |", "b")]
-    [InlineData("x = logic(a, b: 1, |", "b")]
     [InlineData("x = logic(a, (1 & 2), |", "op_in")]
     [InlineData("x = logic(a, 1 & |", "b")]
     [InlineData("x = logic(a, (1, |", "b")]
@@ -84,7 +81,10 @@ public class CallHelpTests
     [Theory]
     [InlineData("x = logic(a, b, c, |")]
     [InlineData("x = logic(a, color: |")]
-    public void Active_None_PastTheLastInputOrForAnUnknownName(string text)
+    [InlineData("x = logic(a, hide: true, |")]
+    [InlineData("x = logic(op: and, a, |")]
+    [InlineData("x = logic(a, b: 1, |")]
+    public void Active_None_PastTheLastInputForAnUnknownNameOrAfterANamedArgument(string text)
     {
         var help = At(text);
 
@@ -105,6 +105,7 @@ public class CallHelpTests
     [InlineData("x = logic(a, delay(b, ticks: |", "delay", "ticks:")]
     [InlineData("x = logic(a, delay(b, ticks: 1), |", "logic", "op_in")]
     [InlineData("x = logic(a, delay(b)|", "logic", "b")]
+    [InlineData("x = logic(a, nothing(|", "logic", "b")]
     public void NestedCalls_TheInnermostOne(string text, string callee, string active)
     {
         var help = At(text);
@@ -171,15 +172,29 @@ public class CallHelpTests
     }
 
     [Fact]
-    public void Session_Dismiss_ShowsAnotherCallsHelp()
+    public void Session_Dismiss_StaysHiddenInACallInsideTheDismissedOne()
     {
         var session = new CallHelpSession();
         session.Update(Snapshot("x = logic(a, |"), focused: true);
         session.Dismiss();
 
         session.Update(Snapshot("x = logic(a, delay(|"), focused: true);
+        Assert.Null(session.Help);
 
-        Assert.Equal("delay", session.Help.Callee);
+        session.Update(Snapshot("x = logic(a, delay(b)|"), focused: true);
+        Assert.Null(session.Help);
+    }
+
+    [Fact]
+    public void Session_Dismiss_ShowsAnotherCallsHelp()
+    {
+        var session = new CallHelpSession();
+        session.Update(Snapshot("x = logic(1, 2)\ny = logic(a, delay(|"), focused: true);
+        session.Dismiss();
+
+        session.Update(Snapshot("x = logic(1, |2)\ny = logic(a, delay("), focused: true);
+
+        Assert.Equal("logic", session.Help.Callee);
     }
 
     private static CallHelp At(string marked, Func<string, PlacedBlock> findPlacedBlock = null)

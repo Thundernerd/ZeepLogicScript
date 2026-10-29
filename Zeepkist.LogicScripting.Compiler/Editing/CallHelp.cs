@@ -12,12 +12,13 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 /// </summary>
 public sealed class CallHelp
 {
-    private CallHelp(string callee, int openParen, IReadOnlyList<CallHelpItem> items, int active)
+    private CallHelp(string callee, int openParen, IReadOnlyList<CallHelpItem> items, int active, IReadOnlyList<int> enclosingCalls)
     {
         Callee = callee;
         OpenParen = openParen;
         Items = items;
         Active = active;
+        EnclosingCalls = enclosingCalls;
     }
 
     /// <summary>
@@ -42,9 +43,15 @@ public sealed class CallHelp
     public int Active { get; }
 
     /// <summary>
+    /// The opening parentheses of every call the caret is inside, innermost first, with or without help of its own.
+    /// </summary>
+    public IReadOnlyList<int> EnclosingCalls { get; }
+
+    /// <summary>
     /// The innermost call around the caret whose function is a Block Function, or whose name is a Placed Block
-    /// Reference to a block with inputs; null otherwise, and inside a comment or string. A named argument is active
-    /// from its name on; any other argument gives the input after those the positional arguments before it give.
+    /// Reference to a block with inputs; null when there's none, and inside a comment or string. A named argument is
+    /// active from its name on; any other argument gives the input after those the positional arguments before it give,
+    /// unless a named argument comes before it, which a positional one can't follow.
     /// </summary>
     /// <param name="text"></param>
     /// <param name="caret"></param>
@@ -61,23 +68,24 @@ public sealed class CallHelp
         if (CaretContext.IsInCommentOrString(tokens, comments, caret))
             return null;
 
-        var call = FindCallParen(tokens, caret);
-        if (call < 0)
-            return null;
+        var calls = FindCallParens(tokens, caret);
+        var enclosingCalls = calls.Select(c => tokens[c].Span.Start).ToList();
+        foreach (var call in calls)
+        {
+            var callee = tokens[call - 1].Text;
+            var openParen = tokens[call].Span.Start;
+            var items = GetItems(text, callee, openParen, findPlacedBlock);
+            if (items.Count > 0)
+                return new CallHelp(callee, openParen, items, FindActive(text, tokens, call, caret, items), enclosingCalls);
+        }
 
-        var callee = tokens[call - 1].Text;
-        var openParen = tokens[call].Span.Start;
-        var items = GetItems(text, callee, openParen, findPlacedBlock);
-        if (items.Count == 0)
-            return null;
-
-        return new CallHelp(callee, openParen, items, FindActive(text, tokens, call, caret, items));
+        return null;
     }
 
     /// <summary>
-    /// The innermost opening parenthesis before the caret that is still open and follows a name; -1 when there's none.
+    /// The opening parentheses before the caret that are still open and follow a name, innermost first.
     /// </summary>
-    private static int FindCallParen(List<Token> tokens, int caret)
+    private static List<int> FindCallParens(List<Token> tokens, int caret)
     {
         Stack<int> open = new();
         for (var i = 0; i < tokens.Count && tokens[i].Span.Start < caret; i++)
@@ -99,13 +107,7 @@ public sealed class CallHelp
             }
         }
 
-        foreach (var index in open)
-        {
-            if (tokens[index].Kind == TokenKind.OpenParen && index > 0 && tokens[index - 1].Kind == TokenKind.Name)
-                return index;
-        }
-
-        return -1;
+        return open.Where(i => tokens[i].Kind == TokenKind.OpenParen && i > 0 && tokens[i - 1].Kind == TokenKind.Name).ToList();
     }
 
     /// <summary>
@@ -142,6 +144,7 @@ public sealed class CallHelp
     private static int FindActive(string text, List<Token> tokens, int call, int caret, List<CallHelpItem> items)
     {
         var positional = 0;
+        var hasNamed = false;
         var argumentStart = call + 1;
         var depth = 0;
         for (var i = call + 1; tokens[i].Kind != TokenKind.End && tokens[i].Span.Start < caret; i++)
@@ -158,7 +161,9 @@ public sealed class CallHelp
 
                 case TokenKind.Comma when depth == 0:
                     var first = SkipLineBreaks(tokens, argumentStart);
-                    if (tokens[first].Kind != TokenKind.Comma && !IsNamed(tokens, first))
+                    if (IsNamed(tokens, first))
+                        hasNamed = true;
+                    else if (tokens[first].Kind != TokenKind.Comma)
                         positional++;
 
                     argumentStart = i + 1;
@@ -176,7 +181,7 @@ public sealed class CallHelp
             return items.FindIndex(i => i.Name == name);
         }
 
-        return positional < items.Count && items[positional].IsInput ? positional : -1;
+        return !hasNamed && positional < items.Count && items[positional].IsInput ? positional : -1;
     }
 
     /// <summary>
