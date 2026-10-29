@@ -181,7 +181,7 @@ internal sealed partial class GraphBuilder
     private static Resolved ValueOf(BlockNode block)
     {
         return block.Outputs.Count == 1
-            ? new OutputValue(new BlockOutput(block, block.Outputs[0].Index))
+            ? new OutputValue(block, block.Outputs[0].Index)
             : new BlockValue(block);
     }
 
@@ -215,9 +215,6 @@ internal sealed partial class GraphBuilder
         return SelectMember(member, Evaluate(member.Target));
     }
 
-    /// <summary>
-    /// The output <paramref name="member"/> picks from <paramref name="target"/>, the value of its target.
-    /// </summary>
     private Resolved SelectMember(MemberExpression member, Resolved target)
     {
         BlockNode block;
@@ -254,7 +251,7 @@ internal sealed partial class GraphBuilder
         foreach (var output in block.Outputs)
         {
             if (output.Name == member.Output)
-                return new OutputValue(new BlockOutput(block, output.Index));
+                return new OutputValue(block, output.Index);
 
             names.Add(output.Name);
         }

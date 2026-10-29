@@ -46,6 +46,6 @@ internal sealed partial class GraphBuilder
             Connect(inputs[i](), block, type.Inputs[i].Index);
         }
 
-        return new OutputValue(new BlockOutput(block, block.Outputs[0].Index));
+        return new OutputValue(block, block.Outputs[0].Index);
     }
 }

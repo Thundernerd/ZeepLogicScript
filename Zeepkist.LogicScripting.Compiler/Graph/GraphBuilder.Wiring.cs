@@ -101,7 +101,7 @@ internal sealed partial class GraphBuilder
                 case OutputValue output:
                     return output.Output;
                 default:
-                    ReportNoSingleOutput(deferred.Members.Count > 0 ? deferred.Members[deferred.Members.Count - 1] : deferred.Expression, value);
+                    ReportNoSingleOutput(deferred.Origin, value);
                     return null;
             }
         }

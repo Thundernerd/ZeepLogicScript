@@ -35,20 +35,19 @@ internal sealed partial class GraphBuilder
 
         public void Restore()
         {
-            var builder = _builder;
-            builder._graph.RemoveFrom(_blockCount, _wireCount, _placedWireCount);
-            builder._wiresIntoPlaced.RemoveRange(_wiresIntoPlacedCount, builder._wiresIntoPlaced.Count - _wiresIntoPlacedCount);
-            builder._deferredWires.RemoveRange(DeferredWireCount, builder._deferredWires.Count - DeferredWireCount);
-            builder._expansions = _expansions;
-            foreach (var literal in builder._literals.Where(l => l.Value.Block.Index >= _blockCount).ToList())
+            _builder._graph.RemoveFrom(_blockCount, _wireCount, _placedWireCount);
+            _builder._wiresIntoPlaced.RemoveRange(_wiresIntoPlacedCount, _builder._wiresIntoPlaced.Count - _wiresIntoPlacedCount);
+            _builder._deferredWires.RemoveRange(DeferredWireCount, _builder._deferredWires.Count - DeferredWireCount);
+            _builder._expansions = _expansions;
+            foreach (var literal in _builder._literals.Where(l => l.Value.Block.Index >= _blockCount).ToList())
             {
-                builder._literals.Remove(literal.Key);
+                _builder._literals.Remove(literal.Key);
             }
 
-            builder._placedInputLines.Clear();
+            _builder._placedInputLines.Clear();
             foreach (var line in _placedInputLines)
             {
-                builder._placedInputLines.Add(line.Key, line.Value);
+                _builder._placedInputLines.Add(line.Key, line.Value);
             }
         }
     }

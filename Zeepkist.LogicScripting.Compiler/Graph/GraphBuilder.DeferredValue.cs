@@ -32,6 +32,11 @@ internal sealed partial class GraphBuilder
         /// </summary>
         public IReadOnlyList<MemberExpression> Members { get; }
 
+        /// <summary>
+        /// Where to report a value that isn't one output: the last output picked from it, or the name itself.
+        /// </summary>
+        public Expression Origin => Members.Count > 0 ? Members[Members.Count - 1] : Expression;
+
         public DeferredValue WithMember(MemberExpression member)
         {
             return new DeferredValue(Expression, Scope, [.. Members, member]);

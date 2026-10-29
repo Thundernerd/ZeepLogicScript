@@ -12,6 +12,11 @@ internal sealed partial class GraphBuilder
             Output = output;
         }
 
+        public OutputValue(BlockNode block, int connector)
+            : this(new BlockOutput(block, connector))
+        {
+        }
+
         public BlockOutput Output { get; }
     }
 }
