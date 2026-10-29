@@ -33,7 +33,7 @@ internal sealed class WindowStateStore
             // A null panel overrides the property's default, so a hand-edited file could otherwise break the window
             var state = result.Value;
             state.Scripts ??= new PanelState();
-            state.Level ??= new PanelState();
+            state.Blocks ??= new PanelState();
             state.Errors ??= new PanelState();
             return state;
         }

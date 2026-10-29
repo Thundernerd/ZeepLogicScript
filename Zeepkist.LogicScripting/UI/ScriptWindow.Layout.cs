@@ -9,10 +9,10 @@ using UnityEngine;
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// The window itself: three regions side by side, Scripts on the left, the current Script in the center and the
-/// level on the right, whose sides collapse to a strip. The sides and the error panel under the editor are resized by
-/// dragging their inner edge, and the error panel hides to its header. Open state, size, position, panel sizes and
-/// collapsed panels are kept in the <see cref="WindowState"/>.
+/// The window itself: three regions side by side, Scripts on the left, the current Script in the center and Blocks
+/// on the right (those in the level and those a Script can use), whose sides collapse to a strip. The sides and the
+/// error panel under the editor are resized by dragging their inner edge, and the error panel hides to its header.
+/// Open state, size, position, panel sizes and collapsed panels are kept in the <see cref="WindowState"/>.
 /// </summary>
 internal sealed partial class ScriptWindow
 {
@@ -22,7 +22,7 @@ internal sealed partial class ScriptWindow
     private const float DefaultHeight = 640;
     private const float DefaultScriptsWidth = 220;
     private const float MinScriptsWidth = 140;
-    private const float MinLevelWidth = 300;
+    private const float MinBlocksWidth = 300;
     private const string PlacedBlocksTab = "Placed blocks";
     private const string ReferenceTab = "Reference";
 
@@ -36,7 +36,7 @@ internal sealed partial class ScriptWindow
     private const int MinFieldRows = 3;
 
     private readonly ResizeHandle _scriptsEdge = new(ImAxis.Horizontal, 1);
-    private readonly ResizeHandle _levelEdge = new(ImAxis.Horizontal, -1);
+    private readonly ResizeHandle _blocksEdge = new(ImAxis.Horizontal, -1);
     private readonly ResizeHandle _errorsEdge = new(ImAxis.Vertical, 1);
 
     private WindowState _savedState;
@@ -128,39 +128,39 @@ internal sealed partial class ScriptWindow
     {
         var area = gui.Layout.AddRect(gui.GetLayoutWidth(), gui.GetLayoutHeight());
         var collapsedWidth = GetPanelHeaderHeight(gui);
-        var minLevelWidth = GetMinLevelWidth(gui);
+        var minBlocksWidth = GetMinBlocksWidth(gui);
 
-        // The Level side gives way first; the Scripts side only when the center still doesn't fit without both
-        var levelFits = area.W - (_state.Scripts.Collapsed ? collapsedWidth : MinScriptsWidth) - minLevelWidth >= MinCenterWidth;
+        // The Blocks side gives way first; the Scripts side only when the center still doesn't fit without both
+        var blocksFits = area.W - (_state.Scripts.Collapsed ? collapsedWidth : MinScriptsWidth) - minBlocksWidth >= MinCenterWidth;
         var scriptsFits = area.W - MinScriptsWidth - collapsedWidth >= MinCenterWidth;
         var scriptsCollapsed = _state.Scripts.Collapsed || !scriptsFits;
-        var levelCollapsed = _state.Level.Collapsed || !levelFits;
+        var blocksCollapsed = _state.Blocks.Collapsed || !blocksFits;
 
-        // Before collapsing, the sides shrink to make room for the center, the Level side first. The state keeps the
+        // Before collapsing, the sides shrink to make room for the center, the Blocks side first. The state keeps the
         // size they were given, so they grow back when the window does.
-        var maxScriptsWidth = area.W - MinCenterWidth - (levelCollapsed ? collapsedWidth : minLevelWidth);
+        var maxScriptsWidth = area.W - MinCenterWidth - (blocksCollapsed ? collapsedWidth : minBlocksWidth);
         var scriptsWidth = scriptsCollapsed
             ? collapsedWidth
             : GetPanelSize(_state.Scripts.Size, DefaultScriptsWidth, MinScriptsWidth, maxScriptsWidth);
-        var maxLevelWidth = area.W - MinCenterWidth - scriptsWidth;
-        var levelWidth = levelCollapsed
+        var maxBlocksWidth = area.W - MinCenterWidth - scriptsWidth;
+        var blocksWidth = blocksCollapsed
             ? collapsedWidth
-            : GetPanelSize(_state.Level.Size, minLevelWidth, minLevelWidth, maxLevelWidth);
+            : GetPanelSize(_state.Blocks.Size, minBlocksWidth, minBlocksWidth, maxBlocksWidth);
 
         var scriptsEdgeId = gui.GetControlId("scripts edge");
-        var levelEdgeId = gui.GetControlId("level edge");
+        var blocksEdgeId = gui.GetControlId("blocks edge");
         if (!scriptsCollapsed && _scriptsEdge.Drag(gui, scriptsEdgeId, scriptsWidth) is { } draggedScriptsWidth)
             _state.Scripts.Size = ClampSize(draggedScriptsWidth, MinScriptsWidth, maxScriptsWidth);
 
-        if (!levelCollapsed && _levelEdge.Drag(gui, levelEdgeId, levelWidth) is { } draggedLevelWidth)
-            _state.Level.Size = ClampSize(draggedLevelWidth, minLevelWidth, maxLevelWidth);
+        if (!blocksCollapsed && _blocksEdge.Drag(gui, blocksEdgeId, blocksWidth) is { } draggedBlocksWidth)
+            _state.Blocks.Size = ClampSize(draggedBlocksWidth, minBlocksWidth, maxBlocksWidth);
 
         var scripts = area.TakeLeft(scriptsWidth, out var rest);
-        var level = rest.TakeRight(levelWidth, out var center);
+        var blocks = rest.TakeRight(blocksWidth, out var center);
         var scriptsEdge = new ImRect(scripts.Right - 1, area.Y, 1, area.H);
-        var levelEdge = new ImRect(level.X, area.Y, 1, area.H);
+        var blocksEdge = new ImRect(blocks.X, area.Y, 1, area.H);
         DrawDivider(gui, scriptsEdge);
-        DrawDivider(gui, levelEdge);
+        DrawDivider(gui, blocksEdge);
 
         // Imui numbers controls in drawing order, so each region gets its own scope: a new error row in the center
         // must not change the ids, and so the focus and state, of the controls drawn after it
@@ -180,19 +180,19 @@ internal sealed partial class ScriptWindow
         DrawCenter(gui, center);
         gui.PopId();
 
-        gui.PushId("level");
-        if (DrawSideHeader(gui, level, "Level", levelCollapsed, buttonOnRight: false, canToggle: levelFits))
-            _state.Level.ToggleCollapsed();
+        gui.PushId("blocks");
+        if (DrawSideHeader(gui, blocks, "Blocks", blocksCollapsed, buttonOnRight: false, canToggle: blocksFits))
+            _state.Blocks.ToggleCollapsed();
 
-        var hovered = levelCollapsed ? null : DrawLevelTabs(gui, GetSideBody(gui, level));
+        var hovered = blocksCollapsed ? null : DrawBlocksTabs(gui, GetSideBody(gui, blocks));
         gui.PopId();
 
         // Each grab strip lies right of its edge, off the scrollbar of the region on the left
         if (!scriptsCollapsed)
             _scriptsEdge.Draw(gui, scriptsEdgeId, scriptsEdge, ResizeHandle.GrabRightOf(scriptsEdge));
 
-        if (!levelCollapsed)
-            _levelEdge.Draw(gui, levelEdgeId, levelEdge, ResizeHandle.GrabRightOf(levelEdge));
+        if (!blocksCollapsed)
+            _blocksEdge.Draw(gui, blocksEdgeId, blocksEdge, ResizeHandle.GrabRightOf(blocksEdge));
 
         return hovered;
     }
@@ -217,12 +217,12 @@ internal sealed partial class ScriptWindow
     /// <summary>
     /// Wide enough for both tabs, each half the strip, to show their whole label in the theme's font.
     /// </summary>
-    private static float GetMinLevelWidth(ImGui gui)
+    private static float GetMinBlocksWidth(ImGui gui)
     {
         var settings = ImTabsPane.GetTextSettings(gui);
         var widestLabel = Mathf.Max(gui.MeasureTextSize(PlacedBlocksTab, settings).x, gui.MeasureTextSize(ReferenceTab, settings).x);
         var tabWidth = widestLabel + (gui.Style.Layout.Indent * 2);
-        return Mathf.Max(MinLevelWidth, (tabWidth * 2) + (gui.Style.Layout.Spacing * 4));
+        return Mathf.Max(MinBlocksWidth, (tabWidth * 2) + (gui.Style.Layout.Spacing * 4));
     }
 
     private static void DrawDivider(ImGui gui, ImRect edge)
@@ -407,10 +407,10 @@ internal sealed partial class ScriptWindow
     }
 
     /// <summary>
-    /// The window keeps which tab is shown rather than Imui's tabs pane, whose choice is lost when the Level side is
+    /// The window keeps which tab is shown rather than Imui's tabs pane, whose choice is lost when the Blocks side is
     /// collapsed and doesn't draw it.
     /// </summary>
-    private BlockProperties DrawLevelTabs(ImGui gui, ImRect rect)
+    private BlockProperties DrawBlocksTabs(ImGui gui, ImRect rect)
     {
         var bar = rect.WithPadding(gui.Style.Layout.Spacing).TakeTop(ImTabsPane.GetTabBarHeight(gui), out var content);
         var placedRect = bar.TakeLeft(bar.W / 2, out var referenceRect);
