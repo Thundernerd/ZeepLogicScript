@@ -39,7 +39,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     private readonly ManualLogSource _logger;
     private readonly StartupCheck _startupCheck;
     private readonly ConfigEntry<KeyCode> _toggleKey;
-    private readonly ConfigEntry<bool> _completionWhileTyping;
+    private readonly EditorAssist _editorAssist;
     private readonly PlacedBlockHighlight _highlight = new();
     private readonly ScriptList _scripts = new();
     private readonly DraftStore _drafts;
@@ -76,7 +76,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         DraftStore drafts,
         WindowStateStore stateStore,
         ConfigEntry<KeyCode> toggleKey,
-        ConfigEntry<bool> completionWhileTyping)
+        EditorAssist editorAssist)
     {
         _logger = logger;
         _startupCheck = startupCheck;
@@ -85,7 +85,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         _state = stateStore.Load();
         _savedState = _state.Copy();
         _toggleKey = toggleKey;
-        _completionWhileTyping = completionWhileTyping;
+        _editorAssist = editorAssist;
         _draftSaver = new DraftSaver(drafts, _scripts);
         _scriptListPanel = new ScriptListPanel(logger, _scripts, _draftSaver, OnScriptDeleted);
         _orphanedGroupsPanel = new OrphanedGroupsPanel(logger);
@@ -278,7 +278,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     {
         if (!_editors.TryGetValue(entry.Id, out var editor))
         {
-            editor = new ScriptEditor(entry.Text, _completionWhileTyping);
+            editor = new ScriptEditor(entry.Text, _editorAssist);
             _editors.Add(entry.Id, editor);
         }
 
