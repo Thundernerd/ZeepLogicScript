@@ -81,7 +81,9 @@ internal sealed class ReferencePanel
         var id = gui.GetControlId(name);
         var rect = gui.AddSingleRowRect(default);
         var open = filtering || !collapsed.Contains(name);
+        gui.BeginReadOnlyWithoutStyleChanges(filtering);
         ImFoldout.DrawFoldout(gui, id, ref open, name, rect);
+        gui.EndReadOnlyWithoutStyleChanges();
         if (filtering)
             return true;
 
