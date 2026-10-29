@@ -225,7 +225,10 @@ public sealed class CaretContext
     {
         callee = null;
         settingName = null;
-        var colon = tokens.FindLastIndex(t => t.Span.Start < word.Start);
+        // A call left open while it's typed carries on to the next line, so its value can be there
+        var colon = tokens.FindLastIndex(t => t.Span.Start < word.Start && t.Kind != TokenKind.NewLine);
+        var valueOnNextLine = colon >= 0 && colon + 1 < tokens.Count && tokens[colon + 1].Kind == TokenKind.NewLine
+            && tokens[colon + 1].Span.Start < word.Start;
         if (colon < 1 || tokens[colon].Kind != TokenKind.Colon || tokens[colon - 1].Kind != TokenKind.Name)
             return null;
 
@@ -235,6 +238,10 @@ public sealed class CaretContext
             && tokens[colon - 2].Text == DefaultStatement.Keyword
             && (colon == 2 || tokens[colon - 3].Kind == TokenKind.NewLine))
         {
+            if (valueOnNextLine)
+                return null;
+
+
             settingName = name;
             return name == BlockSetting.Hide.Name ? BlockSetting.Hide.Values : null;
         }

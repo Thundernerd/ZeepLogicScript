@@ -343,6 +343,7 @@ public class CompletionTests
     [InlineData("logic(a, b, op:|")]
     [InlineData("logic(a, op: a|nd)")]
     [InlineData("x = logic(\n    a,\n    op: |")]
+    [InlineData("x = logic(\n    a,\n    op:\n    |")]
     [InlineData("logic(a, hide: |")]
     [InlineData("passthrough(1, style: |")]
     [InlineData("death(1, player: 2|")]
@@ -360,6 +361,8 @@ public class CompletionTests
     [InlineData("logic(a, nope: |")]
     [InlineData("logic(style: |")]
     [InlineData("default op: |")]
+    [InlineData("default hide:\n|")]
+    [InlineData("x = logic(a)\nop:\n|")]
     [InlineData("lamp_1 = placed(\"L\")\nlamp_1(red: |")]
     public void Expression_AfterTheColonOfAnInputOrPlacedBlocksOrAnythingElse(string text)
     {
