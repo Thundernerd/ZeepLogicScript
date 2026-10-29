@@ -8,7 +8,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 internal sealed class ListExpression : Expression
 {
     public ListExpression(Position position, List<Expression> items)
-        : base(position, 1 + GetHeight(items))
+        : base(position, 1 + GetDepth(items))
     {
         Items = items;
     }

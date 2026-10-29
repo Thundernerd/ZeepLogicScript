@@ -14,7 +14,7 @@ internal sealed partial class Parser
     /// How deep an expression may nest, counting operators, calls, lists and parentheses; far more than a Script needs,
     /// and shallow enough that parsing and compiling it can't overflow the stack.
     /// </summary>
-    public const int MaxDepth = 100;
+    public const int MaxDepth = 50;
 
     private readonly List<Token> _tokens;
     private readonly List<Diagnostic> _diagnostics;
@@ -116,7 +116,7 @@ internal sealed partial class Parser
 
         try
         {
-            return CheckDepth(ParseUnaryOperand(), token);
+            return CheckDepth(ParseUnaryUnchecked(), token);
         }
         finally
         {
@@ -124,7 +124,7 @@ internal sealed partial class Parser
         }
     }
 
-    private Expression ParseUnaryOperand()
+    private Expression ParseUnaryUnchecked()
     {
         var token = Current;
         if (token.UnaryOperator is not { } op)
@@ -144,7 +144,7 @@ internal sealed partial class Parser
     /// </summary>
     private static Expression CheckDepth(Expression expression, Token token)
     {
-        if (expression.Height > MaxDepth)
+        if (expression.Depth > MaxDepth)
             throw TooDeep(token);
 
         return expression;
@@ -364,7 +364,7 @@ internal sealed partial class Parser
 
     private static SyntaxError TooDeep(Token token)
     {
-        return Error(token, $"This nests more than {MaxDepth} deep; split it up into named parts");
+        return Error(token, $"This nests more than {MaxDepth} deep; split it into definitions");
     }
 
     /// <param name="lineEnd">The line break right after a binary operator.</param>

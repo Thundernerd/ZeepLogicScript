@@ -5,20 +5,20 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 internal abstract class Expression : SyntaxNode
 {
-    protected Expression(Position position, int height = 1)
+    protected Expression(Position position, int depth = 1)
         : base(position)
     {
-        Height = height;
+        Depth = depth;
     }
 
     /// <summary>
-    /// The levels of expressions in this one, itself included, so a leaf is 1. Compile walks expressions recursively,
-    /// so the parser caps this to keep a deep one from overflowing the stack.
+    /// How many levels of expressions this one nests, itself included, so a leaf is 1. Compile walks expressions
+    /// recursively, so the parser caps this to keep a deep one from overflowing the stack.
     /// </summary>
-    public int Height { get; }
+    public int Depth { get; }
 
-    protected static int GetHeight(IEnumerable<Expression> children)
+    protected static int GetDepth(IEnumerable<Expression> children)
     {
-        return children.Select(c => c.Height).DefaultIfEmpty(0).Max();
+        return children.Select(c => c.Depth).DefaultIfEmpty(0).Max();
     }
 }
