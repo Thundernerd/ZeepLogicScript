@@ -1,4 +1,4 @@
-# Functions expand inline; Libraries stay local
+# Functions expand inline; libraries stay local
 
 A Script can define its own Functions: `function name(inputs) -> outputs` … `end`. Each call expands the body inline into ordinary Logic Blocks, as if the player had written that wiring by hand, so a level still plays without the mod. This partly supersedes ADR 0001's "no functions": what ADR 0001 rejects is code that runs at Compile time, like Lua's loops and conditionals, which players would expect to act at runtime. A Function runs nothing; it names a wiring pattern, the same way a Block Function names a block.
 

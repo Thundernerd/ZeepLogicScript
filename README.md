@@ -244,7 +244,7 @@ lamp_1(red: 255, green: (trigger_1 > 0) * 255)
 A Script never changes the settings of a placed block; set those in the editor.
 Each input takes one wire, counting the wires that are already in the level.
 
-### Functions
+### Your own functions
 
 A function gives a name to wiring you use more than once.
 Write it once, then call it like a block function:
