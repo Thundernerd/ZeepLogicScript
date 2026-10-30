@@ -15,17 +15,9 @@ internal sealed partial class HoverPopup
 {
     private const float MaxWidth = 480;
     private const double RestSeconds = 0.5;
-    private const string InputsLabel = "inputs";
-    private const string OutputsLabel = "outputs";
-    private const string SettingsLabel = "settings";
-
-    /// <summary>
-    /// The most of the box's width a name column takes, so the values beside it still have room.
-    /// </summary>
-    private const float MaxNameColumn = 0.45f;
 
     private readonly EditorAssist _assist;
-    private readonly List<(string Text, Color32 Color, ImRect Rect, bool Wrap)> _pieces = [];
+    private readonly List<TextPiece> _pieces = [];
     private Vector2 _mousePosition;
     private double _restStart;
     private bool _keyPressed;
@@ -134,53 +126,31 @@ internal sealed partial class HoverPopup
 
         if (info.Function is { } entry)
         {
-            AddEntry(gui, layout, entry, palette, text, name);
+            AddEntry(gui, layout, entry.Layout, palette, text, name);
         }
         else if (info.Argument is { } argument)
         {
-            layout.AddRows([(argument.Name, argument.Value)], name, text, 0);
+            layout.AddRows([new BlockReferenceRow(argument.Name, argument.Value)], name, text, 0);
         }
         else if (info.Definition != null)
         {
-            layout.AddRows([($"{info.DefinitionLine}:", info.Definition)], WindowColors.Muted, text, 0);
+            layout.AddRows([new BlockReferenceRow($"{info.DefinitionLine}:", info.Definition)], WindowColors.Muted, text, 0);
         }
 
         return layout.Size;
     }
 
-    private static void AddEntry(ImGui gui, PieceLayout layout, BlockReferenceEntry entry, SyntaxPalette palette, Color32 text, Color32 name)
+    private static void AddEntry(ImGui gui, PieceLayout layout, ReferenceEntryLayout entry, SyntaxPalette palette, Color32 text, Color32 name)
     {
-        var indent = gui.Style.Layout.Indent;
         layout.AddLine(entry.Function, palette.Get(HighlightKind.Function), 0);
-        if (entry.Aliases.Length > 0)
-            layout.AddLine($"alias {entry.Aliases}", WindowColors.Muted, 0);
+        if (entry.Note.Length > 0)
+            layout.AddLine(entry.Note, WindowColors.Muted, 0);
 
-        List<(string, string)> parts = [(InputsLabel, entry.Inputs)];
-        if (entry.Outputs != null)
-            parts.Add((OutputsLabel, entry.Outputs));
-
-        layout.AddRows(parts, WindowColors.Muted, text, 0);
-        if (entry.Outputs == null)
+        layout.AddRows(entry.Rows, WindowColors.Muted, text, 0);
+        foreach (var group in entry.Groups)
         {
-            layout.AddLine(OutputsLabel, WindowColors.Muted, 0);
-            layout.AddRows(ToPairs(entry.ModeOutputs), name, text, indent);
+            layout.AddLine(group.Heading, WindowColors.Muted, 0);
+            layout.AddRows(group.Rows, name, text, gui.Style.Layout.Indent);
         }
-
-        if (entry.Settings.Count > 0)
-        {
-            layout.AddLine(SettingsLabel, WindowColors.Muted, 0);
-            layout.AddRows(ToPairs(entry.Settings), name, text, indent);
-        }
-    }
-
-    private static List<(string, string)> ToPairs(IReadOnlyList<BlockReferenceRow> rows)
-    {
-        List<(string, string)> pairs = [];
-        foreach (var row in rows)
-        {
-            pairs.Add((row.Name, row.Value));
-        }
-
-        return pairs;
     }
 }

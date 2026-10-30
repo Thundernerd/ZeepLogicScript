@@ -8,6 +8,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 /// </summary>
 public sealed class BlockReferenceEntry
 {
+    private const string PlacedOnlyNote = "placed(\"UID\") only";
+
     public BlockReferenceEntry(
         string function,
         string aliases,
@@ -24,6 +26,7 @@ public sealed class BlockReferenceEntry
         ModeOutputs = modeOutputs;
         Settings = settings;
         IsPlacedOnly = isPlacedOnly;
+        Layout = CreateLayout();
     }
 
     public string Function { get; }
@@ -55,6 +58,8 @@ public sealed class BlockReferenceEntry
     /// </summary>
     public bool IsPlacedOnly { get; }
 
+    public ReferenceEntryLayout Layout { get; }
+
     /// <summary>
     /// Whether any part contains <paramref name="filter"/>, ignoring case; a blank filter matches every entry.
     /// </summary>
@@ -67,5 +72,28 @@ public sealed class BlockReferenceEntry
             || ReferenceText.Contains(Inputs, trimmed)
             || (Outputs != null && ReferenceText.Contains(Outputs, trimmed))
             || ModeOutputs.Concat(Settings).Any(r => ReferenceText.Contains(r.Name, trimmed) || ReferenceText.Contains(r.Value, trimmed));
+    }
+
+    private ReferenceEntryLayout CreateLayout()
+    {
+        List<BlockReferenceRow> rows = [new BlockReferenceRow(ReferenceEntryLayout.InputsLabel, Inputs)];
+        List<ReferenceEntryGroup> groups = [];
+        if (Outputs != null)
+            rows.Add(new BlockReferenceRow(ReferenceEntryLayout.OutputsLabel, Outputs));
+        else
+            groups.Add(new ReferenceEntryGroup(ReferenceEntryLayout.OutputsLabel, ModeOutputs));
+
+        if (Settings.Count > 0)
+            groups.Add(new ReferenceEntryGroup(ReferenceEntryLayout.SettingsLabel, Settings));
+
+        return new ReferenceEntryLayout(Function, GetNote(), rows, groups);
+    }
+
+    private string GetNote()
+    {
+        if (IsPlacedOnly)
+            return PlacedOnlyNote;
+
+        return Aliases.Length > 0 ? $"alias {Aliases}" : string.Empty;
     }
 }

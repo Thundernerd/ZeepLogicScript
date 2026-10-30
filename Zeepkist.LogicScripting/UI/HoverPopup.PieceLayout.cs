@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Imui.Controls;
 using Imui.Core;
+using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using UnityEngine;
 
 namespace TNRD.Zeepkist.LogicScripting.UI;
@@ -14,14 +15,14 @@ internal sealed partial class HoverPopup
     private sealed class PieceLayout
     {
         private readonly ImGui _gui;
-        private readonly List<(string Text, Color32 Color, ImRect Rect, bool Wrap)> _pieces;
+        private readonly List<TextPiece> _pieces;
         private readonly float _maxWidth;
         private readonly float _lineHeight;
         private readonly ImTextSettings _wrapped;
         private float _y;
         private float _width;
 
-        public PieceLayout(ImGui gui, List<(string Text, Color32 Color, ImRect Rect, bool Wrap)> pieces, float maxWidth, float lineHeight)
+        public PieceLayout(ImGui gui, List<TextPiece> pieces, float maxWidth, float lineHeight)
         {
             _gui = gui;
             _pieces = pieces;
@@ -41,29 +42,29 @@ internal sealed partial class HoverPopup
         /// The labels in a column as wide as the longest, each value wrapping beside its label. A label too long for
         /// that column gets a line of its own, with its value indented on the next.
         /// </summary>
-        public void AddRows(IReadOnlyList<(string Label, string Value)> rows, Color32 labelColor, Color32 valueColor, float indent)
+        public void AddRows(IReadOnlyList<BlockReferenceRow> rows, Color32 labelColor, Color32 valueColor, float indent)
         {
             var space = _gui.MeasureTextSize(" ").x;
-            var maxColumn = (_maxWidth - indent) * MaxNameColumn;
+            var maxColumn = (_maxWidth - indent) * ReferencePanel.MaxNameColumn;
             var column = 0f;
             foreach (var row in rows)
             {
-                var labelWidth = _gui.MeasureTextSize(row.Label).x + space;
+                var labelWidth = _gui.MeasureTextSize(row.Name).x + space;
                 if (labelWidth <= maxColumn)
                     column = Mathf.Max(column, labelWidth);
             }
 
             foreach (var row in rows)
             {
-                var labelWidth = _gui.MeasureTextSize(row.Label).x;
+                var labelWidth = _gui.MeasureTextSize(row.Name).x;
                 if (labelWidth + space > maxColumn)
                 {
-                    AddLine(row.Label, labelColor, indent);
+                    AddLine(row.Name, labelColor, indent);
                     AddLine(row.Value, valueColor, indent + _gui.Style.Layout.Indent);
                     continue;
                 }
 
-                _pieces.Add((row.Label, labelColor, new ImRect(indent, _y - _lineHeight, labelWidth, _lineHeight), false));
+                _pieces.Add(new TextPiece(row.Name, labelColor, new ImRect(indent, _y - _lineHeight, labelWidth, _lineHeight)));
                 AddLine(row.Value, valueColor, indent + column);
             }
         }
@@ -76,7 +77,7 @@ internal sealed partial class HoverPopup
         {
             var available = Mathf.Max(1, _maxWidth - x);
             var height = Mathf.Max(_lineHeight, _gui.MeasureTextSize(text, _wrapped, new Vector2(available, 0)).y);
-            _pieces.Add((text, color, new ImRect(x, _y - height, available, height), true));
+            _pieces.Add(new TextPiece(text, color, new ImRect(x, _y - height, available, height), wrap: true));
             _y -= height;
             _width = Mathf.Max(_width, x + Mathf.Min(_gui.MeasureTextSize(text).x, available));
         }
