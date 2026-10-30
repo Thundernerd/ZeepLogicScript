@@ -17,17 +17,19 @@ public sealed class BlockType
 
     public BlockType(
         string function,
+        BlockCategory category,
         int blockId,
         int length,
         IReadOnlyList<BlockConnector> inputs,
         IReadOnlyList<BlockConnector> outputs,
         params BlockSetting[] settings)
-        : this(function, [new BlockStyle(null, blockId, length)], inputs, outputs, settings)
+        : this(function, category, [new BlockStyle(null, blockId, length)], inputs, outputs, settings)
     {
     }
 
     public BlockType(
         string function,
+        BlockCategory category,
         IReadOnlyList<BlockStyle> styles,
         IReadOnlyList<BlockConnector> inputs,
         IReadOnlyList<BlockConnector> outputs,
@@ -37,6 +39,7 @@ public sealed class BlockType
         BlockRange range = null)
     {
         Function = function;
+        Category = category;
         Styles = styles;
         Inputs = inputs;
         Outputs = outputs;
@@ -50,6 +53,11 @@ public sealed class BlockType
     /// The Block Function name; for a placed-only type, the name a Placed Block Reference is checked against.
     /// </summary>
     public string Function { get; }
+
+    /// <summary>
+    /// Null only for <see cref="BlockManifest.OtherBlock"/>, which the Reference tab doesn't list.
+    /// </summary>
+    public BlockCategory Category { get; }
 
     /// <summary>
     /// The blocks this type can be, one per block ID. The first is what a call without <c>style:</c> places.

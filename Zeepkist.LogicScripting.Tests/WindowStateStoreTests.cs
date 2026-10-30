@@ -68,6 +68,44 @@ public class WindowStateStoreTests
     }
 
     [Fact]
+    public void CollapsedReferenceCategories_AreSavedAndLoaded()
+    {
+        var state = new WindowState();
+        state.CollapsedReferenceCategories.Add("Movers");
+
+        _store.Save(state);
+
+        Assert.Equal(["Movers"], _store.Load().CollapsedReferenceCategories);
+    }
+
+    [Fact]
+    public void AFileWithoutCollapsedReferenceCategories_LoadsThemAllOpen()
+    {
+        _storage.WriteJson(FileName, """{ "Open": true }""");
+
+        Assert.Empty(_store.Load().CollapsedReferenceCategories);
+    }
+
+    [Fact]
+    public void NullCollapsedReferenceCategories_LoadThemAllOpen()
+    {
+        _storage.WriteJson(FileName, """{ "CollapsedReferenceCategories": null }""");
+
+        Assert.Empty(_store.Load().CollapsedReferenceCategories);
+    }
+
+    [Fact]
+    public void ACopy_DoesNotShareCollapsedReferenceCategories()
+    {
+        var state = new WindowState();
+        var copy = state.Copy();
+
+        state.CollapsedReferenceCategories.Add("Movers");
+
+        Assert.False(state.IsSameAs(copy));
+    }
+
+    [Fact]
     public void NoFile_LoadsAClosedNeverPlacedWindow()
     {
         var state = _store.Load();

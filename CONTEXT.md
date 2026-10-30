@@ -60,6 +60,10 @@ _Avoid_: infinite loop, recursion, deadlock (deadlock is the runtime symptom)
 The mod's per-Logic-Block-type description: block IDs, Block Function name, Connector indices, directions and names, Setting keys with their option names. A hand-written table, checked against the game's blocks on entering the editor; a block that doesn't match is turned off. A type whose blocks only differ in look has one Block Function, and `style:` picks the block.
 _Avoid_: schema, registry, block definitions
 
+**Block Category**:
+The heading a Logic Block type is listed under in the Reference tab: Inputs, Operators, Outputs or Movers, split the same way as the subfolders of the game's logic block folder in the block browser. Every type in the Block Manifest has one.
+_Avoid_: group (a Block Group is what a Compile placed), folder, section
+
 **Block Function**:
 The Script function named after a Logic Block type (`logic`, `delay`, `player_input`). Each call places one block; positional arguments are input Wires in Connector order, and a named argument either wires the input of that name (`logic(a: x)`) or gives a Setting. Operators like `&` and `+` are shorthand for a Block Function call.
 _Avoid_: builtin, node constructor, command

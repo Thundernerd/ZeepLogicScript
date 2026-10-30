@@ -12,7 +12,7 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// The window itself: three regions side by side, Scripts on the left, the current Script in the center and Blocks
 /// on the right (those in the level and those a Script can use), whose sides collapse to a strip. The sides and the
 /// error panel under the editor are resized by dragging their inner edge, and the error panel hides to its header.
-/// Open state, size, position, panel sizes and collapsed panels are kept in the <see cref="WindowState"/>.
+/// Open state, size, position, panel sizes, collapsed panels and collapsed Reference categories are kept in the <see cref="WindowState"/>.
 /// </summary>
 internal sealed partial class ScriptWindow
 {
@@ -431,7 +431,7 @@ internal sealed partial class ScriptWindow
             content.TakeTop(gui.GetRowHeight() + spacing, out var entries);
             _referencePanel.DrawFilter(gui, filter);
             WindowRegion.Begin(gui, entries);
-            _referencePanel.DrawEntries(gui);
+            _referencePanel.DrawEntries(gui, _state.CollapsedReferenceCategories);
             WindowRegion.End(gui);
             gui.PopId();
             return null;

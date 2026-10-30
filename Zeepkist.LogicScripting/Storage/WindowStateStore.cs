@@ -32,7 +32,7 @@ internal sealed class WindowStateStore
         {
             // A hand-edited file could otherwise break the window
             var state = result.Value;
-            state.ReplaceNullPanels();
+            state.ReplaceNulls();
             return state;
         }
 

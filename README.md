@@ -77,8 +77,10 @@ The new group replaces the old one, at the same spot.
 - **Blocks**: two tabs.
   - **Placed blocks**: the blocks you placed by hand that the Script refers to.
     Select blocks in the level and click **Insert selected** to add them to the Script.
-  - **Reference**: every block function, with its inputs, outputs and settings.
-    Type in the filter to search.
+  - **Reference**: every block function, with its inputs, outputs and settings,
+    under four headings, Inputs, Operators, Outputs and Movers, split the same way as the subfolders of the game's logic block folder.
+    Click a heading to collapse it; the window remembers which ones are collapsed.
+    Type in the filter to search: only headings with a match show, and they show open.
 
 The text editor knows the usual shortcuts:
 Ctrl+Z / Ctrl+Y to undo and redo, Ctrl+D to duplicate a line, Ctrl+Shift+K to delete a line,

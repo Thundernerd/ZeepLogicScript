@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Imui.Controls;
 using Imui.Core;
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
@@ -8,7 +9,7 @@ using UnityEngine;
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// The Block Functions and placed-only types a Script can use, with a filter.
+/// The Block Functions and placed-only types a Script can use, by category, with a filter.
 /// </summary>
 internal sealed class ReferencePanel
 {
@@ -43,20 +44,55 @@ internal sealed class ReferencePanel
         FilterFocused = FieldFocus.Update(gui, id);
     }
 
-    public void DrawEntries(ImGui gui)
+    /// <summary>
+    /// A foldout per category with an entry that matches the filter. While a filter is typed every shown category is
+    /// open, whatever <paramref name="collapsed"/> says, so a match is never hidden.
+    /// </summary>
+    public void DrawEntries(ImGui gui, ICollection<string> collapsed)
     {
+        var filtering = _filter.Trim().Length > 0;
         var shown = 0;
-        foreach (var entry in BlockReference.Entries)
+        foreach (var category in BlockReference.Categories)
         {
-            if (!entry.Matches(_filter))
+            if (!category.Entries.Any(e => e.Matches(_filter)))
                 continue;
 
-            DrawEntry(gui, entry);
             shown++;
+            if (!DrawHeader(gui, category.Category.Name, collapsed, filtering))
+                continue;
+
+            foreach (var entry in category.Entries)
+            {
+                if (entry.Matches(_filter))
+                    DrawEntry(gui, entry);
+            }
         }
 
         if (shown == 0)
             gui.Text("Nothing matches", wrap: true);
+    }
+
+    /// <summary>
+    /// Whether the category is open. Clicking it while filtering does nothing, as it can't close then.
+    /// </summary>
+    private static bool DrawHeader(ImGui gui, string name, ICollection<string> collapsed, bool filtering)
+    {
+        gui.AddSpacingIfLayoutFrameNotEmpty();
+        var id = gui.GetControlId(name);
+        var rect = gui.AddSingleRowRect(default);
+        var open = filtering || !collapsed.Contains(name);
+        gui.BeginReadOnlyWithoutStyleChanges(filtering);
+        ImFoldout.DrawFoldout(gui, id, ref open, name, rect);
+        gui.EndReadOnlyWithoutStyleChanges();
+        if (filtering)
+            return true;
+
+        if (open)
+            collapsed.Remove(name);
+        else if (!collapsed.Contains(name))
+            collapsed.Add(name);
+
+        return open;
     }
 
     /// <summary>

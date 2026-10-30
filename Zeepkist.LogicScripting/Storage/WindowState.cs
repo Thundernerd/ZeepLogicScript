@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 
@@ -31,6 +32,11 @@ internal sealed class WindowState
     public PanelState Blocks { get; set; } = new();
     public PanelState Errors { get; set; } = new();
 
+    /// <summary>
+    /// The names of the Reference tab's categories shown as just their header.
+    /// </summary>
+    public List<string> CollapsedReferenceCategories { get; set; } = [];
+
     [JsonProperty("Level")]
     private PanelState LegacyLevel
     {
@@ -43,6 +49,7 @@ internal sealed class WindowState
         foreach (var (get, set) in _panels)
             set(copy, get(this).Copy());
 
+        copy.CollapsedReferenceCategories = [.. CollapsedReferenceCategories];
         return copy;
     }
 
@@ -53,18 +60,22 @@ internal sealed class WindowState
             && Y == other.Y
             && Width == other.Width
             && Height == other.Height
-            && _panels.All(panel => panel.Get(this).IsSameAs(panel.Get(other)));
+            && _panels.All(panel => panel.Get(this).IsSameAs(panel.Get(other)))
+            && CollapsedReferenceCategories.SequenceEqual(other.CollapsedReferenceCategories);
     }
 
     /// <summary>
-    /// Gives each panel the default layout when the file set it to null, which overrides the property's default.
+    /// Gives each panel the default layout, and the Reference tab every category open, when the file set them to
+    /// null, which overrides the property's default.
     /// </summary>
-    public void ReplaceNullPanels()
+    public void ReplaceNulls()
     {
         foreach (var (get, set) in _panels)
         {
             if (get(this) == null)
                 set(this, new PanelState());
         }
+
+        CollapsedReferenceCategories ??= [];
     }
 }

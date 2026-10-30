@@ -47,6 +47,7 @@ public static class BlockManifest
 
     public static readonly BlockType Generator = new(
         "generator",
+        BlockCategory.Inputs,
         2414,
         1,
         [],
@@ -55,6 +56,7 @@ public static class BlockManifest
 
     public static readonly BlockType Logic = new(
         "logic",
+        BlockCategory.Operators,
         2420,
         3,
         Numbered(0, "a", "b", "op_in"),
@@ -63,6 +65,7 @@ public static class BlockManifest
 
     public static readonly BlockType Math = new(
         "math",
+        BlockCategory.Operators,
         2416,
         3,
         Numbered(0, "a", "b", "op_in"),
@@ -71,6 +74,7 @@ public static class BlockManifest
 
     public static readonly BlockType Math3Pins = new(
         "math_3_pins",
+        BlockCategory.Operators,
         2453,
         4,
         Numbered(0, "start", "end", "t", "op_in"),
@@ -79,6 +83,7 @@ public static class BlockManifest
 
     public static readonly BlockType Digitizer = new(
         "digitizer",
+        BlockCategory.Operators,
         2418,
         1,
         [new BlockConnector("x", 0)],
@@ -87,6 +92,7 @@ public static class BlockManifest
 
     public static readonly BlockType Transistor = new(
         "transistor",
+        BlockCategory.Operators,
         2419,
         2,
         Numbered(0, "data", "gate"),
@@ -94,6 +100,7 @@ public static class BlockManifest
 
     public static readonly BlockType Multiplexer = new(
         "multiplexer",
+        BlockCategory.Operators,
         2436,
         3,
         Numbered(0, "in1", "in2", "in3", "in4", "select"),
@@ -101,6 +108,7 @@ public static class BlockManifest
 
     public static readonly BlockType Demultiplexer = new(
         "demultiplexer",
+        BlockCategory.Operators,
         2437,
         3,
         Numbered(4, "select", "data"),
@@ -108,6 +116,7 @@ public static class BlockManifest
 
     public static readonly BlockType Delay = new(
         "delay",
+        BlockCategory.Operators,
         2428,
         1,
         [new BlockConnector("x", 0)],
@@ -118,6 +127,7 @@ public static class BlockManifest
 
     public static readonly BlockType Pulser = new(
         "pulser",
+        BlockCategory.Operators,
         2439,
         1,
         [new BlockConnector("x", 0)],
@@ -128,6 +138,7 @@ public static class BlockManifest
     // 2 to 9
     public static readonly BlockType Random = new(
         "random",
+        BlockCategory.Operators,
         [new BlockStyle(null, 2425, 1)],
         Numbered(0, "trigger", "max_in"),
         [new BlockConnector("out", 2)],
@@ -136,6 +147,7 @@ public static class BlockManifest
 
     public static readonly BlockType Ticker = new(
         "ticker",
+        BlockCategory.Inputs,
         2429,
         1,
         [],
@@ -143,6 +155,7 @@ public static class BlockManifest
 
     public static readonly BlockType ResettableTicker = new(
         "resettable_ticker",
+        BlockCategory.Operators,
         2433,
         1,
         [new BlockConnector("reset", 0)],
@@ -150,6 +163,7 @@ public static class BlockManifest
 
     public static readonly BlockType Timer = new(
         "timer",
+        BlockCategory.Operators,
         2444,
         2,
         Numbered(0, "duration", "start"),
@@ -157,6 +171,7 @@ public static class BlockManifest
 
     public static readonly BlockType SimpleMemory = new(
         "simple_memory",
+        BlockCategory.Operators,
         2431,
         2,
         Numbered(0, "data", "write"),
@@ -165,6 +180,7 @@ public static class BlockManifest
 
     public static readonly BlockType CheeseMemory = new(
         "cheese_memory",
+        BlockCategory.Operators,
         2432,
         2,
         Numbered(0, "data", "write"),
@@ -173,6 +189,7 @@ public static class BlockManifest
 
     public static readonly BlockType Counter = new(
         "counter",
+        BlockCategory.Operators,
         2434,
         2,
         Numbered(0, "increment", "decrement", "reset"),
@@ -183,6 +200,7 @@ public static class BlockManifest
 
     public static readonly BlockType ToggleLatch = new(
         "toggle_latch",
+        BlockCategory.Operators,
         2435,
         1,
         [new BlockConnector("x", 0)],
@@ -191,6 +209,7 @@ public static class BlockManifest
 
     public static readonly BlockType DateTimer = new(
         "date_timer",
+        BlockCategory.Inputs,
         [new BlockStyle(null, 2430, 3, maxX: 1)],
         [],
         Numbered(0, "year", "month", "day", "hour", "minute", "second"),
@@ -198,6 +217,7 @@ public static class BlockManifest
 
     public static readonly BlockType PlayerInput = new(
         "player_input",
+        BlockCategory.Inputs,
         [new BlockStyle(null, 2438, 2, minX: -1)],
         [],
         Numbered(0, "arms_up", "brake", "left", "right", "analog_left", "analog_right", "horn"),
@@ -205,6 +225,7 @@ public static class BlockManifest
 
     public static readonly BlockType SimpleTelemetry = new(
         "simple_telemetry",
+        BlockCategory.Inputs,
         [new BlockStyle(null, 2440, 3)],
         [],
         Numbered(0, "speed", "yaw", "up", "state"),
@@ -217,6 +238,7 @@ public static class BlockManifest
 
     public static readonly BlockType WheelTelemetry = new(
         "wheel_telemetry",
+        BlockCategory.Inputs,
         [new BlockStyle(null, 2441, 3, minX: -1)],
         [],
         Numbered(0, "all", "any", "lf", "rf", "lr", "rr"),
@@ -224,6 +246,7 @@ public static class BlockManifest
 
     public static readonly BlockType Passthrough = new(
         "passthrough",
+        BlockCategory.Operators,
         [
             new BlockStyle("normal", 2426, 1),
             new BlockStyle("skinny_1h", 2505, 1),
@@ -235,12 +258,14 @@ public static class BlockManifest
 
     public static readonly BlockType PowerDisplay = new(
         "power_display",
+        BlockCategory.Operators,
         [new BlockStyle("normal", 2415, 2), new BlockStyle("compact", 2513, 1)],
         [new BlockConnector("x", 0)],
         [new BlockConnector("out", 1)]);
 
     public static readonly BlockType Toggler = new(
         "toggler",
+        BlockCategory.Outputs,
         2417,
         1,
         [new BlockConnector("x", 0)],
@@ -249,6 +274,7 @@ public static class BlockManifest
 
     public static readonly BlockType Death = new(
         "death",
+        BlockCategory.Outputs,
         2427,
         1,
         [new BlockConnector("trigger", 0)],
@@ -257,6 +283,7 @@ public static class BlockManifest
 
     public static readonly BlockType Parking = new(
         "parking",
+        BlockCategory.Outputs,
         2443,
         1,
         [new BlockConnector("x", 0)],
@@ -265,6 +292,7 @@ public static class BlockManifest
 
     public static readonly BlockType StateChanger = new(
         "state_changer",
+        BlockCategory.Outputs,
         2450,
         1,
         Numbered(0, "trigger", "state"),
@@ -274,6 +302,7 @@ public static class BlockManifest
     // Slightly over two cells wide, centered on its pivot, so it reaches into the cells on both sides
     public static readonly BlockType ForceGiver = new(
         "force_giver",
+        BlockCategory.Outputs,
         [new BlockStyle(null, 2446, 3, minX: -1, maxX: 1)],
         Numbered(0, "enable", "x", "y", "z"),
         [],
@@ -287,6 +316,7 @@ public static class BlockManifest
     // Its ~59 multipliers come later
     public static readonly BlockType PropertyMultiplier = new(
         "property_multiplier",
+        BlockCategory.Outputs,
         2449,
         1,
         Numbered(0, "apply", "reset"),
@@ -295,42 +325,49 @@ public static class BlockManifest
 
     public static readonly BlockType Trigger = PlacedOnly(
         "trigger",
+        BlockCategory.Inputs,
         [new BlockStyle(null, 2413, 1)],
         [],
         [new BlockConnector("out", 0)]);
 
     public static readonly BlockType DistanceSensor = PlacedOnly(
         "distance_sensor",
+        BlockCategory.Inputs,
         [new BlockStyle(null, 2442, 3)],
         [],
         Numbered(0, "distance", "x", "y", "z"));
 
     public static readonly BlockType Lamp = PlacedOnly(
         "lamp",
+        BlockCategory.Outputs,
         [new BlockStyle(null, 2448, 1)],
         Numbered(0, "intensity", "red", "green", "blue", "range", "angle"),
         []);
 
     public static readonly BlockType Cannon = PlacedOnly(
         "cannon",
+        BlockCategory.Outputs,
         [new BlockStyle(null, 2451, 1)],
         Numbered(0, "fire", "object"),
         []);
 
     public static readonly BlockType DynamicMover = PlacedOnly(
         "dynamic_mover",
+        BlockCategory.Movers,
         [new BlockStyle("normal", 2452, 1), new BlockStyle("primitives", 2457, 1)],
         [new BlockConnector("go", 0), new BlockConnector("return", 1), new BlockConnector("reverse", 5)],
         Numbered(2, "arrived_target", "arrived_start", "player_on"));
 
     public static readonly BlockType DynamicRotator = PlacedOnly(
         "dynamic_rotator",
+        BlockCategory.Movers,
         [new BlockStyle(null, 2455, 1)],
         Numbered(0, "speed", "stop_at_target", "target_angle"),
         Numbered(3, "arrived", "angle"));
 
     public static readonly BlockType AdvancedMover = PlacedOnly(
         "advanced_mover",
+        BlockCategory.Movers,
         [new BlockStyle("normal", 2456, 1), new BlockStyle("primitives", 2458, 1)],
         Numbered(0, "x", "y", "z", "rot_x", "rot_y", "rot_z"),
         []);
@@ -339,7 +376,7 @@ public static class BlockManifest
     /// Any block the Block Manifest doesn't describe, reached through a Placed Block Reference. It has no Connectors,
     /// so it can only be a Toggler target.
     /// </summary>
-    public static readonly BlockType OtherBlock = new("block", [], [], [], isPlacedOnly: true);
+    public static readonly BlockType OtherBlock = new("block", null, [], [], [], isPlacedOnly: true);
 
     /// <summary>
     /// Every type, Block Functions first. The decorative Simple Rotator has no Connectors and isn't one of them.
@@ -424,11 +461,12 @@ public static class BlockManifest
 
     private static BlockType PlacedOnly(
         string function,
+        BlockCategory category,
         IReadOnlyList<BlockStyle> styles,
         IReadOnlyList<BlockConnector> inputs,
         IReadOnlyList<BlockConnector> outputs)
     {
-        return new BlockType(function, styles, inputs, outputs, isPlacedOnly: true);
+        return new BlockType(function, category, styles, inputs, outputs, isPlacedOnly: true);
     }
 
     private static BlockConnector[] Numbered(int firstIndex, params string[] names)
