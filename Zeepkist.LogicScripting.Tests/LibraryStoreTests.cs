@@ -77,7 +77,7 @@ public class LibraryStoreTests
     }
 
     [Fact]
-    public void EntriesWithoutAnIdOrName_OrWithATakenId_AreSkipped()
+    public void EntriesWithoutAnIdOrName_OrWithATakenIdOrName_AreSkipped()
     {
         _storage.WriteJson(FileName, """
             { "Libraries": [
@@ -85,6 +85,7 @@ public class LibraryStoreTests
                 { "Name": "no_id", "Text": "" },
                 { "Id": "b", "Text": "" },
                 { "Id": "a", "Name": "again", "Text": "" },
+                { "Id": "c", "Name": "Timing", "Text": "" },
                 null
             ] }
             """);

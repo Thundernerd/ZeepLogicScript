@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
@@ -68,7 +69,8 @@ internal sealed class LibraryStore
             return [];
         }
 
-        // A file edited by hand may lack a field, or hold an id twice
+        // A file edited by hand may lack a field, or hold an id or a name twice, which would make one Library hide
+        // another
         List<Library> libraries = [];
         foreach (var entry in result.Value.Libraries ?? [])
         {
@@ -76,8 +78,11 @@ internal sealed class LibraryStore
                 continue;
 
             var id = new LibraryId(entry.Id);
-            if (libraries.Any(l => l.Id == id))
+            if (libraries.Any(l => l.Id == id || string.Equals(l.Name, entry.Name, StringComparison.OrdinalIgnoreCase)))
+            {
+                _logger.LogWarning($"Skipped Library \"{entry.Name}\": its id or name is already taken in the file");
                 continue;
+            }
 
             libraries.Add(new Library(id, entry.Name, entry.Text ?? string.Empty));
         }
