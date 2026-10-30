@@ -189,7 +189,10 @@ internal sealed partial class GraphBuilder
         {
             foreach (var argument in arguments)
             {
-                scope.Names.Add(argument.Key, argument.Value);
+                if (argument.Value == null)
+                    scope.FailedNames.Add(argument.Key);
+                else
+                    scope.Names.Add(argument.Key, argument.Value);
             }
         });
     }
@@ -227,7 +230,9 @@ internal sealed partial class GraphBuilder
 
     /// <summary>
     /// Every input's value by name, each evaluated once in the caller's scope, so a body that uses an input twice
-    /// shares its blocks. Null after reporting what's wrong with the arguments.
+    /// shares its blocks. A value that failed, already reported, is null and stands for nothing in the body, which is
+    /// still checked with the others, such as the constants passed to its Settings. Null after reporting that the
+    /// arguments don't match the inputs.
     /// </summary>
     private Dictionary<string, Resolved> BindArguments(CallExpression call, FunctionDefinition function)
     {
@@ -238,7 +243,6 @@ internal sealed partial class GraphBuilder
         for (var i = 0; i < call.Arguments.Count; i++)
         {
             var value = EvaluateInput(call, function, i, call.Arguments[i], call.Arguments[i].Position);
-            failed |= value == null;
             if (i < inputs.Count)
             {
                 values[i] = value;
@@ -258,7 +262,6 @@ internal sealed partial class GraphBuilder
         {
             var input = inputs.FindIndex(i => i.Name == argument.Name);
             var value = EvaluateInput(call, function, input, argument.Value, argument.ValuePosition);
-            failed |= value == null;
             if (!givenNames.Add(argument.Name))
             {
                 Error(argument, $"'{argument.Name}' is given twice");
@@ -306,18 +309,18 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// The value of an argument for the input at <paramref name="input"/>, which is -1 when the call names none: a
+    /// The value of an argument for the input at <paramref name="inputIndex"/>, which is -1 when the call names none: a
     /// constant for a Setting input, or else what <see cref="EvaluateArgumentValue"/> gives. Null after reporting why
     /// there's none.
     /// </summary>
-    private Resolved EvaluateInput(CallExpression call, FunctionDefinition function, int input, Expression value, Position valuePosition)
+    private Resolved EvaluateInput(CallExpression call, FunctionDefinition function, int inputIndex, Expression value, Position valuePosition)
     {
-        if (function == null || input < 0 || input >= function.Inputs.Count)
+        if (function == null || inputIndex < 0 || inputIndex >= function.Inputs.Count)
             return EvaluateArgumentValue(value);
 
-        var parameter = function.Inputs[input];
-        return GetSettingInputs(function, FunctionsOf(function)).ContainsKey(parameter.Name)
-            ? BindSetting(call, parameter, value, valuePosition)
+        var input = function.Inputs[inputIndex];
+        return GetSettingInputs(function, FunctionsOf(function)).ContainsKey(input.Name)
+            ? BindSetting(call, input, value, valuePosition)
             : EvaluateArgumentValue(value);
     }
 

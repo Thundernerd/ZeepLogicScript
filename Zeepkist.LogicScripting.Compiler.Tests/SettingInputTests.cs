@@ -100,6 +100,22 @@ public class SettingInputTests
     }
 
     [Fact]
+    public void WrongConstant_InAnUncalledFunction_IsReported()
+    {
+        var result = Compile(PulseAfter + "function slow(x) -> y\n    y = pulse_after(x, ticks: 0)\nend\npower_display(1)");
+
+        Assert.Equal(["5:31: ticks must be at least 1"], result.Errors.Select(e => e.ToString()));
+    }
+
+    [Fact]
+    public void WrongConstant_NextToAFailedArgument_IsReported()
+    {
+        var result = Compile(PulseAfter + "power_display(pulse_after(nope, ticks: 0))");
+
+        Assert.Equal(["4:27: 'nope' isn't defined", "4:40: ticks must be at least 1"], result.Errors.Select(e => e.ToString()));
+    }
+
+    [Fact]
     public void WrongOptionWord_IsReportedWhereTheCallWroteIt()
     {
         var result = Compile("function f(a, b, o) -> y\n    y = logic(a, b, op: o)\nend\npower_display(f(1, 0, o: maybe))");
