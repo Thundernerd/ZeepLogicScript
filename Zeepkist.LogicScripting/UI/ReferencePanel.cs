@@ -4,15 +4,18 @@ using Imui.Controls;
 using Imui.Core;
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
+using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 using UnityEngine;
 
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// The Block Functions and placed-only types a Script can use, by category, with a filter.
+/// The Block Functions and placed-only types a Script can use, by category, then the Libraries' Functions, with a
+/// filter.
 /// </summary>
 internal sealed class ReferencePanel
 {
+    private const string LibrariesHeader = "Libraries";
     private const string PlacedOnlyNote = "placed(\"UID\") only";
     private const string InputsLabel = "inputs";
     private const string OutputsLabel = "outputs";
@@ -23,7 +26,16 @@ internal sealed class ReferencePanel
     /// </summary>
     private const float MaxNameColumn = 0.45f;
 
+    private readonly LibraryList _libraries;
+
     private string _filter = string.Empty;
+    private IReadOnlyList<LibraryReferenceEntry> _libraryEntries = [];
+    private int _libraryEntriesVersion = -1;
+
+    public ReferencePanel(LibraryList libraries)
+    {
+        _libraries = libraries;
+    }
 
     public bool FilterFocused { get; private set; }
 
@@ -45,8 +57,9 @@ internal sealed class ReferencePanel
     }
 
     /// <summary>
-    /// A foldout per category with an entry that matches the filter. While a filter is typed every shown category is
-    /// open, whatever <paramref name="collapsed"/> says, so a match is never hidden.
+    /// A foldout per category with an entry that matches the filter, and one for the Libraries' Functions. While a
+    /// filter is typed every shown category is open, whatever <paramref name="collapsed"/> says, so a match is never
+    /// hidden.
     /// </summary>
     public void DrawEntries(ImGui gui, ICollection<string> collapsed)
     {
@@ -68,8 +81,36 @@ internal sealed class ReferencePanel
             }
         }
 
+        var libraryEntries = GetLibraryEntries();
+        if (libraryEntries.Any(e => e.Matches(_filter)))
+        {
+            shown++;
+            if (DrawHeader(gui, LibrariesHeader, collapsed, filtering))
+            {
+                foreach (var entry in libraryEntries)
+                {
+                    if (entry.Matches(_filter))
+                        DrawEntry(gui, entry);
+                }
+            }
+        }
+
         if (shown == 0)
             gui.Text("Nothing matches", wrap: true);
+    }
+
+    /// <summary>
+    /// Made again only when a Library changed since the last time.
+    /// </summary>
+    private IReadOnlyList<LibraryReferenceEntry> GetLibraryEntries()
+    {
+        if (_libraryEntriesVersion != _libraries.Version)
+        {
+            _libraryEntries = LibraryReference.Describe(_libraries);
+            _libraryEntriesVersion = _libraries.Version;
+        }
+
+        return _libraryEntries;
     }
 
     /// <summary>
@@ -110,8 +151,7 @@ internal sealed class ReferencePanel
         if (note.Length > 0)
             gui.Text(note, WindowColors.Muted, wrap: true);
 
-        var indent = gui.Style.Layout.Indent;
-        var labelWidth = gui.MeasureTextSize(OutputsLabel).x + indent;
+        var labelWidth = GetLabelWidth(gui);
         DrawRow(gui, InputsLabel, WindowColors.Muted, entry.Inputs, text, labelWidth);
 
         if (entry.Outputs != null)
@@ -129,6 +169,25 @@ internal sealed class ReferencePanel
             gui.Text(SettingsLabel, WindowColors.Muted);
             DrawNamedRows(gui, entry.Settings, nameColor, text);
         }
+    }
+
+    /// <summary>
+    /// Laid out like a Block Function's entry, with the inputs used as a Setting marked in the inputs' row.
+    /// </summary>
+    private static void DrawEntry(ImGui gui, LibraryReferenceEntry entry)
+    {
+        gui.Separator();
+        var text = gui.Style.Text.Color;
+        var palette = SyntaxPalette.For(gui.Style.Window.Box.BackColor, text);
+        gui.Text(entry.Function, palette.Get(HighlightKind.Function), wrap: true);
+        var labelWidth = GetLabelWidth(gui);
+        DrawRow(gui, InputsLabel, WindowColors.Muted, entry.Inputs, text, labelWidth);
+        DrawRow(gui, OutputsLabel, WindowColors.Muted, entry.Outputs, text, labelWidth);
+    }
+
+    private static float GetLabelWidth(ImGui gui)
+    {
+        return gui.MeasureTextSize(OutputsLabel).x + gui.Style.Layout.Indent;
     }
 
     private static string GetNote(BlockReferenceEntry entry)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
@@ -41,6 +42,26 @@ internal sealed partial class GraphBuilder
     private Dictionary<string, FunctionDefinition> FunctionsOf(FunctionDefinition function)
     {
         return _libraryFunctions.TryGetValue(function, out var library) ? library.Functions : _scriptFunctions;
+    }
+
+    /// <summary>
+    /// The Functions of the Library by <paramref name="name"/>, each with the inputs its body uses as a Setting; empty
+    /// when there's none by that name.
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="findLibrary">A Library's text by its name, or null when there's none.</param>
+    public static List<(FunctionDefinition Function, IReadOnlyCollection<string> SettingInputs)> DescribeLibrary(
+        string name,
+        Func<string, string> findLibrary)
+    {
+        var builder = new GraphBuilder([], [], _ => null, findLibrary, isLibrary: true);
+        var library = builder.LoadLibrary(name);
+        if (library == null)
+            return [];
+
+        return library.Functions.Values
+            .Select(f => (f, (IReadOnlyCollection<string>)builder.GetSettingInputs(f, library.Functions).Keys))
+            .ToList();
     }
 
     /// <summary>
