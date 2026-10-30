@@ -69,8 +69,8 @@ internal static class ErrorTable
         for (var i = 0; i < errors.Count; i++)
         {
             var error = errors[i];
-            var originHeight = error.Origin == null ? 0 : WrappedText.GetHeight(gui, error.Origin, in wrapped, messageWidth, 0);
-            var detailHeight = WrappedText.GetHeight(gui, error.Detail, in wrapped, messageWidth, 0);
+            var originHeight = error.Origin == null ? 0 : WrappedText.GetHeight(gui, error.Origin, in wrapped, messageWidth, minHeight: 0);
+            var detailHeight = WrappedText.GetHeight(gui, error.Detail, in wrapped, messageWidth, minHeight: 0);
             var height = Mathf.Max(gui.GetRowHeight(), originHeight + detailHeight + gui.Style.Layout.ExtraRowHeight);
 
             // No spacing between rows, so the alternating backgrounds meet
