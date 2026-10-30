@@ -13,6 +13,9 @@ internal sealed partial class ScriptEditor
     private (string Text, int? Index) _jumpFound;
     private DefinitionJump _jump;
 
+    // Until the next single click, so the rest of the click that jumped can't move the caret
+    private bool _jumped;
+
     /// <summary>
     /// The jump of the name under the mouse while Ctrl (Cmd on macOS) is held; null otherwise. Read again only when
     /// the text or the character change.
@@ -43,15 +46,27 @@ internal sealed partial class ScriptEditor
 
     /// <summary>
     /// Ctrl+click on a name with a jump goes to its definition instead of placing the caret, focusing the field if it
-    /// wasn't; returns whether it did.
+    /// wasn't; returns whether it took the mouse event. The drag and the double-click of that click are taken too, as
+    /// they'd move the caret back to whatever text the jump scrolled under the mouse.
     /// </summary>
     private bool HandleJumpClick(ImGui gui, DefinitionJump jump)
     {
         ref readonly var evt = ref gui.Input.MouseEvent;
+        if (evt.Type == ImMouseEventType.Down && evt.LeftButton && evt.Count == 1)
+            _jumped = false;
+
+        var isJumpClickRest = evt.Type is ImMouseEventType.BeginDrag or ImMouseEventType.Drag or ImMouseEventType.Down;
+        if (_jumped && isJumpClickRest && evt.LeftButton)
+        {
+            gui.Input.UseMouseEvent();
+            return true;
+        }
+
         if (jump == null || evt.Type != ImMouseEventType.Down || !evt.LeftButton)
             return false;
 
         JumpTo(jump.Target.Start);
+        _jumped = true;
         gui.Input.UseMouseEvent();
         return true;
     }
