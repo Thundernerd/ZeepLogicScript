@@ -15,6 +15,7 @@ All notable changes to Logic Scripting are listed here.
   and so does choosing a block function from the list.
 - Completion lists a setting's values after its `:`: option words, `true` and `false`, players and styles.
   Typing the `:` or a space after it opens the list, and so does choosing the setting from the list.
+- Inside a call, a box above the line shows its inputs and settings, highlighting the one you're writing.
 - Functions: `function name(inputs) -> outputs` … `end` names wiring you use more than once.
   Each call places the body's blocks inline, so the level still plays without the mod.
 

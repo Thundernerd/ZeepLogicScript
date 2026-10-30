@@ -96,6 +96,11 @@ Up / Down choose one, Enter or Tab writes it, and Escape closes the list.
 Ctrl+Space opens the list at any time.
 To stop it opening by itself, turn off **Completion while typing** in the mod's settings.
 
+Inside a call's parentheses, a box above the line shows the call's inputs, in the order positional arguments fill them,
+and its settings, with the one you're writing highlighted and, for a setting, the values it takes.
+Inside a call nested in another, it shows the inner one.
+Escape hides it until the cursor leaves the call.
+
 ## Writing Scripts
 
 A Script is a list of lines, read from top to bottom.
