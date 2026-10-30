@@ -48,8 +48,8 @@ public sealed class CallHelp
     public IReadOnlyList<int> EnclosingCalls { get; }
 
     /// <summary>
-    /// The innermost call around the caret whose function is a Block Function, or whose name is a Placed Block
-    /// Reference to a block with inputs; null when there's none, and inside a comment or string. A named argument is
+    /// The innermost call around the caret whose function is a Block Function or one of the Script's own Functions with
+    /// inputs, or whose name is a Placed Block Reference to a block with inputs; null when there's none, and inside a comment or string. A named argument is
     /// active from its name on; any other argument gives the input after those the positional arguments before it give,
     /// unless a named argument comes before it, which a positional one can't follow.
     /// </summary>
@@ -112,8 +112,8 @@ public sealed class CallHelp
     }
 
     /// <summary>
-    /// A Block Function's inputs, Settings, <c>style:</c> and <c>hide:</c>, or a Placed Block Reference's inputs only,
-    /// since its Settings can't be changed.
+    /// A Block Function's inputs, Settings, <c>style:</c> and <c>hide:</c>, a Function's inputs, or a Placed Block
+    /// Reference's inputs only, since its Settings can't be changed.
     /// </summary>
     private static List<CallHelpItem> GetItems(
         string text,
@@ -133,6 +133,10 @@ public sealed class CallHelp
             return items;
         }
 
+        var function = functions.FirstOrDefault(f => f.Name != null && f.Name == callee);
+        if (function != null)
+            return function.Inputs.Select(InputItem).ToList();
+
         var placed = DefinedNames.Read(text, findPlacedBlock)
             .LastOrDefault(n => n.Name == callee && n.Span.Start < openParen && n.IsInScopeAt(openParen, functions));
         return placed is { IsPlaced: true, Type: not null } ? GetInputItems(placed.Type) : [];
@@ -140,7 +144,12 @@ public sealed class CallHelp
 
     private static List<CallHelpItem> GetInputItems(BlockType type)
     {
-        return type.Inputs.Select(i => new CallHelpItem(i.Name, true, "input")).ToList();
+        return type.Inputs.Select(i => InputItem(i.Name)).ToList();
+    }
+
+    private static CallHelpItem InputItem(string name)
+    {
+        return new CallHelpItem(name, true, "input");
     }
 
     private static CallHelpItem SettingItem(BlockSetting setting)
