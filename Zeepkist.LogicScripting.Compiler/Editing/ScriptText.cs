@@ -27,6 +27,11 @@ public static class ScriptText
         return Lexer.IsNameStart(c);
     }
 
+    public static bool IsNamePart(char c)
+    {
+        return Lexer.IsNameStart(c) || Lexer.IsDigit(c);
+    }
+
     /// <summary>
     /// Whether the character can come right before an argument or a named argument's value: a call's opening
     /// parenthesis, a comma, a colon, or a space.

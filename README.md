@@ -287,7 +287,8 @@ The level doesn't need the mod to play them.
 
 - The first line names the function, its inputs in parentheses, and after `->` its outputs.
   Everything up to `end` is the body.
-  Indenting the body is only for reading.
+  Indenting the body is only for reading;
+  the editor indents the line after the first line, and moves `end` back under it as you type it.
 - Pass every input, in order or by name: `edge(p.horn)` or `edge(x: p.horn)`.
 - The body has to define each output.
   A function with one output is used as a value.
