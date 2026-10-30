@@ -18,17 +18,20 @@ public sealed class LibraryReferenceEntry
     /// <param name="inputs">The input names, in order.</param>
     /// <param name="settingInputs">The inputs its body uses as a Setting.</param>
     /// <param name="outputs">The output names, in order.</param>
+    /// <param name="libraryHasErrors">Whether the Library's text has an error.</param>
     public LibraryReferenceEntry(
         string library,
         string functionName,
         IReadOnlyList<string> inputs,
         IReadOnlyCollection<string> settingInputs,
-        IReadOnlyList<string> outputs)
+        IReadOnlyList<string> outputs,
+        bool libraryHasErrors)
     {
         Function = $"{library}.{functionName}";
         Inputs = ReferenceText.JoinNames(inputs.Select(i => settingInputs.Contains(i) ? i + SettingMark : i));
         Outputs = ReferenceText.JoinNames(outputs);
         _names = inputs.Concat(outputs).ToList();
+        LibraryHasErrors = libraryHasErrors;
     }
 
     /// <summary>
@@ -42,6 +45,11 @@ public sealed class LibraryReferenceEntry
     public string Inputs { get; }
 
     public string Outputs { get; }
+
+    /// <summary>
+    /// A Script can't call the Function until its Library's errors are fixed, as any of them stops every call into it.
+    /// </summary>
+    public bool LibraryHasErrors { get; }
 
     /// <summary>
     /// Whether the qualified name, an input's or an output's name contains <paramref name="filter"/>, ignoring case;

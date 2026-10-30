@@ -88,4 +88,16 @@ public class LibraryReferenceTests
 
         Assert.Contains("timing.a", names);
     }
+
+    [Fact]
+    public void AnEntry_TellsWhetherItsLibraryHasErrors()
+    {
+        var list = WithLibrary("broken", "x = 1\nfunction a() -> y\n    y = 1\nend\n");
+        list.SetText(list.Add("fine"), "function b() -> y\n    y = 1\nend\n");
+
+        var entries = LibraryReference.Describe(list);
+
+        Assert.True(entries.Single(e => e.Function == "broken.a").LibraryHasErrors);
+        Assert.False(entries.Single(e => e.Function == "fine.b").LibraryHasErrors);
+    }
 }

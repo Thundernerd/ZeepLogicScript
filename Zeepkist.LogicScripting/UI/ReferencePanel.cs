@@ -17,6 +17,7 @@ internal sealed class ReferencePanel
 {
     private const string LibrariesHeader = "Libraries";
     private const string PlacedOnlyNote = "placed(\"UID\") only";
+    private const string LibraryErrorsNote = "its Library has errors, so it can't be called";
     private const string InputsLabel = "inputs";
     private const string OutputsLabel = "outputs";
     private const string SettingsLabel = "settings";
@@ -170,11 +171,15 @@ internal sealed class ReferencePanel
     }
 
     /// <summary>
-    /// Laid out like a Block Function's entry, with the inputs used as a Setting marked in the inputs' row.
+    /// Laid out like a Block Function's entry, with the inputs used as a Setting marked in the inputs' row, and a note
+    /// while the Library has errors.
     /// </summary>
     private static void DrawEntry(ImGui gui, LibraryReferenceEntry entry)
     {
         DrawName(gui, entry.Function);
+        if (entry.LibraryHasErrors)
+            gui.Text(LibraryErrorsNote, WindowColors.Muted, wrap: true);
+
         var text = gui.Style.Text.Color;
         var labelWidth = GetLabelWidth(gui);
         DrawRow(gui, InputsLabel, WindowColors.Muted, entry.Inputs, text, labelWidth);

@@ -50,12 +50,15 @@ internal sealed partial class GraphBuilder
     /// </summary>
     /// <param name="name"></param>
     /// <param name="findLibrary">A Library's text by its name, or null when there's none.</param>
+    /// <param name="hasErrors">Whether its text has an error, which stops every call into it.</param>
     public static List<(FunctionDefinition Function, IReadOnlyCollection<string> SettingInputs)> DescribeLibrary(
         string name,
-        Func<string, string> findLibrary)
+        Func<string, string> findLibrary,
+        out bool hasErrors)
     {
         var builder = new GraphBuilder([], [], _ => null, findLibrary, isLibrary: true);
         var library = builder.LoadLibrary(name);
+        hasErrors = library?.Errors.Count > 0;
         if (library == null)
             return [];
 

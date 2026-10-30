@@ -17,18 +17,29 @@ public static class LibraryReference
     public static IReadOnlyList<LibraryReferenceEntry> Describe(LibraryList libraries)
     {
         return libraries.Entries
-            .SelectMany(l => GraphBuilder.DescribeLibrary(l.Name, libraries.FindText).Select(f => Describe(l.Name, f.Function, f.SettingInputs)))
+            .SelectMany(l => Describe(l.Name, libraries.FindText))
             .OrderBy(e => e.Function, StringComparer.Ordinal)
             .ToList();
     }
 
-    private static LibraryReferenceEntry Describe(string library, FunctionDefinition function, IReadOnlyCollection<string> settingInputs)
+    private static IEnumerable<LibraryReferenceEntry> Describe(string library, Func<string, string> findLibrary)
+    {
+        var functions = GraphBuilder.DescribeLibrary(library, findLibrary, out var hasErrors);
+        return functions.Select(f => Describe(library, f.Function, f.SettingInputs, hasErrors));
+    }
+
+    private static LibraryReferenceEntry Describe(
+        string library,
+        FunctionDefinition function,
+        IReadOnlyCollection<string> settingInputs,
+        bool libraryHasErrors)
     {
         return new LibraryReferenceEntry(
             library,
             function.Name.Name,
             function.Inputs.Select(i => i.Name).ToList(),
             settingInputs,
-            function.Outputs.Select(o => o.Name).ToList());
+            function.Outputs.Select(o => o.Name).ToList(),
+            libraryHasErrors);
     }
 }
