@@ -86,6 +86,14 @@ public class SettingInputTests
         Assert.Empty(result.Errors);
     }
 
+    [Fact]
+    public void UncalledFunction_PassingAnInputToABlockSetting_HasNoErrors()
+    {
+        var result = Compile("function f(n) -> y\n    y = delay(1, ticks: n)\nend\npower_display(1)");
+
+        Assert.Empty(result.Errors);
+    }
+
     [Theory]
     [InlineData("p = player_input()\npower_display(pulse_after(p.horn, ticks: p.horn))", "5:42: 'ticks' is used as a Setting in 'pulse_after'; pass a number, true or false, or a word, not a Wire")]
     [InlineData("t = 20\npower_display(pulse_after(1, ticks: t))", "5:37: 'ticks' is used as a Setting in 'pulse_after'; pass a number, true or false, or a word, not a Wire")]
