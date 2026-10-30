@@ -21,7 +21,7 @@ internal sealed partial class ScriptEditor
     private readonly CallHelpPopup _callHelp;
     private ImTextEditState _state;
     private ImTextLayout _layout = new() { Lines = new ImTextLine[64] };
-    private IReadOnlyList<TextSpan> _errors = [];
+    private IReadOnlyList<ErrorUnderline> _errors = [];
     private bool _focusRequested;
 
     public ScriptEditor(string text, EditorAssist assist)
@@ -51,7 +51,7 @@ internal sealed partial class ScriptEditor
     /// <summary>
     /// Spans are character indices into <see cref="Text"/>.
     /// </summary>
-    public void SetErrors(IReadOnlyList<TextSpan> errors)
+    public void SetErrors(IReadOnlyList<ErrorUnderline> errors)
     {
         _errors = errors ?? [];
     }

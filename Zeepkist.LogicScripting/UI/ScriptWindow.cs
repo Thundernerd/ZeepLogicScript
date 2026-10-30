@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using Imui.Controls;
@@ -394,7 +393,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         _check = ScriptCompile.Check(text, _current.Id, _startupCheck);
         _checkedText = text;
         _nextCheckTime = Time.unscaledTime + CheckInterval;
-        _editor.SetErrors(_check == null ? [] : ScriptText.GetErrorSpans(text, _check.Errors.Select(e => e.Position)));
+        _editor.SetErrors(_check == null ? [] : ScriptText.GetErrorUnderlines(text, _check.Errors));
     }
 
     private static bool IsAnyMouseButtonDown()

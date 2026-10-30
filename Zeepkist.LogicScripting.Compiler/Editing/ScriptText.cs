@@ -40,18 +40,19 @@ public static class ScriptText
     /// What to underline for each error: the token that starts where the error is, or else the one character there.
     /// At the end of a line it's empty. The text is lexed once for all of them.
     /// </summary>
-    public static List<TextSpan> GetErrorSpans(string text, IEnumerable<Position> positions)
+    public static List<ErrorUnderline> GetErrorUnderlines(string text, IEnumerable<Diagnostic> errors)
     {
         text ??= string.Empty;
         var lineStarts = GetLineStarts(text);
         var tokens = ScriptHighlighter.Highlight(text);
-        List<TextSpan> spans = [];
-        foreach (var position in positions)
+        List<ErrorUnderline> underlines = [];
+        foreach (var error in errors)
         {
-            spans.Add(GetErrorSpan(text, tokens, GetIndex(lineStarts, text.Length, position)));
+            var span = GetErrorSpan(text, tokens, GetIndex(lineStarts, text.Length, error.Position));
+            underlines.Add(new ErrorUnderline(span, error.Message));
         }
 
-        return spans;
+        return underlines;
     }
 
     private static TextSpan GetErrorSpan(string text, IReadOnlyList<HighlightSpan> tokens, int index)
