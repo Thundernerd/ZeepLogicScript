@@ -42,12 +42,13 @@ internal sealed partial class ScriptEditor
         var minWidth = gui.TextDrawer.GetCharacterAdvance(' ', _layout.Size);
         foreach (var error in _errors)
         {
-            if (error.End > Text.Length)
+            var span = error.Span;
+            if (span.End > Text.Length)
                 continue;
 
-            var line = ImTextEdit.FindLineAtCaretPosition(error.Start, in _layout, out var offset);
+            var line = ImTextEdit.FindLineAtCaretPosition(span.Start, in _layout, out var offset);
             var from = ImTextEdit.LineOffsetToViewPosition(line, offset, Text, textRect, gui.TextDrawer, in _layout);
-            var to = ImTextEdit.LineOffsetToViewPosition(line, offset + error.Length, Text, textRect, gui.TextDrawer, in _layout);
+            var to = ImTextEdit.LineOffsetToViewPosition(line, offset + span.Length, Text, textRect, gui.TextDrawer, in _layout);
             var y = from.y - _layout.LineHeight + ErrorThickness;
             var right = Mathf.Max(to.x, from.x + minWidth);
             gui.Canvas.Line(new Vector2(from.x, y), new Vector2(right, y), palette.Error, ErrorThickness);
