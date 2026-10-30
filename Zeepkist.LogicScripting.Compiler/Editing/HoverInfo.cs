@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
@@ -88,14 +87,12 @@ public sealed class HoverInfo
         var messages = underlines.Select(e => e.Message).ToList();
 
         var tokens = Lexer.Tokenize(text, []);
-        var name = tokens.FindIndex(t => t.Kind == TokenKind.Name && t.Span.Start <= index && index < t.Span.End);
+        var name = DefinitionLink.FindName(tokens, index);
         BlockReferenceEntry function = null;
         BlockReferenceRow argument = null;
         var definitionLine = 0;
         string definition = null;
-        // A name after a dot is an output or a Library's Function, and one after a colon a Setting's option word,
-        // which can be spelled like an alias (op: lerp)
-        if (name >= 0 && (name == 0 || tokens[name - 1].Kind is not (TokenKind.Dot or TokenKind.Colon)))
+        if (name >= 0)
         {
             var token = tokens[name];
             if (BlockManifest.TryGetFunction(token.Text, out var type))
@@ -135,39 +132,14 @@ public sealed class HoverInfo
         Func<string, PlacedBlock> findPlacedBlock,
         out string definition)
     {
-        var starts = DefinedNames.Read(text, findPlacedBlock)
-            .Where(n => n.Name == token.Text)
-            .Select(n => n.Span.Start)
-            .Concat(FindFunctionDefinitions(tokens, token.Text))
-            .OrderBy(s => s)
-            .ToList();
-
         definition = null;
-        if (starts.Count == 0)
+        if (DefinitionLink.Find(text, tokens, token, findPlacedBlock) is not { } link)
             return 0;
 
-        var above = starts.Where(s => s <= token.Span.Start).ToList();
-        var start = above.Count > 0 ? above[above.Count - 1] : starts[0];
         var lineStarts = ScriptText.GetLineStarts(text);
-        var line = lineStarts.FindLastIndex(s => s <= start);
+        var line = lineStarts.FindLastIndex(s => s <= link.Target.Start);
         var lineEnd = ScriptText.GetLineEnd(lineStarts, text.Length, line);
         definition = text.Substring(lineStarts[line], lineEnd - lineStarts[line]).Trim();
         return line + 1;
-    }
-
-    /// <summary>
-    /// Where the Script's own Functions with the name are defined: the name after the keyword.
-    /// </summary>
-    private static IEnumerable<int> FindFunctionDefinitions(List<Token> tokens, string name)
-    {
-        if (GraphBuilder.IsReserved(name))
-            yield break;
-
-        for (var i = 1; i < tokens.Count; i++)
-        {
-            var isAfterKeyword = tokens[i - 1].Kind == TokenKind.Name && tokens[i - 1].Text == FunctionDefinition.Keyword;
-            if (isAfterKeyword && tokens[i].Kind == TokenKind.Name && tokens[i].Text == name)
-                yield return tokens[i].Span.Start;
-        }
     }
 }
