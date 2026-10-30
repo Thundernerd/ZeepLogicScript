@@ -28,5 +28,11 @@ public enum CaretContextKind
     /// <summary>
     /// The Setting after <c>default</c>.
     /// </summary>
-    DefaultSetting
+    DefaultSetting,
+
+    /// <summary>
+    /// The value after a Setting's colon, in a call to a Block Function or after <c>default</c>. A Setting that takes
+    /// placed blocks takes an expression instead.
+    /// </summary>
+    SettingValue
 }

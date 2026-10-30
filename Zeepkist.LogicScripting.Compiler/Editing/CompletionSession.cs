@@ -19,7 +19,7 @@ public sealed class CompletionSession
     private IReadOnlyList<DefinedName> _definedNames = [];
     private bool _opensWithoutPrefix;
     private bool _openRequested;
-    private bool _acceptedFunction;
+    private CompletionKind? _accepted;
 
     /// <param name="findPlacedBlock">
     /// The block in the level with a UID, or null when there's none; it gives a Placed Block Reference its type.
@@ -64,15 +64,19 @@ public sealed class CompletionSession
     /// Call after the editor handled its input, with the text and caret it ended with. When
     /// <paramref name="whileTyping"/> is on, typing a name opens the list. So does starting an argument of a call
     /// that takes named arguments, which lists them: typing a <see cref="ScriptText.IsArgumentSeparator">separator</see>
-    /// or accepting a function, which opens its call. It closes when the editor loses focus, text gets selected, the
+    /// or accepting a function, which opens its call. Starting a Setting's value lists its values the same way: typing
+    /// a separator or accepting the Setting's name. It closes when the editor loses focus, text gets selected, the
     /// caret moves to another word, or nothing matches; an empty prefix keeps it open only when <see cref="Request"/>
     /// or an argument's start opened it.
     /// </summary>
     public void Update(TextSnapshot snapshot, bool typedName, bool whileTyping, bool focused, bool typedSeparator = false)
     {
         var openedByShortcut = _openRequested;
-        var opensCall = (typedSeparator || _acceptedFunction) && whileTyping && !openedByShortcut;
-        _acceptedFunction = false;
+        var accepted = _accepted;
+        _accepted = null;
+        var opensCall = (typedSeparator || accepted is CompletionKind.Function or CompletionKind.Argument)
+            && whileTyping
+            && !openedByShortcut;
         var requested = openedByShortcut || (typedName && whileTyping) || opensCall;
         _openRequested = false;
         if (!focused || snapshot.Selection != 0)
@@ -104,8 +108,11 @@ public sealed class CompletionSession
         if (requested)
             IsOpen = true;
 
-        // Anywhere but the start of an argument of a call with named arguments, it would list every expression
-        if (opensCall && !Items.Any(i => i.Kind == CompletionKind.Argument))
+        // Anywhere but the start of an argument of a call with named arguments or of a Setting's value, it would list
+        // every expression. A name accepted before its colon leaves the caret there, not at its value.
+        if (opensCall
+            && (!Items.Any(i => i.Kind is CompletionKind.Argument or CompletionKind.Value)
+                || (accepted == CompletionKind.Argument && _context.Kind != CaretContextKind.SettingValue)))
             Close();
         else if (opensCall)
             _opensWithoutPrefix = true;
@@ -140,7 +147,7 @@ public sealed class CompletionSession
 
         var item = Items[index];
         Close();
-        _acceptedFunction = item.Kind == CompletionKind.Function;
+        _accepted = item.Kind;
         return Completion.Accept(_context, item);
     }
 }
