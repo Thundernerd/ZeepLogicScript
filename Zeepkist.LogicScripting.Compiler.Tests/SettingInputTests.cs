@@ -87,7 +87,7 @@ public class SettingInputTests
     }
 
     [Fact]
-    public void UncalledFunction_UsingAnInputAsASetting_HasNoErrors()
+    public void UncalledFunction_PassingAnInputToABlockSetting_HasNoErrors()
     {
         var result = Compile("function f(n) -> y\n    y = delay(1, ticks: n)\nend\npower_display(1)");
 
