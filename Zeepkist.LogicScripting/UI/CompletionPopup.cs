@@ -10,7 +10,8 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
 /// The Script editor's completion list. The editor stays focused while it's open: the list takes its keys and clicks
-/// before the editor sees them, and only while it's open.
+/// before the editor sees them, and only while it's open. It reads its keys in the editor's event loop, in the order
+/// they were pressed.
 /// </summary>
 internal sealed class CompletionPopup
 {
@@ -184,10 +185,9 @@ internal sealed class CompletionPopup
     }
 
     /// <summary>
-    /// Call before the editor handles the keyboard. Ctrl+Space asks for the list; while it's open, Up and Down move
-    /// through it, Enter and Tab accept and Escape closes it.
+    /// Call once a frame before the editor handles the keyboard: Escape closes the list.
     /// </summary>
-    public TextSnapshot? HandleKeyboard(ImGui gui)
+    public void HandleEscape()
     {
         TookEscape = false;
 
@@ -196,55 +196,61 @@ internal sealed class CompletionPopup
         {
             Close();
             TookEscape = true;
-            return null;
         }
-
-        for (var i = 0; i < gui.Input.KeyboardEventsCount; i++)
-        {
-            ref readonly var evt = ref gui.Input.GetKeyboardEvent(i);
-            if (evt.Type != ImKeyboardEventType.Down)
-                continue;
-
-            var control = (evt.Modifiers & EventModifiers.Control) != 0;
-            if (evt.Key == KeyCode.Space && control)
-            {
-                _session.Request();
-                gui.Input.UseKeyboardEvent(i);
-                continue;
-            }
-
-            if (!_session.IsOpen || (evt.Modifiers & (EventModifiers.Control | EventModifiers.Command | EventModifiers.Alt | EventModifiers.Shift)) != 0)
-                continue;
-
-            switch (evt.Key)
-            {
-                case KeyCode.DownArrow:
-                    _session.Select(_session.Selected + 1, wrap: true);
-                    gui.Input.UseKeyboardEvent(i);
-                    break;
-
-                case KeyCode.UpArrow:
-                    _session.Select(_session.Selected - 1, wrap: true);
-                    gui.Input.UseKeyboardEvent(i);
-                    break;
-
-                case KeyCode.Return or KeyCode.KeypadEnter or KeyCode.Tab:
-                    // Using the event clears it, and evt refers to it
-                    var character = evt.Key == KeyCode.Tab ? '\t' : '\n';
-                    gui.Input.UseKeyboardEvent(i);
-
-                    // Unity sends the key's character as an event of its own, which would still type a line break or
-                    // indent
-                    UseCharacter(gui, character);
-                    return _session.Accept(_session.Selected);
-            }
-        }
-
-        return null;
     }
 
     /// <summary>
-    /// Call after the editor handled its input, with the text and caret it ended with.
+    /// Call for each key event before the editor handles it, in the editor's own event loop, so a letter typed earlier
+    /// in the frame has already changed the list when Enter accepts. Ctrl+Space asks for the list; while it's open, Up
+    /// and Down move through it, Enter and Tab accept. A key the list takes is used up.
+    /// </summary>
+    public TextSnapshot? HandleKeyboardEvent(ImGui gui, int index)
+    {
+        ref readonly var evt = ref gui.Input.GetKeyboardEvent(index);
+        if (evt.Type != ImKeyboardEventType.Down)
+            return null;
+
+        var control = (evt.Modifiers & EventModifiers.Control) != 0;
+        if (evt.Key == KeyCode.Space && control)
+        {
+            _session.Request();
+            gui.Input.UseKeyboardEvent(index);
+            return null;
+        }
+
+        if (!_session.IsOpen || (evt.Modifiers & (EventModifiers.Control | EventModifiers.Command | EventModifiers.Alt | EventModifiers.Shift)) != 0)
+            return null;
+
+        switch (evt.Key)
+        {
+            case KeyCode.DownArrow:
+                _session.Select(_session.Selected + 1, wrap: true);
+                gui.Input.UseKeyboardEvent(index);
+                return null;
+
+            case KeyCode.UpArrow:
+                _session.Select(_session.Selected - 1, wrap: true);
+                gui.Input.UseKeyboardEvent(index);
+                return null;
+
+            case KeyCode.Return or KeyCode.KeypadEnter or KeyCode.Tab:
+                // Using the event clears it, and evt refers to it
+                var character = evt.Key == KeyCode.Tab ? '\t' : '\n';
+                gui.Input.UseKeyboardEvent(index);
+
+                // Unity sends the key's character as an event of its own, which would still type a line break or
+                // indent
+                UseCharacter(gui, index + 1, character);
+                return _session.Accept(_session.Selected);
+
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>
+    /// Call before each key event the editor handles, with the text and caret so far, and once more after it handled
+    /// all its input.
     /// </summary>
     public void Update(TextSnapshot snapshot, bool typedName, bool typedSeparator, bool focused)
     {
@@ -282,13 +288,19 @@ internal sealed class CompletionPopup
         }
     }
 
-    private static void UseCharacter(ImGui gui, char character)
+    /// <summary>
+    /// Only the first one from <paramref name="start"/>, so a second Enter in the same frame still types its line break.
+    /// </summary>
+    private static void UseCharacter(ImGui gui, int start, char character)
     {
-        for (var i = 0; i < gui.Input.KeyboardEventsCount; i++)
+        for (var i = start; i < gui.Input.KeyboardEventsCount; i++)
         {
             ref readonly var evt = ref gui.Input.GetKeyboardEvent(i);
             if (evt.Key == KeyCode.None && evt.Char == character)
+            {
                 gui.Input.UseKeyboardEvent(i);
+                return;
+            }
         }
     }
 }

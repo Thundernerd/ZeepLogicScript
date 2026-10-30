@@ -168,7 +168,7 @@ internal sealed partial class ScriptEditor
             ImTextEdit.DrawCaret(gui, _state.Caret, _state.BlinkTime, textRect, in _layout, in stateStyle, in buffer);
             if (completing)
             {
-                completed ??= _completion.HandleKeyboard(gui);
+                _completion.HandleEscape();
                 _callHelp.HandleKeyboard(_completion.TookEscape);
             }
 
@@ -179,7 +179,7 @@ internal sealed partial class ScriptEditor
                 changed = true;
             }
 
-            changed |= HandleKeyboard(gui, ref buffer, textRect, !gui.IsReadOnly, out compileRequested, out typedName, out typedSeparator);
+            changed |= HandleKeyboard(gui, ref buffer, textRect, !gui.IsReadOnly, completing, out compileRequested, out typedName, out typedSeparator);
         }
 
         var focused = completing && gui.IsControlActive(Id);
