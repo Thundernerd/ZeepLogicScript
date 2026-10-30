@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 using Xunit;
@@ -6,6 +7,8 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Tests;
 
 public class ScriptHighlighterTests
 {
+    private static readonly Dictionary<string, IReadOnlyCollection<string>> _timing = new() { ["timing"] = ["edge"] };
+
     [Fact]
     public void EachToken_GetsTheColorOfItsKind()
     {
@@ -67,8 +70,39 @@ public class ScriptHighlighterTests
             Render(Text));
     }
 
-    private static string[] Render(string text)
+    [Fact]
+    public void QualifiedCalls_ToKnownLibraryFunctions_AreFunctions()
     {
-        return ScriptHighlighter.Highlight(text).Select(s => $"{text.Substring(s.Start, s.Length)}:{s.Kind}").ToArray();
+        const string Text = "y = timing.edge(p.horn) | timing.nope(1) | other.edge(2)";
+
+        Assert.Equal(
+            [
+                "y:Name", "=:Operator", "timing:Function", ".:Punctuation", "edge:Function", "(:Punctuation", "p:Name",
+                ".:Punctuation", "horn:Name", "):Punctuation", "|:Operator", "timing:Name", ".:Punctuation", "nope:Name",
+                "(:Punctuation", "1:Number", "):Punctuation", "|:Operator", "other:Name", ".:Punctuation", "edge:Name",
+                "(:Punctuation", "2:Number", "):Punctuation"
+            ],
+            Render(Text, _timing));
+    }
+
+    [Theory]
+    [InlineData("y = timing.edge")]
+    [InlineData("y = a.timing.edge(1)")]
+    public void LibraryAndFunctionNames_OutsideAQualifiedCall_AreNames(string text)
+    {
+        Assert.DoesNotContain(Render(text, _timing), s => s is "timing:Function" or "edge:Function");
+    }
+
+    [Fact]
+    public void FunctionNames_AreTheNamesALibraryDefines()
+    {
+        var names = ScriptHighlighter.GetFunctionNames("# edges\nfunction edge(x) -> y\n    y = x\nend\nfunction pulse()\nend");
+
+        Assert.Equal(["edge", "pulse"], names.OrderBy(n => n));
+    }
+
+    private static string[] Render(string text, IReadOnlyDictionary<string, IReadOnlyCollection<string>> libraries = null)
+    {
+        return ScriptHighlighter.Highlight(text, libraries).Select(s => $"{text.Substring(s.Start, s.Length)}:{s.Kind}").ToArray();
     }
 }

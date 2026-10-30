@@ -6,7 +6,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 
 internal sealed partial class GraphBuilder
 {
-    private readonly Scope _topScope = new(null);
+    private readonly Scope _topScope = new(null, null, null);
     private Scope _scope;
 
     /// <summary>
@@ -18,7 +18,7 @@ internal sealed partial class GraphBuilder
         {
             if (statement is Definition definition
                 && !IsReserved(definition.Name)
-                && !_functions.ContainsKey(definition.Name)
+                && !FunctionsOf(scope).ContainsKey(definition.Name)
                 && !scope.Definitions.ContainsKey(definition.Name))
                 scope.Definitions.Add(definition.Name, definition);
         }
@@ -63,7 +63,7 @@ internal sealed partial class GraphBuilder
     private string GetNameError(string name)
     {
         return GetReservedNameError(name)
-            ?? (_functions.ContainsKey(name) ? $"'{name}' is a function and can't be used as a name" : null);
+            ?? (Functions.ContainsKey(name) ? $"'{name}' is a function and can't be used as a name" : null);
     }
 
     private static string GetReservedNameError(string name)
@@ -116,7 +116,7 @@ internal sealed partial class GraphBuilder
         if (name.Name == PlacedFunction)
             return Fail(name, $"{PlacedFunction} takes a UID; call it like {PlacedFunction}(\"AbC12\")");
 
-        if (_functions.ContainsKey(name.Name))
+        if (Functions.ContainsKey(name.Name))
             return Fail(name, $"'{name.Name}' is a function; call it with ( )");
 
         if (GetOutOfScopeMessage(name.Name) is { } outOfScope)
@@ -128,11 +128,12 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// Why a Function's body can't use a name the top level defines, or null when it doesn't.
+    /// Why a Function's body can't use a name the top level defines, or null when it doesn't. A Library's body
+    /// comes from other text, so the top level's names are no hint there.
     /// </summary>
     private string GetOutOfScopeMessage(string name)
     {
-        if (_scope.Function == null || !_topScope.Definitions.ContainsKey(name))
+        if (_scope.Function == null || _scope.Library != null || !_topScope.Definitions.ContainsKey(name))
             return null;
 
         return $"'{name}' isn't defined in '{_scope.Function.Name.Name}'; a function only sees its inputs and its own names";

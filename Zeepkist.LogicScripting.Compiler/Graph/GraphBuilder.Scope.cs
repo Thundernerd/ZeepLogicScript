@@ -11,15 +11,28 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private sealed class Scope
     {
-        public Scope(FunctionDefinition function)
+        public Scope(FunctionDefinition function, LoadedLibrary library, Position? callSite)
         {
             Function = function;
+            Library = library;
+            CallSite = callSite;
         }
 
         /// <summary>
         /// Null for the top level.
         /// </summary>
         public FunctionDefinition Function { get; }
+
+        /// <summary>
+        /// The Library the body's text comes from, or null for the text being compiled.
+        /// </summary>
+        public LoadedLibrary Library { get; }
+
+        /// <summary>
+        /// Where the text being compiled calls into the Library this scope is in, to report the body's errors at, since
+        /// their lines are the Library's. Null outside a Library's Function.
+        /// </summary>
+        public Position? CallSite { get; }
 
         /// <summary>
         /// The first definition of each name, noted up front, so a use can tell a later definition from no definition.

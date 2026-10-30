@@ -5,3 +5,5 @@ A Script can define its own Functions: `function name(inputs) -> outputs` … `e
 Each body is its own scope. It sees only its inputs, its own definitions and other Functions, never the caller's names, and follows ADR 0002 on its own, so a forward reference inside a body still has to sit in `delay(...)`. An argument is evaluated once at the call and shared, like a definition, so using an input twice doesn't place its blocks twice. A Function can't call itself, directly or through others: expansion would never end, and feedback already has its place in `delay(...)`.
 
 Functions stay local to the Script that defines them. Sharing them between Scripts or levels, as a library, would tie a Script's meaning to text outside it, which the level doesn't store (ADR 0006), and a recompile could then change blocks the player didn't touch.
+
+ADR 0009 supersedes the last paragraph: Libraries share Functions between Scripts and levels from the player's machine.
