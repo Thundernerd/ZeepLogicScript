@@ -289,6 +289,12 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
 
         if (library != null)
             SelectLibrary(library);
+
+        // One name field at a time on the Scripts side, so Enter can't confirm a prompt the player isn't looking at
+        if (_libraryListPanel.NameFocused)
+            _scriptListPanel.CloseNamePrompt();
+        else if (_scriptListPanel.NameFocused)
+            _libraryListPanel.CloseNamePrompt();
     }
 
     private void OnLibraryDeleted(Library library)

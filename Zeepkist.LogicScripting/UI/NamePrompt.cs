@@ -11,6 +11,9 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal sealed class NamePrompt
 {
     private readonly string _noun;
+
+    // The current name of what's being renamed, or null when naming a new one
+    private string _renamed;
     private string _input = string.Empty;
     private string _error = string.Empty;
     private bool _open;
@@ -24,10 +27,6 @@ internal sealed class NamePrompt
         _noun = noun;
     }
 
-    /// <summary>
-    /// The current name of what's being renamed, or null when naming a new one.
-    /// </summary>
-    private string Renamed { get; set; }
 
     public bool Focused { get; set; }
 
@@ -45,7 +44,7 @@ internal sealed class NamePrompt
     {
         _open = false;
         Focused = false;
-        Renamed = null;
+        _renamed = null;
     }
 
     /// <summary>
@@ -60,7 +59,7 @@ internal sealed class NamePrompt
             return null;
         }
 
-        gui.Text(Renamed == null ? $"Name of the new {_noun}" : $"New name for \"{Renamed}\"", wrap: true);
+        gui.Text(_renamed == null ? $"Name of the new {_noun}" : $"New name for \"{_renamed}\"", wrap: true);
         gui.AddSpacingIfLayoutFrameNotEmpty();
         var rect = gui.AddSingleRowRect(default);
         var id = gui.GetNextControlId();
@@ -98,7 +97,7 @@ internal sealed class NamePrompt
 
     private void Open(string renamed, string name)
     {
-        Renamed = renamed;
+        _renamed = renamed;
         _input = name;
         _error = string.Empty;
         _open = true;

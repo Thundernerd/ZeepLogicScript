@@ -40,6 +40,11 @@ internal sealed class ScriptListPanel
         _namePrompt.Focused = false;
     }
 
+    public void CloseNamePrompt()
+    {
+        _namePrompt.Close();
+    }
+
     public void Clear()
     {
         _namePrompt.Close();

@@ -27,6 +27,11 @@ internal sealed class LibraryListPanel
         _namePrompt.Focused = false;
     }
 
+    public void CloseNamePrompt()
+    {
+        _namePrompt.Close();
+    }
+
     /// <summary>
     /// Returns the Library the player clicked or made, or null. <paramref name="deleted"/> is the Library Delete just
     /// dropped, or null.
