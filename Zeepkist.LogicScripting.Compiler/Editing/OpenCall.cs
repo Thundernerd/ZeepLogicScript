@@ -5,8 +5,8 @@ using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
 /// <summary>
-/// A call a position in the text is inside, and its arguments. Read from the tokens, so a half-typed call has one too: a call left open while it's typed carries on to the next line,
-/// unless a statement starts there.
+/// A call a position in the text is inside, and its arguments. Read from the tokens, so a half-typed call has one too:
+/// a call left open while it's typed carries on to the next line, unless a statement starts there.
 /// </summary>
 internal sealed class OpenCall
 {
@@ -28,7 +28,8 @@ internal sealed class OpenCall
     public int OpenParen => _tokens[_paren].Span.Start;
 
     /// <summary>
-    /// Its arguments up to its closing parenthesis, or while it's typed, the next statement.
+    /// Its arguments up to its closing parenthesis, or while it's typed, the next statement, where the last one is
+    /// empty when nothing follows its comma yet.
     /// </summary>
     public IReadOnlyList<CallArgument> Arguments => _arguments ??= ReadArguments();
 

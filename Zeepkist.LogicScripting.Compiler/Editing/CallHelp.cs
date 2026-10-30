@@ -129,14 +129,14 @@ public sealed class CallHelp
 
     private static int FindActive(string text, OpenCall call, int caret, List<CallHelpItem> items)
     {
-        var started = call.Arguments.TakeWhile(a => a.Start < caret).ToList();
-        var current = started[started.Count - 1];
-        var before = started.Take(started.Count - 1).ToList();
+        var started = call.Arguments.TakeWhile(a => a.SeparatorStart < caret).ToList();
+        var current = started.Last();
+        var before = started.GetRange(0, started.Count - 1);
 
         // A name after the caret on a later line has no comma before it yet, so it starts an argument of its own
         if (current.IsNamed)
         {
-            var start = current.ValueStart.Value;
+            var start = current.FirstTokenStart.Value;
             var isLater = start > caret && text.IndexOf('\n', caret, start - caret) >= 0;
             if (!isLater)
                 return items.FindIndex(i => i.Name == current.Name);

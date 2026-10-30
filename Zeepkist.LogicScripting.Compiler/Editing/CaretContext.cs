@@ -371,7 +371,7 @@ public sealed class CaretContext
         {
             // An argument after the caret on the next line has no comma before it yet, so only one that starts right at
             // the caret is the word's own
-            var start = argument.ValueStart.Value;
+            var start = argument.FirstTokenStart.Value;
             var isWords = !passedWord && start == word.Start;
             passedWord |= start >= word.Start;
             if (isWords)
