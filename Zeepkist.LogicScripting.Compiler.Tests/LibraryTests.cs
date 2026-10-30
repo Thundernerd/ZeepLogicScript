@@ -177,6 +177,17 @@ public class LibraryTests
     }
 
     [Fact]
+    public void ErrorInALibrary_KeepsWhereItIsApartFromTheDetail()
+    {
+        var result = Compile(
+            "power_display(lamps.t(nope))",
+            new() { ["lamps"] = "function t(x) -> y\n    y = x & missing\nend" });
+
+        var errors = result.Errors.Select(e => (e.Origin, e.Detail)).ToList();
+        Assert.Equal([("In lamps.t, line 2", "'missing' isn't defined"), (null, "'nope' isn't defined")], errors);
+    }
+
+    [Fact]
     public void DependencyLoopThroughALibrary_IsReportedAtTheCallSite()
     {
         var result = Compile(

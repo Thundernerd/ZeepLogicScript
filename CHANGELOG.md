@@ -46,6 +46,8 @@ All notable changes to Logic Scripting are listed here.
   If you installed the mod by hand, delete the old `net.tnrd.zeepkist.logicscripting.dll` from `BepInEx/plugins`:
   with both files there, BepInEx loads the mod twice.
 - Errors and result lines read as plain sentences, such as `'x' is a function. Call it with ( )` and `1 error, nothing placed`.
+- The error panel is a table, with the line, column and message of each error in columns of their own.
+  An error inside a Library's Function shows where in the Library it is above the message.
 
 ### Fixed
 
