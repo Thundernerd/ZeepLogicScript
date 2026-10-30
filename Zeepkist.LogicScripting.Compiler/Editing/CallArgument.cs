@@ -1,32 +1,33 @@
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
 /// <summary>
-/// One argument of an <see cref="OpenCall"/>, as token indices.
+/// One argument of an <see cref="OpenCall"/>.
 /// </summary>
 internal readonly struct CallArgument
 {
-    public CallArgument(int start, int first, string name)
+    public CallArgument(int start, int? valueStart, string name)
     {
         Start = start;
-        First = first;
+        ValueStart = valueStart;
         Name = name;
     }
 
     /// <summary>
-    /// The call's opening parenthesis or the comma before the argument.
+    /// Where the call's opening parenthesis or the comma before the argument is in the text.
     /// </summary>
     public int Start { get; }
 
     /// <summary>
-    /// Its first token, past the line breaks a call left open carries on over; -1 when it's empty.
+    /// Where its first token is in the text, past the line breaks a call left open carries on over; null when it's
+    /// empty.
     /// </summary>
-    public int First { get; }
+    public int? ValueStart { get; }
 
     /// <summary>
     /// The input or Setting a named argument gives; null for a positional one.
     /// </summary>
     public string Name { get; }
 
-    public bool IsEmpty => First < 0;
+    public bool IsEmpty => ValueStart == null;
     public bool IsNamed => Name != null;
 }

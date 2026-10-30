@@ -149,7 +149,7 @@ public sealed class CaretContext
         var inCall = kind is CaretContextKind.Argument or CaretContextKind.ArgumentName;
         var callee = inCall ? call.Callee : null;
         var positionalArguments = 0;
-        IReadOnlyCollection<string> givenArguments = inCall ? FindGivenArguments(tokens, call, word, out positionalArguments) : [];
+        IReadOnlyCollection<string> givenArguments = inCall ? FindGivenArguments(call, word, out positionalArguments) : [];
         if (kind == CaretContextKind.SettingValue)
         {
             callee = settingCallee;
@@ -362,7 +362,7 @@ public sealed class CaretContext
     /// The names of the call's own named arguments, and how many positional arguments it has, apart from the one the
     /// word starts.
     /// </summary>
-    private static HashSet<string> FindGivenArguments(List<Token> tokens, OpenCall call, TextSpan word, out int positionalCount)
+    private static HashSet<string> FindGivenArguments(OpenCall call, TextSpan word, out int positionalCount)
     {
         HashSet<string> names = [];
         positionalCount = 0;
@@ -371,7 +371,7 @@ public sealed class CaretContext
         {
             // An argument after the caret on the next line has no comma before it yet, so only one that starts right at
             // the caret is the word's own
-            var start = tokens[argument.First].Span.Start;
+            var start = argument.ValueStart.Value;
             var isWords = !passedWord && start == word.Start;
             passedWord |= start >= word.Start;
             if (isWords)

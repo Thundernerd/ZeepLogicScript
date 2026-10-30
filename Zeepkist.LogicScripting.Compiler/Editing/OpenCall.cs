@@ -5,30 +5,27 @@ using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
 /// <summary>
-/// A call a position in the text is inside, and its arguments, which completion and the call's help both read. Read
-/// from the tokens, so a half-typed call has one too: a call left open while it's typed carries on to the next line,
+/// A call a position in the text is inside, and its arguments. Read from the tokens, so a half-typed call has one too: a call left open while it's typed carries on to the next line,
 /// unless a statement starts there.
 /// </summary>
 internal sealed class OpenCall
 {
     private readonly List<Token> _tokens;
+    private readonly int _paren;
     private List<CallArgument> _arguments;
 
     private OpenCall(List<Token> tokens, int paren)
     {
         _tokens = tokens;
-        Paren = paren;
+        _paren = paren;
     }
 
-    /// <summary>
-    /// The token index of its opening parenthesis.
-    /// </summary>
-    public int Paren { get; }
+    public string Callee => _tokens[_paren - 1].Text;
 
     /// <summary>
-    /// The function or name called, as written.
+    /// Where its opening parenthesis is in the text, which tells one call from another.
     /// </summary>
-    public string Callee => _tokens[Paren - 1].Text;
+    public int OpenParen => _tokens[_paren].Span.Start;
 
     /// <summary>
     /// Its arguments up to its closing parenthesis, or while it's typed, the next statement.
@@ -101,7 +98,7 @@ internal sealed class OpenCall
         List<CallArgument> arguments = [];
         var depth = 0;
         var start = -1;
-        for (var i = Paren; _tokens[i].Kind != TokenKind.End; i++)
+        for (var i = _paren; _tokens[i].Kind != TokenKind.End; i++)
         {
             var token = _tokens[i];
             if (token.Kind == TokenKind.NewLine)
@@ -141,17 +138,18 @@ internal sealed class OpenCall
         }
 
         if (start >= 0)
-            arguments.Add(new CallArgument(start, -1, null));
+            arguments.Add(new CallArgument(_tokens[start].Span.Start, null, null));
 
         return arguments;
     }
 
     private CallArgument ReadArgument(int start, int first)
     {
-        if (_tokens[first].Kind is TokenKind.Comma or TokenKind.CloseParen)
-            return new CallArgument(start, -1, null);
+        var token = _tokens[first];
+        if (token.Kind is TokenKind.Comma or TokenKind.CloseParen)
+            return new CallArgument(_tokens[start].Span.Start, null, null);
 
-        var isNamed = _tokens[first].Kind == TokenKind.Name && _tokens[first + 1].Kind == TokenKind.Colon;
-        return new CallArgument(start, first, isNamed ? _tokens[first].Text : null);
+        var isNamed = token.Kind == TokenKind.Name && _tokens[first + 1].Kind == TokenKind.Colon;
+        return new CallArgument(_tokens[start].Span.Start, token.Span.Start, isNamed ? token.Text : null);
     }
 }

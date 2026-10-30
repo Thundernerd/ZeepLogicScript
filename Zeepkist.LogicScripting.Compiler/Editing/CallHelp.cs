@@ -70,13 +70,12 @@ public sealed class CallHelp
 
         var functions = DefinedNames.ReadFunctions(tokens).Select(f => f.Function).ToList();
         var calls = OpenCall.FindAll(tokens, caret);
-        var enclosingCalls = calls.Select(c => tokens[c.Paren].Span.Start).ToList();
+        var enclosingCalls = calls.Select(c => c.OpenParen).ToList();
         foreach (var call in calls)
         {
-            var openParen = tokens[call.Paren].Span.Start;
-            var items = GetItems(text, call.Callee, openParen, functions, findPlacedBlock);
+            var items = GetItems(text, call.Callee, call.OpenParen, functions, findPlacedBlock);
             if (items.Count > 0)
-                return new CallHelp(call.Callee, openParen, items, FindActive(text, tokens, call, caret, items), enclosingCalls);
+                return new CallHelp(call.Callee, call.OpenParen, items, FindActive(text, call, caret, items), enclosingCalls);
         }
 
         return null;
@@ -128,16 +127,16 @@ public sealed class CallHelp
         return new CallHelpItem(setting.Name, false, BlockReference.DescribeValues(setting));
     }
 
-    private static int FindActive(string text, List<Token> tokens, OpenCall call, int caret, List<CallHelpItem> items)
+    private static int FindActive(string text, OpenCall call, int caret, List<CallHelpItem> items)
     {
-        var before = call.Arguments.TakeWhile(a => tokens[a.Start].Span.Start < caret).ToList();
-        var current = before[before.Count - 1];
-        before.RemoveAt(before.Count - 1);
+        var started = call.Arguments.TakeWhile(a => a.Start < caret).ToList();
+        var current = started[started.Count - 1];
+        var before = started.Take(started.Count - 1).ToList();
 
         // A name after the caret on a later line has no comma before it yet, so it starts an argument of its own
         if (current.IsNamed)
         {
-            var start = tokens[current.First].Span.Start;
+            var start = current.ValueStart.Value;
             var isLater = start > caret && text.IndexOf('\n', caret, start - caret) >= 0;
             if (!isLater)
                 return items.FindIndex(i => i.Name == current.Name);
