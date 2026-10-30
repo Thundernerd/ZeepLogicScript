@@ -217,6 +217,16 @@ public class LibraryTests
     }
 
     [Theory]
+    [InlineData("function f(n) -> y\n    y = delay(1, ticks: n)\nend")]
+    [InlineData("function f(x, b) -> y\n    y = digitizer(x, invert: b)\nend")]
+    [InlineData("function f(x, s) -> y\n    y = passthrough(x, style: s)\nend")]
+    [InlineData("function f(x, n) -> y\n    y = inner(x, n)\nend\nfunction inner(x, n) -> y\n    y = delay(x, ticks: n)\nend")]
+    public void CheckLibrary_AnInputUsedAsASetting_IsAccepted(string text)
+    {
+        Assert.Empty(ScriptCompiler.CheckLibrary(text));
+    }
+
+    [Theory]
     [InlineData("x = 1", "1:1: A Library holds only functions; move this line into one")]
     [InlineData("power_display(1)", "1:1: A Library holds only functions; move this line into one")]
     [InlineData("default hide: true", "1:1: A Library holds only functions; move this line into one")]
