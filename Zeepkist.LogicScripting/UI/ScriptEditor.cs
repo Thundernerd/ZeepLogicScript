@@ -153,11 +153,11 @@ internal sealed partial class ScriptEditor
 
         DrawHover(gui, textRect, textBounds, in buffer, hovered && !gui.IsReadOnly);
 
-        var link = FindLink(gui, textRect, textBounds, in buffer, hovered && !gui.IsReadOnly);
-        if (link != null)
-            DrawLink(gui, link, textRect, palette);
+        var jump = FindJump(gui, textRect, textBounds, in buffer, hovered && !gui.IsReadOnly);
+        if (jump != null)
+            DrawJumpUnderline(gui, jump, textRect, palette);
 
-        if (!HandleLinkClick(gui, link))
+        if (!HandleJumpClick(gui, jump))
             HandleMouse(gui, ref buffer, textRect, selected, hovered);
 
         var changed = false;

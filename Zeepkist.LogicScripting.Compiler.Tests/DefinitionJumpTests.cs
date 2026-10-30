@@ -6,53 +6,53 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Tests;
 /// <summary>
 /// Texts mark the clicked character with <c>|</c> before it.
 /// </summary>
-public class DefinitionLinkTests
+public class DefinitionJumpTests
 {
     [Fact]
-    public void DefinedName_LinksToTheNameInItsDefinition()
+    public void DefinedName_JumpsToTheNameInItsDefinition()
     {
-        var link = At("a = 1\n  x = logic(a, 1)\npower_display(|x)");
+        var jump = At("a = 1\n  x = logic(a, 1)\npower_display(|x)");
 
-        Assert.Equal((8, 1), (link.Target.Start, link.Target.Length));
-        Assert.Equal((38, 1), (link.Name.Start, link.Name.Length));
+        Assert.Equal((8, 1), (jump.Target.Start, jump.Target.Length));
+        Assert.Equal((38, 1), (jump.Name.Start, jump.Name.Length));
     }
 
     [Fact]
-    public void DefinedName_AnyCharacterOfTheName_Links()
+    public void DefinedName_AnyCharacterOfTheName_Jumps()
     {
         Assert.Equal(0, At("abc = 1\npower_display(ab|c)").Target.Start);
     }
 
     [Fact]
-    public void DefinedName_DefinedTwice_LinksToTheLatestDefinitionAbove()
+    public void DefinedName_DefinedTwice_JumpsToTheLatestDefinitionAbove()
     {
         Assert.Equal(6, At("x = 1\nx = 2\npower_display(|x)\nx = 3").Target.Start);
     }
 
     [Fact]
-    public void DefinedName_DefinedOnlyBelow_LinksToTheFirstDefinitionBelow()
+    public void DefinedName_DefinedOnlyBelow_JumpsToTheFirstDefinitionBelow()
     {
         Assert.Equal(27, At("x = delay(|later, ticks: 1)\nlater = 1\nlater = 2").Target.Start);
     }
 
     [Fact]
-    public void DefinedName_OnAHalfTypedLine_StillLinks()
+    public void DefinedName_OnAHalfTypedLine_StillJumps()
     {
         Assert.Equal(0, At("a = generator(power: 1)\nx = logic(|a, ").Target.Start);
     }
 
     [Fact]
-    public void DefinedName_BeforeAnOutput_Links()
+    public void DefinedName_BeforeAnOutput_Jumps()
     {
         Assert.Equal(0, At("p = player_input()\nd = |p.horn").Target.Start);
     }
 
     [Fact]
-    public void ScriptFunction_LinksToItsNameInTheHeader()
+    public void ScriptFunction_JumpsToItsNameInTheHeader()
     {
-        var link = At("function edge(x) -> rising\n    rising = x\nend\npower_display(ed|ge(1))");
+        var jump = At("function edge(x) -> rising\n    rising = x\nend\npower_display(ed|ge(1))");
 
-        Assert.Equal((9, 4), (link.Target.Start, link.Target.Length));
+        Assert.Equal((9, 4), (jump.Target.Start, jump.Target.Length));
     }
 
     [Theory]
@@ -75,14 +75,14 @@ public class DefinitionLinkTests
     [Fact]
     public void IndexOutsideTheText_IsNull()
     {
-        Assert.Null(DefinitionLink.At("x = 1", -1));
-        Assert.Null(DefinitionLink.At("x = 1", 6));
-        Assert.Null(DefinitionLink.At(null, 0));
+        Assert.Null(DefinitionJump.At("x = 1", -1));
+        Assert.Null(DefinitionJump.At("x = 1", 6));
+        Assert.Null(DefinitionJump.At(null, 0));
     }
 
-    private static DefinitionLink At(string marked)
+    private static DefinitionJump At(string marked)
     {
         var index = marked.IndexOf('|');
-        return DefinitionLink.At(marked.Remove(index, 1), index);
+        return DefinitionJump.At(marked.Remove(index, 1), index);
     }
 }

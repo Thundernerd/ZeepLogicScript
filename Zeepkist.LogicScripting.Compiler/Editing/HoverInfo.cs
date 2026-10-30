@@ -87,7 +87,7 @@ public sealed class HoverInfo
         var messages = underlines.Select(e => e.Message).ToList();
 
         var tokens = Lexer.Tokenize(text, []);
-        var name = DefinitionLink.FindName(tokens, index);
+        var name = DefinitionJump.FindName(tokens, index);
         BlockReferenceEntry function = null;
         BlockReferenceRow argument = null;
         var definitionLine = 0;
@@ -133,11 +133,11 @@ public sealed class HoverInfo
         out string definition)
     {
         definition = null;
-        if (DefinitionLink.Find(text, tokens, token, findPlacedBlock) is not { } link)
+        if (DefinitionJump.Find(text, tokens, token, findPlacedBlock) is not { } jump)
             return 0;
 
         var lineStarts = ScriptText.GetLineStarts(text);
-        var line = lineStarts.FindLastIndex(s => s <= link.Target.Start);
+        var line = lineStarts.FindLastIndex(s => s <= jump.Target.Start);
         var lineEnd = ScriptText.GetLineEnd(lineStarts, text.Length, line);
         definition = text.Substring(lineStarts[line], lineEnd - lineStarts[line]).Trim();
         return line + 1;

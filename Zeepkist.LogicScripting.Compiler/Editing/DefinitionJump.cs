@@ -11,9 +11,9 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 /// A name the Script defines, used somewhere in its text, and where Ctrl+click on it goes. Read from the tokens, like
 /// <see cref="HoverInfo"/>, so half-typed text has it too.
 /// </summary>
-public sealed class DefinitionLink
+public sealed class DefinitionJump
 {
-    private DefinitionLink(TextSpan name, TextSpan target)
+    private DefinitionJump(TextSpan name, TextSpan target)
     {
         Name = name;
         Target = target;
@@ -30,14 +30,14 @@ public sealed class DefinitionLink
     public TextSpan Target { get; }
 
     /// <summary>
-    /// The link of the name the character at <paramref name="index"/> is in; null when it isn't in a name the Script
+    /// The jump of the name the character at <paramref name="index"/> is in; null when it isn't in a name the Script
     /// defines. The latest definition above the name is the one used, or the first below it when there's none above,
     /// as only <c>delay(...)</c> may refer to a name defined later.
     /// </summary>
     /// <param name="text"></param>
     /// <param name="index"></param>
     /// <param name="findPlacedBlock">The block in the level with a UID, or null when there's none.</param>
-    public static DefinitionLink At(string text, int index, Func<string, PlacedBlock> findPlacedBlock = null)
+    public static DefinitionJump At(string text, int index, Func<string, PlacedBlock> findPlacedBlock = null)
     {
         text ??= string.Empty;
         var tokens = Lexer.Tokenize(text, []);
@@ -60,9 +60,9 @@ public sealed class DefinitionLink
     }
 
     /// <summary>
-    /// The link of <paramref name="token"/>, a name that isn't a Block Function or a named argument's name.
+    /// The jump of <paramref name="token"/>, a name that isn't a Block Function or a named argument's name.
     /// </summary>
-    internal static DefinitionLink Find(string text, List<Token> tokens, Token token, Func<string, PlacedBlock> findPlacedBlock)
+    internal static DefinitionJump Find(string text, List<Token> tokens, Token token, Func<string, PlacedBlock> findPlacedBlock)
     {
         var targets = DefinedNames.Read(text, findPlacedBlock)
             .Where(n => n.Name == token.Text)
@@ -75,7 +75,7 @@ public sealed class DefinitionLink
             return null;
 
         var above = targets.Where(s => s.Start <= token.Span.Start).ToList();
-        return new DefinitionLink(token.Span, above.Count > 0 ? above[above.Count - 1] : targets[0]);
+        return new DefinitionJump(token.Span, above.Count > 0 ? above[above.Count - 1] : targets[0]);
     }
 
     /// <summary>
