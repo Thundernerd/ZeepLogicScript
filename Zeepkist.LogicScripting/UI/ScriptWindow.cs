@@ -55,7 +55,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     private readonly LibraryListPanel _libraryListPanel;
     private readonly OrphanedGroupsPanel _orphanedGroupsPanel;
     private readonly PlacedBlocksPanel _placedBlocksPanel = new();
-    private readonly ReferencePanel _referencePanel = new();
+    private readonly ReferencePanel _referencePanel;
 
     // At most one of the two is selected; the editor shows that one
     private ScriptEntry _current;
@@ -101,6 +101,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         _librarySaver = new LibrarySaver(libraries);
         _scriptListPanel = new ScriptListPanel(logger, _scripts, _draftSaver, OnScriptDeleted);
         _libraryListPanel = new LibraryListPanel(libraries.Libraries);
+        _referencePanel = new ReferencePanel(libraries.Libraries);
         _orphanedGroupsPanel = new OrphanedGroupsPanel(logger);
     }
 

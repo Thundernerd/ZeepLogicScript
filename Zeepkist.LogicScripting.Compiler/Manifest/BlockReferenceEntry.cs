@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -63,15 +62,10 @@ public sealed class BlockReferenceEntry
     {
         var trimmed = filter.Trim();
         return trimmed.Length == 0
-            || Contains(Function, trimmed)
-            || Contains(Aliases, trimmed)
-            || Contains(Inputs, trimmed)
-            || (Outputs != null && Contains(Outputs, trimmed))
-            || ModeOutputs.Concat(Settings).Any(r => Contains(r.Name, trimmed) || Contains(r.Value, trimmed));
-    }
-
-    private static bool Contains(string text, string filter)
-    {
-        return text.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
+            || ReferenceText.Contains(Function, trimmed)
+            || ReferenceText.Contains(Aliases, trimmed)
+            || ReferenceText.Contains(Inputs, trimmed)
+            || (Outputs != null && ReferenceText.Contains(Outputs, trimmed))
+            || ModeOutputs.Concat(Settings).Any(r => ReferenceText.Contains(r.Name, trimmed) || ReferenceText.Contains(r.Value, trimmed));
     }
 }

@@ -82,6 +82,8 @@ The new group replaces the old one, at the same spot.
     Select blocks in the level and click **Insert selected** to add them to the Script.
   - **Reference**: every block function, with its inputs, outputs and settings,
     under four headings, Inputs, Operators, Outputs and Movers, split the same way as the subfolders of the game's logic block folder.
+    Under a fifth, Libraries, are your Libraries' functions, with their inputs and outputs;
+    an input the function uses as a setting is marked `(setting)`.
     Click a heading to collapse it; the window remembers which ones are collapsed.
     Type in the filter to search: only headings with a match show, and they show open.
 
