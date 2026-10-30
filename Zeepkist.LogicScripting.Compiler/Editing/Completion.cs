@@ -120,7 +120,7 @@ public static class Completion
     /// <summary>
     /// The named arguments the call doesn't have yet: a Block Function's inputs and Settings, a Function's inputs, or
     /// a Placed Block Reference's inputs, since its Settings can't be changed. Inputs its positional arguments give are
-    /// left out.
+    /// left out. A name defined twice is the first definition, which the compiler keeps.
     /// </summary>
     private static IEnumerable<CompletionItem> GetArgumentItems(CaretContext context, IReadOnlyList<DefinedName> definedNames)
     {
@@ -138,7 +138,7 @@ public static class Completion
         if (function != null)
             return GetInputItems(context, function.Inputs);
 
-        var placed = definedNames.LastOrDefault(n => n.Name == context.Callee && IsVisible(context, n));
+        var placed = definedNames.FirstOrDefault(n => n.Name == context.Callee && IsVisible(context, n));
         return placed is { IsPlaced: true, Type: not null } ? GetInputItems(context, placed.Type.Inputs.Select(i => i.Name)) : [];
 
         bool IsGiven(string name)

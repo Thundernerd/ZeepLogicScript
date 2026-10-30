@@ -476,6 +476,21 @@ public class CompletionTests
         Assert.Equal(["angle:", "blue:", "green:", "range:", "red:"], labels);
     }
 
+    [Fact]
+    public void Items_InACallToANameDefinedTwice_TheFirstDefinitionsInputs()
+    {
+        var level = new Dictionary<string, PlacedBlock>
+        {
+            ["L"] = new PlacedBlock(BlockManifest.Lamp.DefaultStyle.BlockId)
+        };
+        var context = At("lamp_1 = placed(\"L\")\nlamp_1 = logic(1, 2)\nlamp_1(|");
+        var labels = Completion.GetItems(context, DefinedNames.Read(context.Text, uid => level.GetValueOrDefault(uid)))
+            .Where(i => i.Kind == CompletionKind.Argument)
+            .Select(i => i.Label);
+
+        Assert.Equal(["angle:", "blue:", "green:", "intensity:", "range:", "red:"], labels);
+    }
+
     [Theory]
     [InlineData("a = logic(1, 2)\na(|")]
     [InlineData("a = placed(\"UNKNOWN\")\na(|")]
