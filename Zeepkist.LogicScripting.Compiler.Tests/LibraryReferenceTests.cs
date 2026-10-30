@@ -100,4 +100,15 @@ public class LibraryReferenceTests
         Assert.True(entries.Single(e => e.Function == "broken.a").LibraryHasErrors);
         Assert.False(entries.Single(e => e.Function == "fine.b").LibraryHasErrors);
     }
+
+    [Fact]
+    public void Entries_AreSortedIgnoringCase()
+    {
+        var list = WithLibrary("Zeta", "function a() -> y\n    y = 1\nend\n");
+        list.SetText(list.Add("alpha"), "function a() -> y\n    y = 1\nend\n");
+
+        var names = LibraryReference.Describe(list).Select(e => e.Function);
+
+        Assert.Equal(["alpha.a", "Zeta.a"], names);
+    }
 }

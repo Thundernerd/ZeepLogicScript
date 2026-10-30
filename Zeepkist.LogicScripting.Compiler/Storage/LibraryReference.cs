@@ -12,13 +12,13 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 public static class LibraryReference
 {
     /// <summary>
-    /// Every Function of every Library, sorted by qualified name.
+    /// Every Function of every Library, sorted by qualified name ignoring case, as a Library's name may have capitals.
     /// </summary>
     public static IReadOnlyList<LibraryReferenceEntry> Describe(LibraryList libraries)
     {
         return libraries.Entries
             .SelectMany(l => Describe(l.Name, libraries.FindText))
-            .OrderBy(e => e.Function, StringComparer.Ordinal)
+            .OrderBy(e => e.Function, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 
