@@ -69,46 +69,17 @@ public sealed class CallHelp
             return null;
 
         var functions = DefinedNames.ReadFunctions(tokens).Select(f => f.Function).ToList();
-        var calls = FindCallParens(tokens, caret);
-        var enclosingCalls = calls.Select(c => tokens[c].Span.Start).ToList();
+        var calls = OpenCall.FindAll(tokens, caret);
+        var enclosingCalls = calls.Select(c => tokens[c.Paren].Span.Start).ToList();
         foreach (var call in calls)
         {
-            var callee = tokens[call - 1].Text;
-            var openParen = tokens[call].Span.Start;
-            var items = GetItems(text, callee, openParen, functions, findPlacedBlock);
+            var openParen = tokens[call.Paren].Span.Start;
+            var items = GetItems(text, call.Callee, openParen, functions, findPlacedBlock);
             if (items.Count > 0)
-                return new CallHelp(callee, openParen, items, FindActive(text, tokens, call, caret, items), enclosingCalls);
+                return new CallHelp(call.Callee, openParen, items, FindActive(text, tokens, call, caret, items), enclosingCalls);
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// The opening parentheses before the caret that are still open and follow a name, innermost first.
-    /// </summary>
-    private static List<int> FindCallParens(List<Token> tokens, int caret)
-    {
-        Stack<int> open = new();
-        for (var i = 0; i < tokens.Count && tokens[i].Span.Start < caret; i++)
-        {
-            switch (tokens[i].Kind)
-            {
-                // A call left open while it's typed carries on to the next line, unless a statement starts there
-                case TokenKind.NewLine when open.Count == 0 || Lexer.IsStatementStart(tokens, i + 1):
-                    open.Clear();
-                    break;
-
-                case TokenKind.OpenParen or TokenKind.OpenBracket:
-                    open.Push(i);
-                    break;
-
-                case TokenKind.CloseParen or TokenKind.CloseBracket when open.Count > 0:
-                    open.Pop();
-                    break;
-            }
-        }
-
-        return open.Where(i => tokens[i].Kind == TokenKind.OpenParen && i > 0 && tokens[i - 1].Kind == TokenKind.Name).ToList();
     }
 
     /// <summary>
@@ -157,64 +128,23 @@ public sealed class CallHelp
         return new CallHelpItem(setting.Name, false, BlockReference.DescribeValues(setting));
     }
 
-    private static int FindActive(string text, List<Token> tokens, int call, int caret, List<CallHelpItem> items)
+    private static int FindActive(string text, List<Token> tokens, OpenCall call, int caret, List<CallHelpItem> items)
     {
-        var positional = 0;
-        var hasNamed = false;
-        var argumentStart = call + 1;
-        var depth = 0;
-        for (var i = call + 1; tokens[i].Kind != TokenKind.End && tokens[i].Span.Start < caret; i++)
-        {
-            switch (tokens[i].Kind)
-            {
-                case TokenKind.OpenParen or TokenKind.OpenBracket:
-                    depth++;
-                    break;
-
-                case TokenKind.CloseParen or TokenKind.CloseBracket:
-                    depth--;
-                    break;
-
-                case TokenKind.Comma when depth == 0:
-                    var first = SkipLineBreaks(tokens, argumentStart);
-                    if (IsNamed(tokens, first))
-                        hasNamed = true;
-                    else if (tokens[first].Kind != TokenKind.Comma)
-                        positional++;
-
-                    argumentStart = i + 1;
-                    break;
-            }
-        }
+        var before = call.Arguments.TakeWhile(a => tokens[a.Start].Span.Start < caret).ToList();
+        var current = before[before.Count - 1];
+        before.RemoveAt(before.Count - 1);
 
         // A name after the caret on a later line has no comma before it yet, so it starts an argument of its own
-        var current = SkipLineBreaks(tokens, argumentStart);
-        var start = tokens[current].Span.Start;
-        var isLater = start > caret && text.IndexOf('\n', caret, start - caret) >= 0;
-        if (!isLater && IsNamed(tokens, current))
+        if (current.IsNamed)
         {
-            var name = tokens[current].Text;
-            return items.FindIndex(i => i.Name == name);
+            var start = tokens[current.First].Span.Start;
+            var isLater = start > caret && text.IndexOf('\n', caret, start - caret) >= 0;
+            if (!isLater)
+                return items.FindIndex(i => i.Name == current.Name);
         }
 
+        var positional = before.Count(a => !a.IsEmpty && !a.IsNamed);
+        var hasNamed = before.Any(a => a.IsNamed);
         return !hasNamed && positional < items.Count && items[positional].IsInput ? positional : -1;
-    }
-
-    /// <summary>
-    /// Only a call left open keeps its line breaks as tokens.
-    /// </summary>
-    private static int SkipLineBreaks(List<Token> tokens, int index)
-    {
-        while (tokens[index].Kind == TokenKind.NewLine)
-        {
-            index++;
-        }
-
-        return index;
-    }
-
-    private static bool IsNamed(List<Token> tokens, int index)
-    {
-        return tokens[index].Kind == TokenKind.Name && tokens[index + 1].Kind == TokenKind.Colon;
     }
 }

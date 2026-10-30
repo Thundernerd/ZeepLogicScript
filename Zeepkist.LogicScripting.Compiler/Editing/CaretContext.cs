@@ -128,7 +128,7 @@ public sealed class CaretContext
         var word = FindWord(text, caret);
         List<TextSpan> comments = [];
         var tokens = Lexer.Tokenize(text, [], comments);
-        var call = FindArgumentCallParen(tokens, word);
+        var call = OpenCall.FindStartedAt(tokens, word.Start);
         var settingValues = FindSettingValues(tokens, word, out var settingCallee, out var settingName);
         var dottedName = FindDottedName(tokens, word);
         CaretContextKind kind;
@@ -143,11 +143,11 @@ public sealed class CaretContext
         else if (dottedName != null)
             kind = CaretContextKind.Output;
         else
-            kind = GetKind(tokens, word, call >= 0);
+            kind = GetKind(tokens, word, call != null);
 
         var statementStart = FindStatementStart(tokens, word, out var canReferAhead);
         var inCall = kind is CaretContextKind.Argument or CaretContextKind.ArgumentName;
-        var callee = inCall ? tokens[call - 1].Text : null;
+        var callee = inCall ? call.Callee : null;
         var positionalArguments = 0;
         IReadOnlyCollection<string> givenArguments = inCall ? FindGivenArguments(tokens, call, word, out positionalArguments) : [];
         if (kind == CaretContextKind.SettingValue)
@@ -314,11 +314,11 @@ public sealed class CaretContext
             return name == BlockSetting.Hide.Name ? BlockSetting.Hide.Values : null;
         }
 
-        var call = FindArgumentCallParen(tokens, tokens[colon - 1].Span);
-        if (call < 0 || !BlockManifest.TryGetFunction(tokens[call - 1].Text, out var type))
+        var call = OpenCall.FindStartedAt(tokens, tokens[colon - 1].Span.Start);
+        if (call == null || !BlockManifest.TryGetFunction(call.Callee, out var type))
             return null;
 
-        callee = tokens[call - 1].Text;
+        callee = call.Callee;
         settingName = name;
         return type.GetSettingValues(name);
     }
@@ -359,101 +359,28 @@ public sealed class CaretContext
     }
 
     /// <summary>
-    /// The opening parenthesis of the call the word starts an argument of, right after it or after a comma between
-    /// its arguments; -1 when the word doesn't start one.
-    /// </summary>
-    private static int FindArgumentCallParen(List<Token> tokens, TextSpan word)
-    {
-        Stack<int> open = new();
-        var previous = -1;
-        for (var i = 0; i < tokens.Count && tokens[i].Span.Start < word.Start; i++)
-        {
-            switch (tokens[i].Kind)
-            {
-                case TokenKind.NewLine when open.Count == 0 || Lexer.IsStatementStart(tokens, i + 1):
-                    open.Clear();
-                    break;
-
-                // A call left open while it's typed carries on to the next line
-                case TokenKind.NewLine:
-                    continue;
-
-                case TokenKind.OpenParen or TokenKind.OpenBracket:
-                    open.Push(i);
-                    break;
-
-                case TokenKind.CloseParen or TokenKind.CloseBracket when open.Count > 0:
-                    open.Pop();
-                    break;
-            }
-
-            previous = i;
-        }
-
-        if (open.Count == 0)
-            return -1;
-
-        var call = open.Peek();
-        var isCall = tokens[call].Kind == TokenKind.OpenParen && call > 0 && tokens[call - 1].Kind == TokenKind.Name;
-        return isCall && (previous == call || tokens[previous].Kind == TokenKind.Comma) ? call : -1;
-    }
-
-    /// <summary>
     /// The names of the call's own named arguments, and how many positional arguments it has, apart from the one the
-    /// word starts: up to its closing parenthesis, or while it's typed, the next statement.
+    /// word starts.
     /// </summary>
-    private static HashSet<string> FindGivenArguments(List<Token> tokens, int call, TextSpan word, out int positionalCount)
+    private static HashSet<string> FindGivenArguments(List<Token> tokens, OpenCall call, TextSpan word, out int positionalCount)
     {
         HashSet<string> names = [];
         positionalCount = 0;
-        var depth = 0;
-        var startsArgument = false;
         var passedWord = false;
-        for (var i = call; tokens[i].Kind != TokenKind.End; i++)
+        foreach (var argument in call.Arguments.Where(a => !a.IsEmpty))
         {
-            var token = tokens[i];
-
-            // A call left open while it's typed carries on to the next line
-            if (token.Kind == TokenKind.NewLine)
-            {
-                if (Lexer.IsStatementStart(tokens, i + 1))
-                    break;
-
+            // An argument after the caret on the next line has no comma before it yet, so only one that starts right at
+            // the caret is the word's own
+            var start = tokens[argument.First].Span.Start;
+            var isWords = !passedWord && start == word.Start;
+            passedWord |= start >= word.Start;
+            if (isWords)
                 continue;
-            }
 
-            if (startsArgument)
-            {
-                startsArgument = false;
-
-                // An argument after the caret on the next line has no comma before it yet, so only one that starts
-                // right at the caret is the word's own
-                var isWords = !passedWord && token.Span.Start == word.Start;
-                passedWord |= token.Span.Start >= word.Start;
-                if (!isWords && token.Kind == TokenKind.Name && tokens[i + 1].Kind == TokenKind.Colon)
-                    names.Add(token.Text);
-                else if (!isWords && token.Kind is not (TokenKind.Comma or TokenKind.CloseParen))
-                    positionalCount++;
-            }
-
-            switch (token.Kind)
-            {
-                case TokenKind.OpenParen or TokenKind.OpenBracket:
-                    depth++;
-                    startsArgument = depth == 1;
-                    break;
-
-                case TokenKind.CloseParen or TokenKind.CloseBracket:
-                    depth--;
-                    if (depth == 0)
-                        return names;
-
-                    break;
-
-                case TokenKind.Comma when depth == 1:
-                    startsArgument = true;
-                    break;
-            }
+            if (argument.IsNamed)
+                names.Add(argument.Name);
+            else
+                positionalCount++;
         }
 
         return names;
