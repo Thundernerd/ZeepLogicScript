@@ -14,14 +14,12 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 public sealed class HoverInfo
 {
     private HoverInfo(
-        TextSpan span,
         IReadOnlyList<string> errors,
         BlockReferenceEntry function,
         BlockReferenceRow argument,
         int definitionLine,
         string definition)
     {
-        Span = span;
         Errors = errors;
         Function = function;
         Argument = argument;
@@ -32,7 +30,7 @@ public sealed class HoverInfo
     /// <summary>
     /// The name the mouse is on, or else the error underline.
     /// </summary>
-    public TextSpan Span { get; }
+    public TextSpan Span { get; private set; }
 
     /// <summary>
     /// The messages of the error underlines at the character, in the errors' order.
@@ -60,6 +58,11 @@ public sealed class HoverInfo
     /// neither.
     /// </summary>
     public string Definition { get; }
+
+    /// <summary>
+    /// Whether there's something to tell about the name, apart from <see cref="Errors"/>.
+    /// </summary>
+    public bool HasName => Function != null || Argument != null || Definition != null;
 
     /// <summary>
     /// What there is to tell about the character at <paramref name="index"/>; null when there's nothing. A name tells
@@ -103,12 +106,12 @@ public sealed class HoverInfo
                 definitionLine = FindDefinition(text, tokens, token, findPlacedBlock, out definition);
         }
 
-        var hasName = function != null || argument != null || definition != null;
-        if (!hasName && messages.Count == 0)
+        var info = new HoverInfo(messages, function, argument, definitionLine, definition);
+        if (!info.HasName && messages.Count == 0)
             return null;
 
-        var span = hasName ? tokens[name].Span : underlines[0].Span;
-        return new HoverInfo(span, messages, function, argument, definitionLine, definition);
+        info.Span = info.HasName ? tokens[name].Span : underlines[0].Span;
+        return info;
     }
 
     /// <summary>
@@ -157,10 +160,13 @@ public sealed class HoverInfo
     /// </summary>
     private static IEnumerable<int> FindFunctionDefinitions(List<Token> tokens, string name)
     {
+        if (GraphBuilder.IsReserved(name))
+            yield break;
+
         for (var i = 1; i < tokens.Count; i++)
         {
             var isAfterKeyword = tokens[i - 1].Kind == TokenKind.Name && tokens[i - 1].Text == FunctionDefinition.Keyword;
-            if (isAfterKeyword && tokens[i].Kind == TokenKind.Name && tokens[i].Text == name && !GraphBuilder.IsReserved(name))
+            if (isAfterKeyword && tokens[i].Kind == TokenKind.Name && tokens[i].Text == name)
                 yield return tokens[i].Span.Start;
         }
     }

@@ -129,8 +129,7 @@ internal sealed partial class HoverPopup
             layout.AddLine(error, palette.Error, 0);
         }
 
-        var hasName = info.Function != null || info.Argument != null || info.Definition != null;
-        if (info.Errors.Count > 0 && hasName)
+        if (info.Errors.Count > 0 && info.HasName)
             layout.AddGap(gui.Style.Layout.Spacing);
 
         if (info.Function is { } entry)
