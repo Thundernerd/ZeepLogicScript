@@ -23,9 +23,6 @@ public sealed class Diagnostic
     /// </summary>
     public string Origin { get; }
 
-    /// <summary>
-    /// The message without its <see cref="Origin"/>.
-    /// </summary>
     public string Detail { get; }
 
     public string Message { get; }

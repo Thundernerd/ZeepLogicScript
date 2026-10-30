@@ -12,20 +12,13 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// message keeps as much of the width as it can. Its column names are drawn apart from the rows, so they stay put while
 /// the rows scroll.
 /// </summary>
-internal sealed class ErrorTable
+internal static class ErrorTable
 {
     private const string LineHeader = "Line";
     private const string ColumnHeader = "Col";
     private const string MessageHeader = "Message";
 
-    private float _lineWidth;
-    private float _columnWidth;
-
-    /// <summary>
-    /// Sizes the number columns to <paramref name="errors"/>, for this frame's <see cref="DrawHeader"/> and
-    /// <see cref="DrawRows"/>.
-    /// </summary>
-    public void Measure(ImGui gui, IReadOnlyList<Diagnostic> errors)
+    public static ErrorColumns Measure(ImGui gui, IReadOnlyList<Diagnostic> errors)
     {
         var line = gui.MeasureTextSize(LineHeader).x;
         var column = gui.MeasureTextSize(ColumnHeader).x;
@@ -36,8 +29,7 @@ internal sealed class ErrorTable
         }
 
         var padding = gui.Style.Layout.Spacing * 2;
-        _lineWidth = line + padding;
-        _columnWidth = column + padding;
+        return new ErrorColumns(line + padding, column + padding);
     }
 
     public static float GetHeaderHeight(ImGui gui)
@@ -48,11 +40,11 @@ internal sealed class ErrorTable
     /// <summary>
     /// The column names in the muted color, over a line that sets them apart from the rows.
     /// </summary>
-    public void DrawHeader(ImGui gui, ImRect rect)
+    public static void DrawHeader(ImGui gui, ImRect rect, ErrorColumns columns)
     {
-        var settings = GetLineSettings(gui, 0);
-        var numberSettings = GetLineSettings(gui, 1);
-        SplitCells(gui, rect, out var lineRect, out var columnRect, out var messageRect);
+        var settings = GetSingleLineSettings(gui, 0);
+        var numberSettings = GetSingleLineSettings(gui, 1);
+        SplitCells(gui, rect, columns, out var lineRect, out var columnRect, out var messageRect);
         gui.Text(LineHeader, in numberSettings, WindowColors.Muted, lineRect);
         gui.Text(ColumnHeader, in numberSettings, WindowColors.Muted, columnRect);
         gui.Text(MessageHeader, in settings, WindowColors.Muted, messageRect);
@@ -64,13 +56,13 @@ internal sealed class ErrorTable
     /// Returns the position of the error whose row was clicked, or null. An error from inside a Library Function shows
     /// where in the Library it is in the muted color, on its own line above the message.
     /// </summary>
-    public Position? DrawRows(ImGui gui, IReadOnlyList<Diagnostic> errors)
+    public static Position? DrawRows(ImGui gui, IReadOnlyList<Diagnostic> errors, ErrorColumns columns)
     {
-        var numberSettings = GetLineSettings(gui, 1);
+        var numberSettings = GetSingleLineSettings(gui, 1);
         var wrapped = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0, wrap: true);
         var spacing = gui.Style.Layout.Spacing;
         var width = gui.GetLayoutWidth();
-        var messageBounds = new Vector2(Mathf.Max(1, width - _lineWidth - _columnWidth - (spacing * 2)), 0);
+        var messageBounds = new Vector2(Mathf.Max(1, width - columns.Line - columns.Column - (spacing * 2)), 0);
         var hover = gui.Style.Menu.ItemNormal.Hovered.BackColor;
 
         Position? clicked = null;
@@ -91,7 +83,7 @@ internal sealed class ErrorTable
             else if (i % 2 == 1)
                 gui.Canvas.Rect(rect, WindowColors.RowStripe);
 
-            SplitCells(gui, rect, out var lineRect, out var columnRect, out var messageRect);
+            SplitCells(gui, rect, columns, out var lineRect, out var columnRect, out var messageRect);
             gui.Text(error.Position.Line.ToString(), in numberSettings, gui.Style.Text.Color, lineRect);
             gui.Text(error.Position.Column.ToString(), in numberSettings, gui.Style.Text.Color, columnRect);
             if (error.Origin != null)
@@ -106,20 +98,17 @@ internal sealed class ErrorTable
         return clicked;
     }
 
-    private static ImTextSettings GetLineSettings(ImGui gui, float alignX)
+    private static ImTextSettings GetSingleLineSettings(ImGui gui, float alignX)
     {
         return new ImTextSettings(gui.Style.Layout.TextSize, alignX, 0, overflow: ImTextOverflow.Ellipsis);
     }
 
-    /// <summary>
-    /// Splits a row into its cells, each padded so the numbers and the message don't touch.
-    /// </summary>
-    private void SplitCells(ImGui gui, ImRect row, out ImRect line, out ImRect column, out ImRect message)
+    private static void SplitCells(ImGui gui, ImRect row, ErrorColumns columns, out ImRect line, out ImRect column, out ImRect message)
     {
         var spacing = gui.Style.Layout.Spacing;
         var content = row.WithPadding(top: gui.Style.Layout.ExtraRowHeight / 2, bottom: gui.Style.Layout.ExtraRowHeight / 2);
-        line = content.TakeLeft(_lineWidth, out var rest).WithPadding(left: spacing, right: spacing);
-        column = rest.TakeLeft(_columnWidth, out message).WithPadding(left: spacing, right: spacing);
+        line = content.TakeLeft(columns.Line, out var rest).WithPadding(left: spacing, right: spacing);
+        column = rest.TakeLeft(columns.Column, out message).WithPadding(left: spacing, right: spacing);
         message = message.WithPadding(left: spacing, right: spacing);
     }
 }

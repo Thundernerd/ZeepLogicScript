@@ -55,7 +55,6 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     private readonly LibraryListPanel _libraryListPanel;
     private readonly OrphanedGroupsPanel _orphanedGroupsPanel;
     private readonly PlacedBlocksPanel _placedBlocksPanel = new();
-    private readonly ErrorTable _errorTable = new();
     private readonly ReferencePanel _referencePanel;
 
     // At most one of the two is selected; the editor shows that one
