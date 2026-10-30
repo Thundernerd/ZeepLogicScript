@@ -17,7 +17,7 @@ public sealed class ReferenceEntryLayout
     /// </summary>
     public const float MaxNameColumn = 0.45f;
 
-    public ReferenceEntryLayout(string function, string note, IReadOnlyList<BlockReferenceRow> rows, IReadOnlyList<ReferenceEntryGroup> groups)
+    public ReferenceEntryLayout(string function, string note, IReadOnlyList<ReferenceRow> rows, IReadOnlyList<ReferenceEntryGroup> groups)
     {
         Function = function;
         Note = note;
@@ -35,7 +35,7 @@ public sealed class ReferenceEntryLayout
     /// <summary>
     /// The inputs and, unless a group has them per mode, the outputs, labeled.
     /// </summary>
-    public IReadOnlyList<BlockReferenceRow> Rows { get; }
+    public IReadOnlyList<ReferenceRow> Rows { get; }
 
     public IReadOnlyList<ReferenceEntryGroup> Groups { get; }
 }

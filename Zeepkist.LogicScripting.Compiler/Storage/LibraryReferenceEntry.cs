@@ -36,7 +36,7 @@ public sealed class LibraryReferenceEntry
         Layout = new ReferenceEntryLayout(
             Function,
             libraryHasErrors ? LibraryErrorsNote : string.Empty,
-            [new BlockReferenceRow(ReferenceEntryLayout.InputsLabel, Inputs), new BlockReferenceRow(ReferenceEntryLayout.OutputsLabel, Outputs)],
+            [new ReferenceRow(ReferenceEntryLayout.InputsLabel, Inputs), new ReferenceRow(ReferenceEntryLayout.OutputsLabel, Outputs)],
             []);
     }
 

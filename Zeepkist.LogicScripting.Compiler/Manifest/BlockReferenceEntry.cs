@@ -15,8 +15,8 @@ public sealed class BlockReferenceEntry
         string aliases,
         string inputs,
         string outputs,
-        IReadOnlyList<BlockReferenceRow> modeOutputs,
-        IReadOnlyList<BlockReferenceRow> settings,
+        IReadOnlyList<ReferenceRow> modeOutputs,
+        IReadOnlyList<ReferenceRow> settings,
         bool isPlacedOnly)
     {
         Function = function;
@@ -46,12 +46,12 @@ public sealed class BlockReferenceEntry
     /// <summary>
     /// One row per mode, empty unless the mode renames the outputs.
     /// </summary>
-    public IReadOnlyList<BlockReferenceRow> ModeOutputs { get; }
+    public IReadOnlyList<ReferenceRow> ModeOutputs { get; }
 
     /// <summary>
     /// Empty when the type takes none.
     /// </summary>
-    public IReadOnlyList<BlockReferenceRow> Settings { get; }
+    public IReadOnlyList<ReferenceRow> Settings { get; }
 
     /// <summary>
     /// A type Scripts only reach through <c>placed("UID")</c>.
@@ -76,10 +76,10 @@ public sealed class BlockReferenceEntry
 
     private ReferenceEntryLayout CreateLayout()
     {
-        List<BlockReferenceRow> rows = [new BlockReferenceRow(ReferenceEntryLayout.InputsLabel, Inputs)];
+        List<ReferenceRow> rows = [new ReferenceRow(ReferenceEntryLayout.InputsLabel, Inputs)];
         List<ReferenceEntryGroup> groups = [];
         if (Outputs != null)
-            rows.Add(new BlockReferenceRow(ReferenceEntryLayout.OutputsLabel, Outputs));
+            rows.Add(new ReferenceRow(ReferenceEntryLayout.OutputsLabel, Outputs));
         else
             groups.Add(new ReferenceEntryGroup(ReferenceEntryLayout.OutputsLabel, ModeOutputs));
 

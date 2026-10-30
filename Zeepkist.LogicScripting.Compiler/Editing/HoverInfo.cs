@@ -15,7 +15,7 @@ public sealed class HoverInfo
     private HoverInfo(
         IReadOnlyList<string> errors,
         BlockReferenceEntry function,
-        BlockReferenceRow argument,
+        ReferenceRow argument,
         int definitionLine,
         string definition)
     {
@@ -45,7 +45,7 @@ public sealed class HoverInfo
     /// The input or Setting a named argument's name gives, with what it accepts as the Reference tab describes it;
     /// null when the name isn't one.
     /// </summary>
-    public BlockReferenceRow Argument { get; }
+    public ReferenceRow Argument { get; }
 
     /// <summary>
     /// The one-based line <see cref="Definition"/> is on; 0 when there's none.
@@ -89,7 +89,7 @@ public sealed class HoverInfo
         var tokens = Lexer.Tokenize(text, []);
         var name = DefinitionJump.FindName(tokens, index);
         BlockReferenceEntry function = null;
-        BlockReferenceRow argument = null;
+        ReferenceRow argument = null;
         var definitionLine = 0;
         string definition = null;
         if (name >= 0)
@@ -115,14 +115,14 @@ public sealed class HoverInfo
     /// Only the innermost call around the name is asked, so a name in a call without help isn't taken for an
     /// argument of the call outside it.
     /// </summary>
-    private static BlockReferenceRow FindArgument(string text, Token token, Func<string, PlacedBlock> findPlacedBlock)
+    private static ReferenceRow FindArgument(string text, Token token, Func<string, PlacedBlock> findPlacedBlock)
     {
         var help = CallHelp.At(text, token.Span.Start, findPlacedBlock);
         if (help == null || help.EnclosingCalls[0] != help.OpenParen || help.Active < 0)
             return null;
 
         var item = help.Items[help.Active];
-        return item.Name == token.Text ? new BlockReferenceRow(item.Name, item.Detail) : null;
+        return item.Name == token.Text ? new ReferenceRow(item.Name, item.Detail) : null;
     }
 
     private static int FindDefinition(

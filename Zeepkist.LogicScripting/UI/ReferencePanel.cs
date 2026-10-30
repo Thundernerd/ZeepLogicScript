@@ -159,7 +159,7 @@ internal sealed class ReferencePanel
     /// Indented, with the names in a column as wide as the longest. A name too long for that column gets a row of its
     /// own, with its value on the next.
     /// </summary>
-    private static void DrawNamedRows(ImGui gui, IReadOnlyList<BlockReferenceRow> rows, Color32 nameColor, Color32 valueColor)
+    private static void DrawNamedRows(ImGui gui, IReadOnlyList<ReferenceRow> rows, Color32 nameColor, Color32 valueColor)
     {
         gui.BeginIndent();
         var indent = gui.Style.Layout.Indent;

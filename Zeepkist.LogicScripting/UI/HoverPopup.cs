@@ -130,11 +130,11 @@ internal sealed partial class HoverPopup
         }
         else if (info.Argument is { } argument)
         {
-            layout.AddRows([new BlockReferenceRow(argument.Name, argument.Value)], name, text, 0);
+            layout.AddRows([new ReferenceRow(argument.Name, argument.Value)], name, text, 0);
         }
         else if (info.Definition != null)
         {
-            layout.AddRows([new BlockReferenceRow($"{info.DefinitionLine}:", info.Definition)], WindowColors.Muted, text, 0);
+            layout.AddRows([new ReferenceRow($"{info.DefinitionLine}:", info.Definition)], WindowColors.Muted, text, 0);
         }
 
         return layout.Size;

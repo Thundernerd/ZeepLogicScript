@@ -42,7 +42,7 @@ internal sealed partial class HoverPopup
         /// The labels in a column as wide as the longest, each value wrapping beside its label. A label too long for
         /// that column gets a line of its own, with its value indented on the next.
         /// </summary>
-        public void AddRows(IReadOnlyList<BlockReferenceRow> rows, Color32 labelColor, Color32 valueColor, float indent)
+        public void AddRows(IReadOnlyList<ReferenceRow> rows, Color32 labelColor, Color32 valueColor, float indent)
         {
             var space = _gui.MeasureTextSize(" ").x;
             var maxColumn = (_maxWidth - indent) * ReferenceEntryLayout.MaxNameColumn;
