@@ -332,6 +332,7 @@ The level doesn't need the mod to play them.
   The value is checked like one you wrote in the setting yourself.
   The body can pass the input on to another function's setting input, like `pulse_after(x, ticks: wait)`.
   An input that gives a setting can't also be wired, and the call can't pass it a wire.
+  A word the Script also uses as a name counts as that name, so it's a wire.
 - `default hide:` goes outside functions, and applies to the blocks they place too.
 
 ### Tips
