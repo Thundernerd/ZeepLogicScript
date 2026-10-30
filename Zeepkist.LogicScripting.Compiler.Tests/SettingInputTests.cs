@@ -157,6 +157,7 @@ public class SettingInputTests
     [InlineData("function f(x, n) -> y\n    a = n & 1\n    y = delay(x, ticks: n)\nend\npower_display(f(1, 2))", "2:9: 'n' is used as a Setting on line 3, so it can't also be used as a Signal")]
     [InlineData("function f(x, n) -> y\n    y = pulse_after(n, n)\nend\npower_display(f(1, 2))\n" + PulseAfter, "2:21: 'n' is used as a Setting on line 2, so it can't also be used as a Signal")]
     [InlineData("function f(x, n) -> y\n    y = delay(x, ticks: n)\nend\npower_display(f(1, 2))\nfunction g(n) -> y\n    y = f(n, n)\nend", "6:11: 'n' is used as a Setting on line 6, so it can't also be used as a Signal")]
+    [InlineData("function f(x, n)\n    n(x)\n    passthrough(x, style: n)\nend\nf(1, normal)", "2:5: 'n' is used as a Setting on line 3, so it isn't a placed block to call")]
     public void InputUsedAsSignalAndSetting_IsAnError(string text, string error)
     {
         var result = Compile(text);

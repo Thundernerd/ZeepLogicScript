@@ -85,7 +85,9 @@ internal sealed partial class GraphBuilder
         VisitInputUses(function, Functions, (name, node, isSetting) =>
         {
             if (!isSetting && settingInputs.TryGetValue(name, out var settingUse))
-                Error(node, $"'{name}' is used as a Setting on line {settingUse.Position.Line}, so it can't also be used as a Signal");
+                Error(node, node is CallExpression
+                    ? $"'{name}' is used as a Setting on line {settingUse.Position.Line}, so it isn't a placed block to call"
+                    : $"'{name}' is used as a Setting on line {settingUse.Position.Line}, so it can't also be used as a Signal");
         });
     }
 
