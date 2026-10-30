@@ -14,7 +14,10 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// </summary>
 internal sealed class CompletionPopup
 {
-    private const float MaxWidth = 480;
+    /// <summary>
+    /// Wide enough for a Block Function's hint with its Settings; a narrower window still shortens it with an ellipsis.
+    /// </summary>
+    private const float MaxWidth = 720;
 
     /// <summary>
     /// The gap between a label and its detail, in layout spacings.
