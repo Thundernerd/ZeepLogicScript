@@ -65,9 +65,10 @@ internal sealed class CompletionPopup
 
     /// <summary>
     /// Under the line of <paramref name="wordPosition"/>, the top left of the word being completed, or above it when
-    /// there's no room below; always inside <paramref name="bounds"/>, so no click on it reaches the level.
+    /// there's no room below, as <see cref="PopupPlacement"/> picks; always inside <paramref name="window"/>, so no
+    /// click on it reaches the level.
     /// </summary>
-    public void Draw(ImGui gui, Vector2 wordPosition, float lineHeight, ImRect bounds)
+    public void Draw(ImGui gui, Vector2 wordPosition, float lineHeight, ImRect editor, ImRect window)
     {
         _rect = default;
         if (!_session.IsOpen)
@@ -80,9 +81,9 @@ internal sealed class CompletionPopup
         var rows = _session.VisibleRows;
         var width = Mathf.Min(MaxWidth, _labelWidth + (_detailWidth > 0 ? (spacing * DetailGap) + _detailWidth : 0) + (spacing * 2) + padding.Horizontal);
         var height = (rows * _rowHeight) + padding.Vertical;
-        var lineBottom = wordPosition.y - lineHeight;
-        var y = lineBottom - height >= bounds.Y ? lineBottom - height : wordPosition.y;
-        _rect = ImRectUtility.Clamp(bounds, new ImRect(wordPosition.x - padding.Left - spacing, y, width, height));
+        var below = wordPosition.y - lineHeight - height;
+        var y = PopupPlacement.Choose(below, wordPosition.y, height, (editor.Y, editor.Top), (window.Y, window.Top)) ?? wordPosition.y;
+        _rect = ImRectUtility.Clamp(window, new ImRect(wordPosition.x - padding.Left - spacing, y, width, height));
         _rows = _rect.WithPadding(padding);
 
         gui.BeginPopup();

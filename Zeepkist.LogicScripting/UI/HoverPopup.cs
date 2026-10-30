@@ -76,13 +76,13 @@ internal sealed partial class HoverPopup
     }
 
     /// <summary>
-    /// Under the line whose top left is <paramref name="linePosition"/>, or above it when there's no room below;
-    /// always inside <paramref name="bounds"/>, so it never covers the level.
+    /// Under the line whose top left is <paramref name="linePosition"/>, or above it when there's no room below, as
+    /// <see cref="PopupPlacement"/> picks; always inside <paramref name="window"/>, so it never covers the level.
     /// </summary>
-    public void Draw(ImGui gui, HoverInfo info, Vector2 linePosition, float lineHeight, ImRect bounds)
+    public void Draw(ImGui gui, HoverInfo info, Vector2 linePosition, float lineHeight, ImRect editor, ImRect window)
     {
         var padding = gui.Style.Menu.Padding;
-        var maxTextWidth = Mathf.Min(MaxWidth, bounds.W) - padding.Horizontal;
+        var maxTextWidth = Mathf.Min(MaxWidth, window.W) - padding.Horizontal;
         if (!ReferenceEquals(_laidOut, info) || _laidOutWidth != maxTextWidth)
         {
             _laidOut = info;
@@ -92,9 +92,9 @@ internal sealed partial class HoverPopup
 
         var width = _size.x + padding.Horizontal;
         var height = _size.y + padding.Vertical;
-        var lineBottom = linePosition.y - lineHeight;
-        var y = lineBottom - height >= bounds.Y ? lineBottom - height : linePosition.y;
-        var rect = ImRectUtility.Clamp(bounds, new ImRect(linePosition.x - padding.Left, y, width, height));
+        var below = linePosition.y - lineHeight - height;
+        var y = PopupPlacement.Choose(below, linePosition.y, height, (editor.Y, editor.Top), (window.Y, window.Top)) ?? linePosition.y;
+        var rect = ImRectUtility.Clamp(window, new ImRect(linePosition.x - padding.Left, y, width, height));
 
         gui.BeginPopup();
         gui.Box(rect, in gui.Style.Menu.Box);
