@@ -7,6 +7,7 @@ All notable changes to Logic Scripting are listed here.
 ### Added
 
 - Completion in the Script editor: a list of block functions while you type a name, or on Ctrl+Space.
+  Next to each one it shows the block's inputs and settings, such as `(a, b, op_in, op:)` for `logic`.
   It can be turned off for typing with **Completion while typing** in the mod's settings.
 - Completion lists the names your Script defines above the line, with their block type,
   and every name inside `delay(...)`.
