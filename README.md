@@ -103,6 +103,11 @@ and its settings, with the one you're writing highlighted and, for a setting, th
 Inside a call nested in another, it shows the inner one.
 Escape hides it until the cursor leaves the call.
 
+Rest the mouse on the text for half a second to see what's under it:
+a block function's entry from the Reference tab, the line that defines a name,
+what a named argument's input or setting takes, or the message of a red underline.
+Moving the mouse or pressing a key hides it.
+
 ## Writing Scripts
 
 A Script is a list of lines, read from top to bottom.
