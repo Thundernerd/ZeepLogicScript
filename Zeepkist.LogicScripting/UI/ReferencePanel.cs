@@ -17,12 +17,6 @@ internal sealed class ReferencePanel
 {
     private const string LibrariesHeader = "Libraries";
 
-    /// <summary>
-    /// The most of an entry's width a name column takes, so the values beside it still have room. The hover box lays
-    /// out its entries with it too.
-    /// </summary>
-    public const float MaxNameColumn = 0.45f;
-
     private readonly LibraryList _libraries;
 
     private string _filter = string.Empty;
@@ -133,10 +127,6 @@ internal sealed class ReferencePanel
         return open;
     }
 
-    /// <summary>
-    /// The separator above the entry, its name in the editor's Block Function color, then a row per part with its
-    /// label in a column of its own, and each Setting or mode on a row under its heading.
-    /// </summary>
     private static void DrawEntry(ImGui gui, ReferenceEntryLayout entry)
     {
         gui.Separator();
@@ -173,7 +163,7 @@ internal sealed class ReferencePanel
     {
         gui.BeginIndent();
         var indent = gui.Style.Layout.Indent;
-        var maxNameWidth = gui.GetLayoutWidth() * MaxNameColumn;
+        var maxNameWidth = gui.GetLayoutWidth() * ReferenceEntryLayout.MaxNameColumn;
         var widths = new float[rows.Count];
         var nameWidth = 0f;
         for (var i = 0; i < rows.Count; i++)

@@ -45,7 +45,7 @@ internal sealed partial class HoverPopup
         public void AddRows(IReadOnlyList<BlockReferenceRow> rows, Color32 labelColor, Color32 valueColor, float indent)
         {
             var space = _gui.MeasureTextSize(" ").x;
-            var maxColumn = (_maxWidth - indent) * ReferencePanel.MaxNameColumn;
+            var maxColumn = (_maxWidth - indent) * ReferenceEntryLayout.MaxNameColumn;
             var column = 0f;
             foreach (var row in rows)
             {

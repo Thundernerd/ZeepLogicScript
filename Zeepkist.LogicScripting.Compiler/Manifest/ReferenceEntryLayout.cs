@@ -12,6 +12,11 @@ public sealed class ReferenceEntryLayout
     public const string OutputsLabel = "outputs";
     public const string SettingsLabel = "settings";
 
+    /// <summary>
+    /// The most of an entry's width a name column takes, so the values beside it still have room.
+    /// </summary>
+    public const float MaxNameColumn = 0.45f;
+
     public ReferenceEntryLayout(string function, string note, IReadOnlyList<BlockReferenceRow> rows, IReadOnlyList<ReferenceEntryGroup> groups)
     {
         Function = function;
