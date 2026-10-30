@@ -17,8 +17,9 @@ internal sealed class ScriptListPanel
     private readonly ScriptList _scripts;
     private readonly DraftSaver _draftSaver;
     private readonly Action<ScriptEntry> _deleted;
-    private readonly NamePrompt _namePrompt = new();
+    private readonly NamePrompt _namePrompt = new("Script");
     private readonly DeletePrompt _deletePrompt = new();
+    private ScriptEntry _renamed;
     private string _message = string.Empty;
 
     /// <summary>
@@ -67,7 +68,10 @@ internal sealed class ScriptListPanel
             if (gui.BeginContextMenu(rect))
             {
                 if (gui.Menu("Rename"))
-                    _namePrompt.OpenRename(entry);
+                {
+                    _renamed = entry;
+                    _namePrompt.OpenRename(entry.Name);
+                }
 
                 if (gui.Menu("Select group"))
                     SelectGroup(entry);
@@ -88,20 +92,21 @@ internal sealed class ScriptListPanel
         if (gui.Button("New Script"))
         {
             _deletePrompt.Close();
+            _renamed = null;
             _namePrompt.OpenNew();
         }
 
         if (_scripts.Entries.Count > 0)
             gui.Text("Right-click a Script to rename it, select its blocks or delete it", WindowColors.Muted, wrap: true);
 
-        var named = _namePrompt.Draw(gui, _scripts);
+        var named = _namePrompt.Draw(gui, name => _scripts.GetNameError(name, _renamed?.Id));
         if (named != null)
         {
             _message = string.Empty;
-            if (_namePrompt.Renamed == null)
+            if (_renamed == null)
                 selected = _scripts.Add(named);
             else
-                _namePrompt.Renamed.Name = named;
+                _renamed.Name = named;
 
             _namePrompt.Close();
             _draftSaver.Request();

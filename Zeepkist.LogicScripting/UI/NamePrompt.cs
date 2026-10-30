@@ -1,24 +1,33 @@
+using System;
 using Imui.Controls;
 using Imui.Core;
-using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 using UnityEngine;
 
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// The name field for a new Script, or for renaming one.
+/// The name field for a new Script or Library, or for renaming one.
 /// </summary>
 internal sealed class NamePrompt
 {
+    private readonly string _noun;
     private string _input = string.Empty;
     private string _error = string.Empty;
     private bool _open;
     private bool _focusRequested;
 
     /// <summary>
-    /// The Script being renamed, or null when naming a new one.
+    /// <paramref name="noun"/> is what's named, such as "Script".
     /// </summary>
-    public ScriptEntry Renamed { get; private set; }
+    public NamePrompt(string noun)
+    {
+        _noun = noun;
+    }
+
+    /// <summary>
+    /// The current name of what's being renamed, or null when naming a new one.
+    /// </summary>
+    private string Renamed { get; set; }
 
     public bool Focused { get; set; }
 
@@ -27,9 +36,9 @@ internal sealed class NamePrompt
         Open(null, string.Empty);
     }
 
-    public void OpenRename(ScriptEntry entry)
+    public void OpenRename(string name)
     {
-        Open(entry, entry.Name);
+        Open(name, name);
     }
 
     public void Close()
@@ -40,9 +49,10 @@ internal sealed class NamePrompt
     }
 
     /// <summary>
-    /// Returns the trimmed name once the player confirms one that <paramref name="scripts"/> doesn't use yet, or null.
+    /// Returns the trimmed name once the player confirms one that <paramref name="getError"/> finds no error in, or
+    /// null.
     /// </summary>
-    public string Draw(ImGui gui, ScriptList scripts)
+    public string Draw(ImGui gui, Func<string, string> getError)
     {
         if (!_open)
         {
@@ -50,7 +60,7 @@ internal sealed class NamePrompt
             return null;
         }
 
-        gui.Text(Renamed == null ? "Name of the new Script" : $"New name for \"{Renamed.Name}\"", wrap: true);
+        gui.Text(Renamed == null ? $"Name of the new {_noun}" : $"New name for \"{Renamed}\"", wrap: true);
         gui.AddSpacingIfLayoutFrameNotEmpty();
         var rect = gui.AddSingleRowRect(default);
         var id = gui.GetNextControlId();
@@ -82,11 +92,11 @@ internal sealed class NamePrompt
             return null;
 
         var name = _input.Trim();
-        _error = scripts.GetNameError(name, Renamed?.Id) ?? string.Empty;
+        _error = getError(name) ?? string.Empty;
         return _error.Length == 0 ? name : null;
     }
 
-    private void Open(ScriptEntry renamed, string name)
+    private void Open(string renamed, string name)
     {
         Renamed = renamed;
         _input = name;
