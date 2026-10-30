@@ -142,11 +142,9 @@ internal sealed class ReferencePanel
     /// </summary>
     private static void DrawEntry(ImGui gui, BlockReferenceEntry entry)
     {
-        gui.Separator();
+        var palette = DrawName(gui, entry.Function);
         var text = gui.Style.Text.Color;
-        var palette = SyntaxPalette.For(gui.Style.Window.Box.BackColor, text);
         var nameColor = palette.Get(HighlightKind.Keyword);
-        gui.Text(entry.Function, palette.Get(HighlightKind.Function), wrap: true);
         var note = GetNote(entry);
         if (note.Length > 0)
             gui.Text(note, WindowColors.Muted, wrap: true);
@@ -176,13 +174,22 @@ internal sealed class ReferencePanel
     /// </summary>
     private static void DrawEntry(ImGui gui, LibraryReferenceEntry entry)
     {
-        gui.Separator();
+        DrawName(gui, entry.Function);
         var text = gui.Style.Text.Color;
-        var palette = SyntaxPalette.For(gui.Style.Window.Box.BackColor, text);
-        gui.Text(entry.Function, palette.Get(HighlightKind.Function), wrap: true);
         var labelWidth = GetLabelWidth(gui);
         DrawRow(gui, InputsLabel, WindowColors.Muted, entry.Inputs, text, labelWidth);
         DrawRow(gui, OutputsLabel, WindowColors.Muted, entry.Outputs, text, labelWidth);
+    }
+
+    /// <summary>
+    /// The separator above an entry, and its name in the editor's Block Function color.
+    /// </summary>
+    private static SyntaxPalette DrawName(ImGui gui, string function)
+    {
+        gui.Separator();
+        var palette = SyntaxPalette.For(gui.Style.Window.Box.BackColor, gui.Style.Text.Color);
+        gui.Text(function, palette.Get(HighlightKind.Function), wrap: true);
+        return palette;
     }
 
     private static float GetLabelWidth(ImGui gui)

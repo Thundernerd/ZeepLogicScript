@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Graph;
+using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 
@@ -16,13 +17,18 @@ public static class LibraryReference
     public static IReadOnlyList<LibraryReferenceEntry> Describe(LibraryList libraries)
     {
         return libraries.Entries
-            .SelectMany(l => GraphBuilder.DescribeLibrary(l.Name, libraries.FindText).Select(f => new LibraryReferenceEntry(
-                l.Name,
-                f.Function.Name.Name,
-                f.Function.Inputs.Select(i => i.Name).ToList(),
-                f.SettingInputs,
-                f.Function.Outputs.Select(o => o.Name).ToList())))
+            .SelectMany(l => GraphBuilder.DescribeLibrary(l.Name, libraries.FindText).Select(f => Describe(l.Name, f.Function, f.SettingInputs)))
             .OrderBy(e => e.Function, StringComparer.Ordinal)
             .ToList();
+    }
+
+    private static LibraryReferenceEntry Describe(string library, FunctionDefinition function, IReadOnlyCollection<string> settingInputs)
+    {
+        return new LibraryReferenceEntry(
+            library,
+            function.Name.Name,
+            function.Inputs.Select(i => i.Name).ToList(),
+            settingInputs,
+            function.Outputs.Select(o => o.Name).ToList());
     }
 }

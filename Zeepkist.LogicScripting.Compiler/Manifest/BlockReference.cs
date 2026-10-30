@@ -9,8 +9,6 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 /// </summary>
 public static class BlockReference
 {
-    private const string None = "–";
-
     /// <summary>
     /// One per <see cref="BlockCategory.All"/> category, in its order, with every <see cref="BlockManifest.All"/> type
     /// in it.
@@ -106,6 +104,6 @@ public static class BlockReference
 
     private static string JoinNames(IReadOnlyList<BlockConnector> connectors)
     {
-        return connectors.Count == 0 ? None : string.Join(", ", connectors.Select(c => c.Name));
+        return ReferenceText.JoinNames(connectors.Select(c => c.Name));
     }
 }

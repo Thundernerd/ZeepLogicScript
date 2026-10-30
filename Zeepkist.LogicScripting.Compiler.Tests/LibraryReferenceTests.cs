@@ -20,7 +20,6 @@ public class LibraryReferenceTests
     {
         var entry = Assert.Single(LibraryReference.Describe(WithLibrary("timing", "function edge(x, y) -> rise, fall\n    rise = x\n    fall = y\nend")));
 
-        Assert.Equal("timing", entry.Library);
         Assert.Equal("timing.edge", entry.Function);
         Assert.Equal("x, y", entry.Inputs);
         Assert.Equal("rise, fall", entry.Outputs);

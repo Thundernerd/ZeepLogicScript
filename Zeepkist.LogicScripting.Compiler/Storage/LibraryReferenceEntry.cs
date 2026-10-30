@@ -1,6 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 
@@ -9,31 +9,27 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 /// </summary>
 public sealed class LibraryReferenceEntry
 {
-    private const string None = "–";
     private const string SettingMark = " (setting)";
 
     private readonly IReadOnlyList<string> _names;
 
-    /// <param name="library"></param>
-    /// <param name="name">The Function's own name.</param>
-    /// <param name="inputs"></param>
+    /// <param name="library">The Library's name.</param>
+    /// <param name="functionName">The Function's own name, without the Library's.</param>
+    /// <param name="inputs">The input names, in order.</param>
     /// <param name="settingInputs">The inputs its body uses as a Setting.</param>
-    /// <param name="outputs"></param>
+    /// <param name="outputs">The output names, in order.</param>
     public LibraryReferenceEntry(
         string library,
-        string name,
+        string functionName,
         IReadOnlyList<string> inputs,
         IReadOnlyCollection<string> settingInputs,
         IReadOnlyList<string> outputs)
     {
-        Library = library;
-        Function = $"{library}.{name}";
-        Inputs = JoinNames(inputs.Select(i => settingInputs.Contains(i) ? i + SettingMark : i));
-        Outputs = JoinNames(outputs);
+        Function = $"{library}.{functionName}";
+        Inputs = ReferenceText.JoinNames(inputs.Select(i => settingInputs.Contains(i) ? i + SettingMark : i));
+        Outputs = ReferenceText.JoinNames(outputs);
         _names = inputs.Concat(outputs).ToList();
     }
-
-    public string Library { get; }
 
     /// <summary>
     /// The qualified name a Script calls, <c>timing.edge</c>.
@@ -54,17 +50,6 @@ public sealed class LibraryReferenceEntry
     public bool Matches(string filter)
     {
         var trimmed = filter.Trim();
-        return trimmed.Length == 0 || Contains(Function, trimmed) || _names.Any(n => Contains(n, trimmed));
-    }
-
-    private static bool Contains(string text, string filter)
-    {
-        return text.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
-    }
-
-    private static string JoinNames(IEnumerable<string> names)
-    {
-        var joined = string.Join(", ", names);
-        return joined.Length == 0 ? None : joined;
+        return trimmed.Length == 0 || ReferenceText.Contains(Function, trimmed) || _names.Any(n => ReferenceText.Contains(n, trimmed));
     }
 }
