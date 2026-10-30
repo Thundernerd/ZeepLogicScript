@@ -147,11 +147,11 @@ internal sealed partial class ScriptEditor
         TextSnapshot? completed = null;
         if (completing)
         {
-            DrawPopups(gui, textRect, textBounds, in buffer);
+            DrawPopups(gui, rect, textRect, textBounds, in buffer);
             completed = _completion.HandleMouse(gui);
         }
 
-        DrawHover(gui, textRect, textBounds, in buffer, hovered && !gui.IsReadOnly);
+        DrawHover(gui, rect, textRect, textBounds, in buffer, hovered && !gui.IsReadOnly);
 
         var jump = FindJump(gui, textRect, textBounds, in buffer, hovered && !gui.IsReadOnly);
         if (jump != null)
@@ -235,21 +235,21 @@ internal sealed partial class ScriptEditor
 
     /// <summary>
     /// The completion list at the word being completed and the call's help at the caret, kept inside the visible text,
-    /// and inside the window so their clicks never reach the level.
+    /// and inside the editor when there's room so they don't cover the toolbar.
     /// </summary>
-    private void DrawPopups(ImGui gui, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer)
+    private void DrawPopups(ImGui gui, ImRect rect, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer)
     {
-        var bounds = GetPopupBounds(gui);
+        var window = GetPopupBounds(gui);
         if (_completion.WordStart is { } wordStart)
-            _completion.Draw(gui, GetViewPosition(gui, wordStart, textRect, textBounds, in buffer), _layout.LineHeight, bounds);
+            _completion.Draw(gui, GetViewPosition(gui, wordStart, textRect, textBounds, in buffer), _layout.LineHeight, rect, window);
 
-        _callHelp.Draw(gui, GetViewPosition(gui, _state.Caret, textRect, textBounds, in buffer), _layout.LineHeight, bounds, _completion.Rect);
+        _callHelp.Draw(gui, GetViewPosition(gui, _state.Caret, textRect, textBounds, in buffer), _layout.LineHeight, rect, window, _completion.Rect);
     }
 
     /// <summary>
     /// What the mouse rests on, at the start of the line under it; shown whether or not the field is focused.
     /// </summary>
-    private void DrawHover(ImGui gui, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer, bool hovered)
+    private void DrawHover(ImGui gui, ImRect rect, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer, bool hovered)
     {
         if (!_hover.IsResting(gui, hovered))
             return;
@@ -259,7 +259,7 @@ internal sealed partial class ScriptEditor
             return;
 
         var linePosition = GetViewPosition(gui, info.Span.Start, textRect, textBounds, in buffer);
-        _hover.Draw(gui, info, linePosition, _layout.LineHeight, GetPopupBounds(gui));
+        _hover.Draw(gui, info, linePosition, _layout.LineHeight, rect, GetPopupBounds(gui));
     }
 
     /// <summary>

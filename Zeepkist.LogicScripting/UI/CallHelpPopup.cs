@@ -34,17 +34,17 @@ internal sealed class CallHelpPopup
     public bool TookEscape { get; private set; }
 
     /// <summary>
-    /// Above the caret's line, whose top left is <paramref name="linePosition"/>, or above the completion list when
-    /// that's open there; under the line when there's no room above, unless the completion list is open. Hidden when
-    /// neither fits inside <paramref name="bounds"/>.
+    /// Above the caret's line, whose top left is <paramref name="linePosition"/>, or under it when there's no room
+    /// above, as <see cref="PopupPlacement"/> picks; past the completion list when that's open on the same side.
+    /// Hidden when neither fits inside <paramref name="window"/>.
     /// </summary>
-    public void Draw(ImGui gui, Vector2 linePosition, float lineHeight, ImRect bounds, ImRect completion)
+    public void Draw(ImGui gui, Vector2 linePosition, float lineHeight, ImRect editor, ImRect window, ImRect completion)
     {
         if (_session.Help is not { } help)
             return;
 
         var padding = gui.Style.Menu.Padding;
-        var maxTextWidth = Mathf.Min(MaxWidth, bounds.W) - padding.Horizontal;
+        var maxTextWidth = Mathf.Min(MaxWidth, window.W) - padding.Horizontal;
         if (!ReferenceEquals(_laidOut, help) || _laidOutWidth != maxTextWidth)
         {
             _laidOut = help;
@@ -55,19 +55,21 @@ internal sealed class CallHelpPopup
         // A separator never wraps, so a line can run past the most it may take; its text ends in an ellipsis there
         var width = Mathf.Min(_size.x, maxTextWidth) + padding.Horizontal;
         var height = _size.y + padding.Vertical;
-        var x = Mathf.Max(bounds.X, Mathf.Min(linePosition.x - padding.Left, bounds.Right - width));
+        var x = Mathf.Max(window.X, Mathf.Min(linePosition.x - padding.Left, window.Right - width));
 
         var hasCompletion = completion.W > 0;
-        var rect = new ImRect(x, linePosition.y, width, height);
-        if (hasCompletion && rect.Overlaps(completion))
-            rect.Y = completion.Top;
+        var above = new ImRect(x, linePosition.y, width, height);
+        if (hasCompletion && above.Overlaps(completion))
+            above.Y = completion.Top;
 
-        if (!Fits(rect, bounds))
-        {
-            rect.Y = linePosition.y - lineHeight - height;
-            if (hasCompletion || !Fits(rect, bounds))
-                return;
-        }
+        var below = new ImRect(x, linePosition.y - lineHeight - height, width, height);
+        if (hasCompletion && below.Overlaps(completion))
+            below.Y = completion.Y - height;
+
+        if (PopupPlacement.Choose(above.Y, below.Y, height, (editor.Y, editor.Top), (window.Y, window.Top)) is not { } y)
+            return;
+
+        var rect = new ImRect(x, y, width, height);
 
         gui.BeginPopup();
         gui.Box(rect, in gui.Style.Menu.Box);
@@ -159,10 +161,5 @@ internal sealed class CallHelpPopup
             x += pieceWidth;
             width = Mathf.Max(width, x);
         }
-    }
-
-    private static bool Fits(ImRect rect, ImRect bounds)
-    {
-        return rect.Y >= bounds.Y && rect.Top <= bounds.Top;
     }
 }
