@@ -1,3 +1,4 @@
+using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 using Xunit;
@@ -77,6 +78,31 @@ public class CompletionSessionTests
 
         Assert.True(session.IsOpen);
         Assert.Equal("angle:", session.Items[0].Label);
+    }
+
+    [Fact]
+    public void TypingADotAfterABlocksName_OpensWithItsOutputs()
+    {
+        var session = new CompletionSession();
+        const string Text = "t = simple_telemetry(mode: global_velocity)\nx = t.";
+
+        session.Update(new TextSnapshot(Text, Text.Length), typedName: false, whileTyping: true, focused: true, typedSeparator: true);
+
+        Assert.True(session.IsOpen);
+        Assert.Equal(["x", "y", "z", "heading"], session.Items.Select(i => i.Label));
+    }
+
+    [Theory]
+    [InlineData("x = 1.")]
+    [InlineData("x = a & b\ny = x.")]
+    [InlineData("x = f().")]
+    public void TypingADot_StaysClosed_WithoutOutputs(string text)
+    {
+        var session = new CompletionSession();
+
+        session.Update(new TextSnapshot(text, text.Length), typedName: false, whileTyping: true, focused: true, typedSeparator: true);
+
+        Assert.False(session.IsOpen);
     }
 
     [Theory]

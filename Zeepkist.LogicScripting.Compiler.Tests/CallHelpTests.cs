@@ -53,6 +53,14 @@ public class CallHelpTests
     }
 
     [Fact]
+    public void Items_ForANameDefinedTwice_TheFirstDefinitionsInputs()
+    {
+        var help = At("lamp_1 = placed(\"L\")\nlamp_1 = logic(1, 2)\nlamp_1(|", uid => _level.GetValueOrDefault(uid));
+
+        Assert.Equal("intensity", help.Items[0].Label);
+    }
+
+    [Fact]
     public void Items_ForAPlacedBlockReference_NotAFunctionsInputOfTheSameName()
     {
         var help = At("d = placed(\"L\")\nfunction g(d)\nend\nd(|", uid => _level.GetValueOrDefault(uid));

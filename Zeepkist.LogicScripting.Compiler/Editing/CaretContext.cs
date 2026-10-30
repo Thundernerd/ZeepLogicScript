@@ -20,6 +20,7 @@ public sealed class CaretContext
         int statementStart,
         bool canReferAhead,
         string callee,
+        string dottedName,
         string settingName,
         IReadOnlyList<string> settingValues,
         IReadOnlyCollection<string> givenArguments,
@@ -34,6 +35,7 @@ public sealed class CaretContext
         StatementStart = statementStart;
         CanReferAhead = canReferAhead;
         Callee = callee;
+        DottedName = dottedName;
         SettingName = settingName;
         SettingValues = settingValues;
         GivenArguments = givenArguments;
@@ -75,6 +77,11 @@ public sealed class CaretContext
     /// <see cref="CaretContextKind.SettingValue"/>; null otherwise, and after <c>default</c>.
     /// </summary>
     public string Callee { get; }
+
+    /// <summary>
+    /// The name before the dot whose output the word is, for <see cref="CaretContextKind.Output"/>; null otherwise.
+    /// </summary>
+    public string DottedName { get; }
 
     /// <summary>
     /// The Setting whose value the word is, for <see cref="CaretContextKind.SettingValue"/>; null otherwise.
@@ -123,6 +130,7 @@ public sealed class CaretContext
         var tokens = Lexer.Tokenize(text, [], comments);
         var call = FindArgumentCallParen(tokens, word);
         var settingValues = FindSettingValues(tokens, word, out var settingCallee, out var settingName);
+        var dottedName = FindDottedName(tokens, word);
         CaretContextKind kind;
         if (IsInCommentOrString(tokens, comments, caret))
             kind = CaretContextKind.None;
@@ -132,6 +140,8 @@ public sealed class CaretContext
             kind = CaretContextKind.None;
         else if (IsOnFunctionsFirstLine(tokens, word))
             kind = CaretContextKind.None;
+        else if (dottedName != null)
+            kind = CaretContextKind.Output;
         else
             kind = GetKind(tokens, word, call >= 0);
 
@@ -158,6 +168,7 @@ public sealed class CaretContext
             statementStart,
             canReferAhead,
             callee,
+            kind == CaretContextKind.Output ? dottedName : null,
             settingName,
             settingValues,
             givenArguments,
@@ -196,6 +207,23 @@ public sealed class CaretContext
     {
         var lineStart = tokens.FindLastIndex(t => t.Span.Start < word.Start && t.Kind == TokenKind.NewLine) + 1;
         return tokens[lineStart].Span.Start < word.Start && DefinedNames.IsFunctionStart(tokens, lineStart);
+    }
+
+    /// <summary>
+    /// The name the word picks an output of: right before a dot that's right before the word, and not itself after a
+    /// dot, since only a name or a call has outputs. Null when there's none.
+    /// </summary>
+    private static string FindDottedName(List<Token> tokens, TextSpan word)
+    {
+        var dot = tokens.FindLastIndex(t => t.Span.Start < word.Start);
+        if (dot < 1 || tokens[dot].Kind != TokenKind.Dot || tokens[dot].Span.End != word.Start)
+            return null;
+
+        var name = tokens[dot - 1];
+        if (name.Kind != TokenKind.Name || name.Span.End != tokens[dot].Span.Start)
+            return null;
+
+        return dot >= 2 && tokens[dot - 2].Kind == TokenKind.Dot ? null : name.Text;
     }
 
     /// <summary>

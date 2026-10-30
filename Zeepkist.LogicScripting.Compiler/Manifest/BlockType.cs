@@ -114,6 +114,19 @@ public sealed class BlockType
         return Modes == null ? Outputs : Modes.Outputs[GetModeIndex(settings)];
     }
 
+    /// <summary>
+    /// The outputs in the mode with the option word <paramref name="mode"/>, or in the first mode when it's null; none
+    /// when the type has no such option.
+    /// </summary>
+    public IReadOnlyList<BlockConnector> GetOutputs(string mode)
+    {
+        if (Modes == null || mode == null)
+            return Outputs;
+
+        var index = Modes.Setting.IndexOf(mode);
+        return index < 0 ? [] : Modes.Outputs[index];
+    }
+
     public string GetModeName(IReadOnlyList<Setting> settings)
     {
         return Modes.Setting.Options[GetModeIndex(settings)];

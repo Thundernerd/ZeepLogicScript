@@ -41,7 +41,8 @@ public sealed class DefinedName
     public BlockType Type { get; }
 
     /// <summary>
-    /// The option written for the call's mode Setting (<c>mode: local_velocity</c>); null when none is written.
+    /// The option written for the call's mode Setting (<c>mode: local_velocity</c>), or for a Placed Block Reference, the
+    /// one the block has in the level; null when none is written.
     /// </summary>
     public string Mode { get; }
 

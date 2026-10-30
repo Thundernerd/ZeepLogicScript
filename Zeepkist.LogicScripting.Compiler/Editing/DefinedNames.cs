@@ -155,10 +155,11 @@ public static class DefinedNames
 
         var function = tokens[start].Text;
         BlockType type;
+        PlacedBlock block = null;
         if (function == GraphBuilder.PlacedFunction)
         {
             var uid = tokens[start + 2];
-            var block = uid.Kind == TokenKind.String ? findPlacedBlock?.Invoke(uid.Text) : null;
+            block = uid.Kind == TokenKind.String ? findPlacedBlock?.Invoke(uid.Text) : null;
             type = block == null ? null : BlockManifest.GetPlacedType(block.BlockId);
             isPlaced = type != null;
         }
@@ -175,7 +176,24 @@ public static class DefinedNames
             return null;
         }
 
+        if (isPlaced)
+            mode = GetPlacedMode(type, block);
+
         return type;
+    }
+
+    /// <summary>
+    /// The mode the block has in the level; null, the first mode, for a type without modes, or when the level stores a
+    /// mode the type doesn't have.
+    /// </summary>
+    private static string GetPlacedMode(BlockType type, PlacedBlock block)
+    {
+        if (type.Modes == null)
+            return null;
+
+        var index = type.GetModeIndex(block.Settings);
+        var options = type.Modes.Setting.Options;
+        return index >= 0 && index < options.Count ? options[index] : null;
     }
 
     /// <summary>

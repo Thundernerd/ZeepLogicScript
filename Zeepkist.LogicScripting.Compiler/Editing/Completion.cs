@@ -13,14 +13,15 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 public static class Completion
 {
     private const string InputDetail = "input";
+    private const string OutputDetail = "output";
 
     private static readonly IReadOnlyList<CompletionItem> _expressionItems = CreateExpressionItems();
 
     /// <summary>
     /// The items whose label starts with the typed prefix, then those that only contain it, each in alphabetical
-    /// order, or for a Setting's values, in the order the Setting stores them; at the start of an argument, the named
-    /// arguments come before the expressions. Case is ignored. A Number Setting lists nothing. The Script's own
-    /// Functions are offered anywhere, and at the start of a statement, <c>function</c> at the top level or <c>end</c>
+    /// order, or for a Setting's values, in the order the Setting stores them, and for a block's outputs, in Connector
+    /// order; at the start of an argument, the named arguments come before the expressions. Case is ignored. A Number
+    /// Setting lists nothing. The Script's own Functions are offered anywhere, and at the start of a statement, <c>function</c> at the top level or <c>end</c>
     /// in a Function's body. Of the <paramref name="definedNames"/>, only those in the caret's scope are offered: the
     /// top level's, or the inputs and definitions of the Function the caret is in. Of those, only the ones defined
     /// before the caret's statement, unless the caret is inside <c>delay(...)</c>.
@@ -40,6 +41,7 @@ public static class Completion
             CaretContextKind.ArgumentName => Match(context, GetArgumentItems(context, definedNames)),
             CaretContextKind.DefaultSetting => Match(context, [ArgumentItem(BlockSetting.Hide)]),
             CaretContextKind.SettingValue => Match(context, GetValueItems(context), sort: false),
+            CaretContextKind.Output => Match(context, GetOutputItems(context, definedNames), sort: false),
             _ => []
         };
     }
@@ -118,7 +120,7 @@ public static class Completion
     /// <summary>
     /// The named arguments the call doesn't have yet: a Block Function's inputs and Settings, a Function's inputs, or
     /// a Placed Block Reference's inputs, since its Settings can't be changed. Inputs its positional arguments give are
-    /// left out.
+    /// left out. A name defined twice is the first definition, which the compiler keeps.
     /// </summary>
     private static IEnumerable<CompletionItem> GetArgumentItems(CaretContext context, IReadOnlyList<DefinedName> definedNames)
     {
@@ -136,7 +138,7 @@ public static class Completion
         if (function != null)
             return GetInputItems(context, function.Inputs);
 
-        var placed = definedNames.LastOrDefault(n => n.Name == context.Callee && IsVisible(context, n));
+        var placed = definedNames.FirstOrDefault(n => n.Name == context.Callee && IsVisible(context, n));
         return placed is { IsPlaced: true, Type: not null } ? GetInputItems(context, placed.Type.Inputs.Select(i => i.Name)) : [];
 
         bool IsGiven(string name)
@@ -148,6 +150,22 @@ public static class Completion
     private static IEnumerable<CompletionItem> GetValueItems(CaretContext context)
     {
         return context.SettingValues.Select(v => new CompletionItem(v, CompletionKind.Value, string.Empty));
+    }
+
+    /// <summary>
+    /// The outputs of the block the name before the dot stands for, in its written mode or, for a Placed Block
+    /// Reference, its mode in the level. A block with one output is used without a dot, so it offers none; nor does a
+    /// name whose value isn't a block, or a Function's name, which the compiler takes for the Function. A name defined
+    /// twice is the first definition, which the compiler keeps.
+    /// </summary>
+    private static IEnumerable<CompletionItem> GetOutputItems(CaretContext context, IReadOnlyList<DefinedName> definedNames)
+    {
+        if (context.Functions.Any(f => f.Name == context.DottedName))
+            return [];
+
+        var name = definedNames.FirstOrDefault(n => n.Name == context.DottedName && IsVisible(context, n));
+        var outputs = name?.Type?.GetOutputs(name.Mode) ?? [];
+        return outputs.Count > 1 ? outputs.Select(o => new CompletionItem(o.Name, CompletionKind.Output, OutputDetail)) : [];
     }
 
     private static IEnumerable<CompletionItem> GetInputItems(CaretContext context, IEnumerable<string> inputs)
