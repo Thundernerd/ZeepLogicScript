@@ -17,6 +17,7 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal sealed partial class ScriptEditor
 {
     private readonly EditHistory _history = new();
+    private readonly EditorAssist _assist;
     private readonly CompletionPopup _completion;
     private readonly CallHelpPopup _callHelp;
     private ImTextEditState _state;
@@ -27,6 +28,7 @@ internal sealed partial class ScriptEditor
     public ScriptEditor(string text, EditorAssist assist)
     {
         Text = text;
+        _assist = assist;
         _completion = new CompletionPopup(assist);
         _callHelp = new CallHelpPopup(assist);
     }
