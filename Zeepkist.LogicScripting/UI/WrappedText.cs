@@ -6,6 +6,11 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 
 internal static class WrappedText
 {
+    public static ImTextSettings GetSettings(ImGui gui)
+    {
+        return new ImTextSettings(gui.Style.Layout.TextSize, 0, 0, wrap: true);
+    }
+
     /// <summary>
     /// The height of <paramref name="text"/> wrapped to <paramref name="width"/>, so a short or empty text still takes
     /// <paramref name="minHeight"/>.

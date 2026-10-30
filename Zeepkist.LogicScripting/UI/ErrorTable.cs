@@ -59,7 +59,7 @@ internal static class ErrorTable
     public static Position? DrawRows(ImGui gui, IReadOnlyList<Diagnostic> errors, ErrorColumns columns)
     {
         var numberSettings = GetSingleLineSettings(gui, 1);
-        var wrapped = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0, wrap: true);
+        var wrapped = WrappedText.GetSettings(gui);
         var spacing = gui.Style.Layout.Spacing;
         var width = gui.GetLayoutWidth();
         var messageWidth = width - columns.Line - columns.Column - (spacing * 2);

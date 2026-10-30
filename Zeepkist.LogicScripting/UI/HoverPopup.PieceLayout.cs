@@ -28,7 +28,7 @@ internal sealed partial class HoverPopup
             _pieces = pieces;
             _maxWidth = maxWidth;
             _lineHeight = lineHeight;
-            _wrapped = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0, wrap: true);
+            _wrapped = WrappedText.GetSettings(gui);
         }
 
         public Vector2 Size => new(_width, -_y);
