@@ -4,7 +4,6 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using Imui.Controls;
 using Imui.Core;
-using Imui.Style;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
@@ -393,32 +392,6 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         _result = string.Empty;
         _nextCheckTime = Time.unscaledTime + CheckDelay;
         _editor.SetErrors([]);
-    }
-
-    /// <summary>
-    /// Every error, not only the first few: the region scrolls. A message too long for one line wraps, where a one-row
-    /// button would clip both its ends, line:column included. Left-aligned, as centered wrapped lines are hard to read.
-    /// </summary>
-    private void DrawErrors(ImGui gui)
-    {
-        if (!HasCurrentErrors)
-            return;
-
-        var style = gui.Style.Button;
-        style.Alignment = new ImAlignment(0, 0.5f);
-        style.WrapText = true;
-        var settings = ImButton.CreateTextSettings(gui, in style);
-        foreach (var error in _checkErrors)
-        {
-            gui.AddSpacingIfLayoutFrameNotEmpty();
-            var label = error.ToString();
-            var width = gui.GetLayoutWidth();
-            var textBounds = new Vector2(ImButton.CalculateContentRect(gui, new ImRect(0, 0, width, 0)).W, 0);
-            var textHeight = gui.MeasureTextSize(label, in settings, textBounds).y;
-            var rect = gui.Layout.AddRect(width, Mathf.Max(gui.GetRowHeight(), textHeight + gui.Style.Layout.ExtraRowHeight));
-            if (gui.Button(gui.GetNextControlId(), label, rect, in style, out _))
-                _editor.JumpTo(error.Position);
-        }
     }
 
     private bool DrawCompileButton(ImGui gui, ImRect rect)

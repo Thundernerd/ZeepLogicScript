@@ -341,13 +341,15 @@ internal sealed partial class GraphBuilder
 
     private void Report(Position position, string message)
     {
+        string origin = null;
         if (_scope.CallSite is { } callSite)
         {
-            message = $"In {GetQualifiedName(_scope.Function)}, line {position.Line}: {message}";
+            origin = $"In {GetQualifiedName(_scope.Function)}, line {position.Line}";
             position = callSite;
         }
 
-        if (_reported.Add((position.Line, position.Column, message)))
-            _diagnostics.Add(new Diagnostic(position, message));
+        var diagnostic = new Diagnostic(position, origin, message);
+        if (_reported.Add((position.Line, position.Column, diagnostic.Message)))
+            _diagnostics.Add(diagnostic);
     }
 }

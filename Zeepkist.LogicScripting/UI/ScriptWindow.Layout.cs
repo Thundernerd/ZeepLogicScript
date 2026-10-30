@@ -328,8 +328,21 @@ internal sealed partial class ScriptWindow
         if (_state.Errors.Collapsed || body.H <= 0)
             return;
 
+        var hasErrors = HasCurrentErrors;
+        var columns = default(ErrorColumns);
+        if (hasErrors)
+        {
+            columns = ErrorTable.Measure(gui, _checkErrors);
+            var columnsHeader = body.TakeTop(ErrorTable.GetHeaderHeight(gui), out body);
+            ErrorTable.DrawHeader(gui, columnsHeader.WithPadding(left: spacing, right: spacing), columns);
+            if (body.H <= 0)
+                return;
+        }
+
         WindowRegion.Begin(gui, body);
-        DrawErrors(gui);
+        if (hasErrors && ErrorTable.DrawRows(gui, _checkErrors, columns) is { } clicked)
+            _editor.JumpTo(clicked);
+
         if (_result.Length > 0)
             gui.Text(_result, wrap: true);
 
