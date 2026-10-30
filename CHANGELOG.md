@@ -46,6 +46,7 @@ All notable changes to Logic Scripting are listed here.
 ### Fixed
 
 - Undo in the Script editor takes back a line break together with the typing after it, instead of on its own.
+- A long error message in the error panel wraps onto more lines, instead of being cut off at both ends.
 
 ## 0.1.0-alpha.1
 
