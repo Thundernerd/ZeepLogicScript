@@ -95,9 +95,9 @@ public class SettingInputTests
     }
 
     [Theory]
-    [InlineData("p = player_input()\npower_display(pulse_after(p.horn, ticks: p.horn))", "5:42: 'ticks' is used as a Setting in 'pulse_after'; pass a number, true or false, or a word, not a Wire")]
-    [InlineData("t = 20\npower_display(pulse_after(1, ticks: t))", "5:37: 'ticks' is used as a Setting in 'pulse_after'; pass a number, true or false, or a word, not a Wire")]
-    [InlineData("power_display(pulse_after(1, 2 + 3))", "4:32: 'ticks' is used as a Setting in 'pulse_after'; pass a number, true or false, or a word, not a Wire")]
+    [InlineData("p = player_input()\npower_display(pulse_after(p.horn, ticks: p.horn))", "5:42: 'ticks' is used as a Setting in 'pulse_after'. Pass a number, true or false, or a word, not a Wire")]
+    [InlineData("t = 20\npower_display(pulse_after(1, ticks: t))", "5:37: 'ticks' is used as a Setting in 'pulse_after'. Pass a number, true or false, or a word, not a Wire")]
+    [InlineData("power_display(pulse_after(1, 2 + 3))", "4:32: 'ticks' is used as a Setting in 'pulse_after'. Pass a number, true or false, or a word, not a Wire")]
     [InlineData("power_display(pulse_after(1, ticks: 0))", "4:37: ticks must be at least 1")]
     [InlineData("power_display(pulse_after(1, ticks: long))", "4:37: ticks takes a whole number, like ticks: 5")]
     public void Arguments_Errors(string call, string error)
@@ -128,7 +128,7 @@ public class SettingInputTests
     {
         var result = Compile("function f(a, b, o) -> y\n    y = logic(a, b, op: o)\nend\npower_display(f(1, 0, o: maybe))");
 
-        Assert.Equal(["4:26: 'maybe' isn't an option of op; use and, or, nand, nor, xor, xnor"], result.Errors.Select(e => e.ToString()));
+        Assert.Equal(["4:26: 'maybe' isn't an option of op. Use and, or, nand, nor, xor, xnor"], result.Errors.Select(e => e.ToString()));
     }
 
     [Fact]

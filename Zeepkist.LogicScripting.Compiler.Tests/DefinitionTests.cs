@@ -59,7 +59,7 @@ public class DefinitionTests
     }
 
     [Theory]
-    [InlineData("x = y & 1\ny = 1", 1, 5, "'y' is defined later, on line 2; only delay(...) can refer ahead")]
+    [InlineData("x = y & 1\ny = 1", 1, 5, "'y' is defined later, on line 2, so only delay(...) can refer to it")]
     [InlineData("x = x & 1", 1, 5, "'x' can't refer to itself outside delay(...)")]
     [InlineData("x = delay(x, ticks: 1) & x", 1, 26, "'x' can't refer to itself outside delay(...)")]
     [InlineData("x = delay(y, ticks: 1)", 1, 11, "'y' isn't defined")]
@@ -67,8 +67,8 @@ public class DefinitionTests
     [InlineData("x = delay(1, ticks: 0)", 1, 21, "ticks must be at least 1")]
     [InlineData("true = 1", 1, 1, "'true' is a reserved word and can't be used as a name")]
     [InlineData("false = 1", 1, 1, "'false' is a reserved word and can't be used as a name")]
-    [InlineData("p = player_input()\nx = delay(p, ticks: 1)", 2, 11, "'p' has several outputs; pick one, like p.arms_up")]
-    [InlineData("x = delay(p, ticks: 1)\np = player_input()", 1, 11, "'p' has several outputs; pick one, like p.arms_up")]
+    [InlineData("p = player_input()\nx = delay(p, ticks: 1)", 2, 11, "'p' has several outputs. Pick one, like p.arms_up")]
+    [InlineData("x = delay(p, ticks: 1)\np = player_input()", 1, 11, "'p' has several outputs. Pick one, like p.arms_up")]
     [InlineData("x = 1\nx = delay(x, ticks: 1)", 2, 1, "'x' is already defined")]
     [InlineData("x = delay(nope(later), ticks: 1)\nlater = 1", 1, 11, "'nope' isn't a Block Function")]
     public void Definitions_Errors(string text, int line, int column, string message)

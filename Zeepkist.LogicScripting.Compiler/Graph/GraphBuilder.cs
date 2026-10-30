@@ -115,7 +115,7 @@ internal sealed partial class GraphBuilder
                 break;
             case ExpressionStatement expression:
                 Evaluate(expression.Expression);
-                Error(expression, "A value on its own line does nothing; give it a name or pass it to a call");
+                Error(expression, "A value on its own line does nothing. Give it a name or pass it to a call");
                 break;
         }
     }
@@ -126,7 +126,7 @@ internal sealed partial class GraphBuilder
     private Resolved Evaluate(Expression expression)
     {
         if (_depth >= Parser.MaxDepth)
-            return Fail(expression, $"This nests more than {Parser.MaxDepth} deep, counting the functions it's called from; split it into definitions");
+            return Fail(expression, $"This nests more than {Parser.MaxDepth} deep, counting the functions it's called from. Split it into definitions");
 
         _depth++;
         try
@@ -177,7 +177,7 @@ internal sealed partial class GraphBuilder
 
             case CallExpression call when IsReferenceCall(call):
                 VisitReferenceCall(call);
-                return Fail(call, $"Wiring into '{call.Function}' gives no value; put it on its own line");
+                return Fail(call, $"Wiring into '{call.Function}' gives no value. Put it on its own line");
 
             case CallExpression call when IsFunctionCall(call):
                 return VisitFunctionCall(call);
@@ -228,7 +228,7 @@ internal sealed partial class GraphBuilder
         }
 
         var example = expression is NameExpression name ? $"{name.Name}.{first}" : $"{Describe(expression)}().{first}";
-        Error(expression, $"'{Describe(expression)}' has several outputs; pick one, like {example}");
+        Error(expression, $"'{Describe(expression)}' has several outputs. Pick one, like {example}");
     }
 
     private Resolved VisitMember(MemberExpression member)
@@ -252,10 +252,10 @@ internal sealed partial class GraphBuilder
                     return value;
 
                 var function = outputs.Function;
-                return Fail(member, $"'{GetQualifiedName(function)}' has no output '{member.Output}'; use {string.Join(", ", function.Outputs.Select(o => o.Name))}");
+                return Fail(member, $"'{GetQualifiedName(function)}' has no output '{member.Output}'. Use {string.Join(", ", function.Outputs.Select(o => o.Name))}");
 
             case OutputValue:
-                return Fail(member, $"'{Describe(member.Target)}' has a single output; use it without .{member.Output}");
+                return Fail(member, $"'{Describe(member.Target)}' has a single output. Use it without .{member.Output}");
 
             case BlockValue blockValue:
                 block = blockValue.Block;
@@ -281,7 +281,7 @@ internal sealed partial class GraphBuilder
         var mode = type.Modes == null
             ? string.Empty
             : $" in {type.Modes.Setting.Name} {type.GetModeName(block.Settings)}";
-        return Fail(member, $"'{type.Function}' has no output '{member.Output}'{mode}; use {string.Join(", ", names)}");
+        return Fail(member, $"'{type.Function}' has no output '{member.Output}'{mode}. Use {string.Join(", ", names)}");
     }
 
     private static string Describe(Expression expression)

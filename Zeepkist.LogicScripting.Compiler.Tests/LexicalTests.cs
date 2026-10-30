@@ -58,7 +58,7 @@ public class LexicalTests
 
         var error = Assert.Single(result.Errors);
         Assert.Equal(
-            "1:8: Expected a value, found the end of the line; to continue on the next line, put the expression in ( )",
+            "1:8: Expected a value, found the end of the line. To continue on the next line, put the expression in ( )",
             error.ToString());
     }
 

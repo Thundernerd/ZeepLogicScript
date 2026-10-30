@@ -209,12 +209,12 @@ public class FunctionTests
     [InlineData("power_display(f(1))", "6:15: 'f' needs input 'b'")]
     [InlineData("power_display(f())", "6:15: 'f' needs inputs 'a', 'b'")]
     [InlineData("power_display(f(1, 2, 3))", "6:15: 'f' takes 2 inputs, got 3")]
-    [InlineData("power_display(f(1, c: 2))", "6:20: 'f' has no input 'c'; use a, b")]
+    [InlineData("power_display(f(1, c: 2))", "6:20: 'f' has no input 'c'. Use a, b")]
     [InlineData("power_display(f(1, a: 2))", "6:20: Input 'a' is already given by position")]
     [InlineData("power_display(f(b: 1, b: 2, a: 3))", "6:23: 'b' is given twice")]
     [InlineData("power_display(f(1, nope))", "6:20: 'nope' isn't defined")]
-    [InlineData("power_display(f)", "6:15: 'f' is a function; call it with ( )")]
-    [InlineData("power_display(f(1, 2).x)", "6:23: 'f' has a single output; use it without .x")]
+    [InlineData("power_display(f)", "6:15: 'f' is a function. Call it with ( )")]
+    [InlineData("power_display(f(1, 2).x)", "6:23: 'f' has a single output. Use it without .x")]
     [InlineData("g(1)", "6:1: 'g' takes 0 inputs, got 1")]
     [InlineData("x = g()", "6:5: 'g' has no output to use as a value")]
     public void Arguments_Errors(string call, string error)
@@ -225,8 +225,8 @@ public class FunctionTests
     }
 
     [Theory]
-    [InlineData("power_display(f(1, 2).z)", "'f' has no output 'z'; use y, w")]
-    [InlineData("power_display(f(1, 2))", "'f' has several outputs; pick one, like f().y")]
+    [InlineData("power_display(f(1, 2).z)", "'f' has no output 'z'. Use y, w")]
+    [InlineData("power_display(f(1, 2))", "'f' has several outputs. Pick one, like f().y")]
     public void SeveralOutputs_Errors(string call, string message)
     {
         var result = Compile("function f(a, b) -> y, w\n    y = a & b\n    w = a | b\nend\n" + call);
@@ -248,7 +248,7 @@ public class FunctionTests
         var result = Compile("function f(x) -> y\n    y = x & nope\n    z = logic(1, op: maybe)\nend");
 
         Assert.Equal(
-            ["2:13: 'nope' isn't defined", "3:22: 'maybe' isn't an option of op; use and, or, nand, nor, xor, xnor"],
+            ["2:13: 'nope' isn't defined", "3:22: 'maybe' isn't an option of op. Use and, or, nand, nor, xor, xnor"],
             result.Errors.Select(e => e.ToString()));
     }
 
@@ -262,11 +262,11 @@ public class FunctionTests
     }
 
     [Theory]
-    [InlineData("function f(x) -> y\n    y = top\nend\ntop = 1\npower_display(f(1))", "2:9: 'top' isn't defined in 'f'; a function only sees its inputs and its own names")]
+    [InlineData("function f(x) -> y\n    y = top\nend\ntop = 1\npower_display(f(1))", "2:9: 'top' isn't defined in 'f'. A function only sees its inputs and its own names")]
     [InlineData("function f(x) -> y\n    y = x\n    x = 1\nend\npower_display(f(1))", "3:5: 'x' is an input of 'f' and can't be defined again")]
     [InlineData("function f(x) -> y\n    default hide: true\n    y = x\nend\npower_display(f(1))", "2:5: A default line goes outside functions")]
-    [InlineData("function f(x) -> y\n    y = later\n    later = 1\nend\npower_display(f(1))", "2:9: 'later' is defined later, on line 3; only delay(...) can refer ahead")]
-    [InlineData("function f(x) -> x\n    y = 1\nend", "1:18: 'x' is an input; give the output a name of its own")]
+    [InlineData("function f(x) -> y\n    y = later\n    later = 1\nend\npower_display(f(1))", "2:9: 'later' is defined later, on line 3, so only delay(...) can refer to it")]
+    [InlineData("function f(x) -> x\n    y = 1\nend", "1:18: 'x' is an input. Give the output a name of its own")]
     [InlineData("function f(x, x) -> y\n    y = 1\nend", "1:15: 'x' is already an input")]
     [InlineData("function f(x) -> y, y\n    y = 1\nend", "1:21: 'y' is already an output")]
     [InlineData("function logic(x)\nend", "1:10: 'logic' is a Block Function and can't be used as a name")]
@@ -288,12 +288,12 @@ public class FunctionTests
     {
         var result = Compile("function f(a) -> y\n    y = a.horn\nend\nx = delay(f(later), ticks: 1)\nlater = player_input().horn\npower_display(x)");
 
-        Assert.Equal(["2:11: 'a' has a single output; use it without .horn"], result.Errors.Select(e => e.ToString()));
+        Assert.Equal(["2:11: 'a' has a single output. Use it without .horn"], result.Errors.Select(e => e.ToString()));
     }
 
     [Theory]
     [InlineData("function f(x) -> y\n    y = x\n", "1:1: Function 'f' has no end")]
-    [InlineData("function f(x) -> y\n    y = x\nfunction g()\nend", "3:1: Function 'f' has no end before this one; functions can't be defined inside each other")]
+    [InlineData("function f(x) -> y\n    y = x\nfunction g()\nend", "3:1: Function 'f' has no end before this one. Functions can't be defined inside each other")]
     [InlineData("power_display(1)\nend", "2:1: 'end' has no function to close")]
     [InlineData("function f(x y)\nend", "1:14: Expected ',' or ')', found 'y'")]
     [InlineData("function (x)\nend", "1:10: Expected the function's name, found '('")]
@@ -320,7 +320,7 @@ public class FunctionTests
     {
         var result = Compile("function f()\nfunction g() -> y\n    y = 1\nend\npower_display(g())");
 
-        Assert.Equal(["2:1: Function 'f' has no end before this one; functions can't be defined inside each other"], result.Errors.Select(e => e.ToString()));
+        Assert.Equal(["2:1: Function 'f' has no end before this one. Functions can't be defined inside each other"], result.Errors.Select(e => e.ToString()));
     }
 
     [Fact]

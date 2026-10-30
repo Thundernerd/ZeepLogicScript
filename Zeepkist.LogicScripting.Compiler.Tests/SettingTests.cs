@@ -91,8 +91,8 @@ public class SettingTests
 
     [Theory]
     [InlineData("random(1, min: 5, max: x)", 1, 24, "max takes a whole number, like max: 5")]
-    [InlineData("random(1, min: 5, mx: 1)", 1, 19, "'random' has no input or Setting 'mx'; did you mean max?")]
-    [InlineData("random(1, min: 5, max_inn: 2)", 1, 19, "'random' has no input or Setting 'max_inn'; did you mean max_in?")]
+    [InlineData("random(1, min: 5, mx: 1)", 1, 19, "'random' has no input or Setting 'mx'. Did you mean max?")]
+    [InlineData("random(1, min: 5, max_inn: 2)", 1, 19, "'random' has no input or Setting 'max_inn'. Did you mean max_in?")]
     public void Random_MaxOrMaxInWithoutAValue_IsNotAlsoARangeError(string text, int line, int column, string message)
     {
         AssertSingleError(text, line, column, message);
@@ -109,9 +109,9 @@ public class SettingTests
     }
 
     [Theory]
-    [InlineData("power_display(1, style: tiny)", 1, 25, "'tiny' isn't a style of power_display; use normal, compact")]
+    [InlineData("power_display(1, style: tiny)", 1, 25, "'tiny' isn't a style of power_display. Use normal, compact")]
     [InlineData("power_display(1, style: 1)", 1, 25, "style takes a word: normal, compact")]
-    [InlineData("power_display(1, stile: compact)", 1, 18, "'power_display' has no input or Setting 'stile'; did you mean style?")]
+    [InlineData("power_display(1, stile: compact)", 1, 18, "'power_display' has no input or Setting 'stile'. Did you mean style?")]
     [InlineData("logic(1, 1, style: normal)", 1, 13, "'logic' has no input or Setting 'style'")]
     [InlineData("power_display(1, style: compact, style: normal)", 1, 34, "'style' is given twice")]
     public void Style_Errors(string text, int line, int column, string message)
@@ -169,9 +169,9 @@ public class SettingTests
     }
 
     [Theory]
-    [InlineData("t = simple_telemetry(mode: local_velocity)\npower_display(t.speed)", 2, 17, "'simple_telemetry' has no output 'speed' in mode local_velocity; use yaw, x, y, z")]
-    [InlineData("t = simple_telemetry()\npower_display(t.heading)", 2, 17, "'simple_telemetry' has no output 'heading' in mode basic; use speed, yaw, up, state")]
-    [InlineData("t = simple_telemetry(mode: global_velocity)\npower_display(t)", 2, 15, "'t' has several outputs; pick one, like t.x")]
+    [InlineData("t = simple_telemetry(mode: local_velocity)\npower_display(t.speed)", 2, 17, "'simple_telemetry' has no output 'speed' in mode local_velocity. Use yaw, x, y, z")]
+    [InlineData("t = simple_telemetry()\npower_display(t.heading)", 2, 17, "'simple_telemetry' has no output 'heading' in mode basic. Use speed, yaw, up, state")]
+    [InlineData("t = simple_telemetry(mode: global_velocity)\npower_display(t)", 2, 15, "'t' has several outputs. Pick one, like t.x")]
     public void ModeOutputs_Errors(string text, int line, int column, string message)
     {
         AssertSingleError(text, line, column, message);
@@ -180,7 +180,7 @@ public class SettingTests
     [Theory]
     [InlineData("toggler(1)", 1, 1, "'toggler' needs targets:, 1 to 8 placed blocks to switch, like targets: [door_1, door_2]")]
     [InlineData("door(1)", 1, 1, "'door' needs targets:, 1 to 8 placed blocks to switch, like targets: [door_1, door_2]")]
-    [InlineData("x = 1 & 1\ntoggler(1, targets: x)", 2, 21, "'x' isn't a placed block; targets takes names defined with placed(...)")]
+    [InlineData("x = 1 & 1\ntoggler(1, targets: x)", 2, 21, "'x' isn't a placed block, but targets takes only names defined with placed(...)")]
     public void Toggler_NeedsPlacedTargets(string text, int line, int column, string message)
     {
         AssertSingleError(text, line, column, message);

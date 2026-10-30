@@ -137,7 +137,7 @@ internal sealed partial class Parser
             }
             else if (IsFunctionStart())
             {
-                var message = $"{shownName} has no {FunctionDefinition.EndKeyword} before this one; functions can't be defined inside each other";
+                var message = $"{shownName} has no {FunctionDefinition.EndKeyword} before this one. Functions can't be defined inside each other";
                 _diagnostics.Add(new Diagnostic(Current.Position, message));
                 isComplete = false;
                 break;
@@ -512,13 +512,13 @@ internal sealed partial class Parser
 
     private static SyntaxError TooDeep(Token token)
     {
-        return Error(token, $"This nests more than {MaxDepth} deep; split it into definitions");
+        return Error(token, $"This nests more than {MaxDepth} deep. Split it into definitions");
     }
 
     /// <param name="lineEnd">The line break right after a binary operator.</param>
     private static SyntaxError DanglingOperator(Token lineEnd)
     {
-        var message = "Expected a value, found the end of the line; to continue on the next line, put the expression in ( )";
+        var message = "Expected a value, found the end of the line. To continue on the next line, put the expression in ( )";
         return new SyntaxError(new Diagnostic(lineEnd.Position, message), true);
     }
 }

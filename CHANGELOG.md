@@ -29,8 +29,8 @@ All notable changes to Logic Scripting are listed here.
 - A function's input can give a setting in its body, like `delay(x, ticks: ticks)`.
   A call passes it a number, `true` or `false`, or a word, also on to another function's setting input.
 - Libraries: named sets of functions on your own machine, which any Script in any level calls as `timing.edge(x)`.
-  Make, rename and delete them in the Libraries section of the Script window;
-  the editor checks and colors them like a Script.
+  Make, rename and delete them in the Libraries section of the Script window,
+  and the editor checks and colors them like a Script.
   Someone without a Library can't recompile a Script that calls it, but the blocks in the level keep working.
 - Completion lists the functions your Script defines, with their inputs, and `function` and `end` at the start of a line.
   Inside a call to one of them it lists its inputs by name, and the box above the line shows them.
@@ -45,6 +45,7 @@ All notable changes to Logic Scripting are listed here.
   The mod's settings, Drafts and the window layout from 0.1.0-alpha.1 aren't carried over.
   If you installed the mod by hand, delete the old `net.tnrd.zeepkist.logicscripting.dll` from `BepInEx/plugins`:
   with both files there, BepInEx loads the mod twice.
+- Errors and result lines read as plain sentences, such as `'x' is a function. Call it with ( )` and `1 error, nothing placed`.
 
 ### Fixed
 
@@ -70,7 +71,7 @@ The first pre-release.
   **Insert selected** writes these lines for the blocks you selected.
 - Errors with line and column while you type, with a suggestion when an argument name is misspelled.
 - A code editor with line numbers, colors, and shortcuts for undo, duplicate, move and comment lines.
-- Scripts are stored in the level when you compile them; typed text is kept as a Draft on your machine.
+- Scripts are stored in the level when you compile them, and typed text is kept as a Draft on your machine.
 - Script list with rename, select and delete, and an Orphaned Groups list for compiled blocks whose Script is gone.
 - A Reference tab that lists every block function with its inputs, outputs and settings.
 - A check on entering the editor that turns off blocks that changed in a game update.

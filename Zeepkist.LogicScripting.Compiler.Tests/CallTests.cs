@@ -42,11 +42,11 @@ public class CallTests
     }
 
     [Theory]
-    [InlineData("logic(1, 2, op: maybe)", 1, 31, "'maybe' isn't an option of op; use and, or, nand, nor, xor, xnor")]
+    [InlineData("logic(1, 2, op: maybe)", 1, 31, "'maybe' isn't an option of op. Use and, or, nand, nor, xor, xnor")]
     [InlineData("logic(1, 2, texture: 3)", 1, 27, "'logic' has no input or Setting 'texture'")]
-    [InlineData("logic(1, 2, ops: or)", 1, 27, "'logic' has no input or Setting 'ops'; did you mean op?")]
-    [InlineData("delay(1, tick: 1)", 1, 24, "'delay' has no input or Setting 'tick'; did you mean ticks?")]
-    [InlineData("delay(1, tick: 1, ticks: 1)", 1, 24, "'delay' has no input or Setting 'tick'; did you mean ticks?")]
+    [InlineData("logic(1, 2, ops: or)", 1, 27, "'logic' has no input or Setting 'ops'. Did you mean op?")]
+    [InlineData("delay(1, tick: 1)", 1, 24, "'delay' has no input or Setting 'tick'. Did you mean ticks?")]
+    [InlineData("delay(1, tick: 1, ticks: 1)", 1, 24, "'delay' has no input or Setting 'tick'. Did you mean ticks?")]
     [InlineData("logic(1, 2, op: or, op: and)", 1, 35, "'op' is given twice")]
     [InlineData("logic(1, a: 2)", 1, 24, "Input 'a' is already wired by position")]
     [InlineData("logic(a: 1, 2)", 1, 27, "Positional inputs go before named arguments")]

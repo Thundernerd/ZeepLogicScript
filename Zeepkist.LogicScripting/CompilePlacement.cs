@@ -34,7 +34,7 @@ internal abstract class CompilePlacement
     /// </summary>
     public string GetNothingToPlaceLine()
     {
-        return $"Nothing to place; {NotStoredNote}";
+        return $"Nothing to place. {NotStoredNote}";
     }
 
     /// <summary>
@@ -52,7 +52,7 @@ internal abstract class CompilePlacement
         if (wiredBlocks > 0)
             line += $", wired to {wiredBlocks} placed blocks";
 
-        return result.Blocks.Count == 0 ? $"{line}; {NotStoredNote}" : line;
+        return result.Blocks.Count == 0 ? $"{line}. {NotStoredNote}" : line;
     }
 
     /// <summary>

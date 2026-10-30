@@ -243,7 +243,7 @@ internal sealed partial class GraphBuilder
             case NameExpression name when !_scope.Names.ContainsKey(name.Name) && !_scope.Definitions.ContainsKey(name.Name):
                 return new SettingConstant(value, valuePosition, _scope);
             default:
-                Report(valuePosition, $"'{input.Name}' is used as a Setting in '{call.QualifiedName}'; pass a number, true or false, or a word, not a Wire");
+                Report(valuePosition, $"'{input.Name}' is used as a Setting in '{call.QualifiedName}'. Pass a number, true or false, or a word, not a Wire");
                 return null;
         }
     }

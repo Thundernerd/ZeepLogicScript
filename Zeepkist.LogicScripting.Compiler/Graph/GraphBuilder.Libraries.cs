@@ -137,7 +137,7 @@ internal sealed partial class GraphBuilder
         foreach (var statement in statements)
         {
             if (statement is not FunctionDefinition)
-                Error(statement, "A Library holds only functions; move this line into one");
+                Error(statement, "A Library holds only functions. Move this line into one");
         }
     }
 
