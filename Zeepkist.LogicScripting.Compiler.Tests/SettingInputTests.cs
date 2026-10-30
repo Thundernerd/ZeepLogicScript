@@ -186,6 +186,18 @@ public class SettingInputTests
     }
 
     [Fact]
+    public void InputForwardedWithinALibrary_AndUsedAsSignal_IsALibraryError()
+    {
+        var result = Compile(
+            "power_display(timing.f(1, 2))",
+            new() { ["timing"] = "function f(x, n) -> y\n    y = pulse_after(n, n)\nend\n" + PulseAfter });
+
+        Assert.Equal(
+            ["1:15: Library 'timing' has an error on line 2: 'n' is used as a Setting on line 2, so it can't also be used as a Signal"],
+            result.Errors.Select(e => e.ToString()));
+    }
+
+    [Fact]
     public void ToggleTargets_StayWires()
     {
         var result = Compile(

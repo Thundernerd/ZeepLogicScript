@@ -145,10 +145,10 @@ internal sealed partial class GraphBuilder
             if (call.Library == null && inputs.Contains(call.Function))
                 use(call.Function, call, false);
 
-            if (call.Library != null || functions.ContainsKey(call.Function))
+            if (IsFunctionCall(call, functions))
             {
-                var callee = FindFunctionQuietly(call, functions, out var calleeFunctions);
-                var calleeSettings = callee == null ? null : GetSettingInputs(callee, calleeFunctions);
+                var callee = FindFunction(call, functions, _ => { });
+                var calleeSettings = callee == null ? null : GetSettingInputs(callee, FunctionsOf(callee));
                 for (var i = 0; i < call.Arguments.Count; i++)
                 {
                     VisitArgument(call.Arguments[i], i < callee?.Inputs.Count && calleeSettings.ContainsKey(callee.Inputs[i].Name));
@@ -178,40 +178,6 @@ internal sealed partial class GraphBuilder
             else if (value is NameExpression name && inputs.Contains(name.Name))
                 use(name.Name, name, true);
         }
-    }
-
-    /// <summary>
-    /// Whether a named argument of a Block Function gives a constant: a Setting or the style. A Toggler's targets are
-    /// placed blocks, so they're names to look up.
-    /// </summary>
-    private static bool GivesConstant(BlockType type, string name)
-    {
-        if (type.IndexOfInput(name) >= 0)
-            return false;
-
-        return (name == BlockType.StyleName && type.HasStyles) || type.FindSetting(name) is { Type: not SettingType.Targets };
-    }
-
-    /// <summary>
-    /// The Function a call names and the Functions its body calls without a prefix, or null when there's none to
-    /// expand; <see cref="FindFunction"/> reports why.
-    /// </summary>
-    private FunctionDefinition FindFunctionQuietly(
-        CallExpression call,
-        Dictionary<string, FunctionDefinition> functions,
-        out Dictionary<string, FunctionDefinition> calleeFunctions)
-    {
-        calleeFunctions = functions;
-        if (call.Library != null)
-        {
-            var library = LoadLibrary(call.Library);
-            if (library == null || library.Errors.Count > 0)
-                return null;
-
-            calleeFunctions = library.Functions;
-        }
-
-        return calleeFunctions.TryGetValue(call.Function, out var function) ? function : null;
     }
 
     /// <summary>

@@ -143,29 +143,55 @@ internal sealed partial class GraphBuilder
         if (!check.TryGive(argument))
             return;
 
-        var input = check.Type.IndexOfInput(argument.Name);
-        if (input >= 0)
+        var type = check.Type;
+        switch (GetNamedArgumentKind(type, argument.Name))
         {
-            check.WireByName(argument, input, EvaluateArgument(check, argument.Value));
-            return;
+            case NamedArgumentKind.Input:
+                check.WireByName(argument, type.IndexOfInput(argument.Name), EvaluateArgument(check, argument.Value));
+                break;
+            case NamedArgumentKind.Style:
+                check.ChooseStyle(WithSettingInput(argument, a => GetStyle(type, a)));
+                break;
+            case NamedArgumentKind.Setting:
+                var blockSetting = type.FindSetting(argument.Name);
+                check.GiveSettings(blockSetting, WithSettingInput(argument, a => GetSettingValues(blockSetting, a)));
+                break;
+            case NamedArgumentKind.Targets:
+                var targets = type.FindSetting(argument.Name);
+                check.GiveSettings(targets, GetTargets(targets, argument));
+                break;
+            default:
+                check.ReportUnknownName(argument);
+                break;
         }
+    }
 
-        if (argument.Name == BlockType.StyleName && check.Type.HasStyles)
+    /// <summary>
+    /// An input by name comes first, then the style, then a Setting.
+    /// </summary>
+    private static NamedArgumentKind GetNamedArgumentKind(BlockType type, string name)
+    {
+        if (type.IndexOfInput(name) >= 0)
+            return NamedArgumentKind.Input;
+
+        if (name == BlockType.StyleName && type.HasStyles)
+            return NamedArgumentKind.Style;
+
+        return type.FindSetting(name)?.Type switch
         {
-            check.ChooseStyle(WithSettingInput(argument, a => GetStyle(check.Type, a)));
-            return;
-        }
+            null => NamedArgumentKind.Unknown,
+            SettingType.Targets => NamedArgumentKind.Targets,
+            _ => NamedArgumentKind.Setting
+        };
+    }
 
-        var blockSetting = check.Type.FindSetting(argument.Name);
-        if (blockSetting == null)
-        {
-            check.ReportUnknownName(argument);
-            return;
-        }
-
-        check.GiveSettings(blockSetting, blockSetting.Type == SettingType.Targets
-            ? GetTargets(blockSetting, argument)
-            : WithSettingInput(argument, a => GetSettingValues(blockSetting, a)));
+    /// <summary>
+    /// Whether a named argument gives a constant: a Setting or the style. A Toggler's targets are placed blocks, so
+    /// they're names to look up.
+    /// </summary>
+    private static bool GivesConstant(BlockType type, string name)
+    {
+        return GetNamedArgumentKind(type, name) is NamedArgumentKind.Style or NamedArgumentKind.Setting;
     }
 
     /// <summary>
