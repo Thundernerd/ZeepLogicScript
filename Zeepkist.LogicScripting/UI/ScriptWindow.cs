@@ -4,6 +4,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using Imui.Controls;
 using Imui.Core;
+using Imui.Style;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
@@ -394,16 +395,27 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     }
 
     /// <summary>
-    /// Every error, not only the first few: the region scrolls.
+    /// Every error, not only the first few: the region scrolls. A message too long for one line wraps, where a one-row
+    /// button would clip both its ends and so its position. Wrapped lines read from the left edge, not centered.
     /// </summary>
     private void DrawErrors(ImGui gui)
     {
         if (!HasCurrentErrors)
             return;
 
+        var style = gui.Style.Button;
+        style.Alignment = new ImAlignment(0, 0.5f);
+        style.WrapText = true;
+        var settings = ImButton.CreateTextSettings(gui, in style);
         foreach (var error in _checkErrors)
         {
-            if (gui.Button(error.ToString()))
+            gui.AddSpacingIfLayoutFrameNotEmpty();
+            var label = error.ToString();
+            var width = gui.GetLayoutWidth();
+            var textBounds = new Vector2(width - (gui.Style.Layout.InnerSpacing * 2), 0);
+            var textHeight = gui.MeasureTextSize(label, in settings, textBounds).y;
+            var rect = gui.Layout.AddRect(width, Mathf.Max(gui.GetRowHeight(), textHeight + gui.Style.Layout.ExtraRowHeight));
+            if (gui.Button(gui.GetNextControlId(), label, rect, in style, out _))
                 _editor.JumpTo(error.Position);
         }
     }
