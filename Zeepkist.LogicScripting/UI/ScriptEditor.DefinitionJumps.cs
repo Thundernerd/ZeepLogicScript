@@ -40,7 +40,8 @@ internal sealed partial class ScriptEditor
         var line = ImTextEdit.FindLineAtCaretPosition(span.Start, in _layout, out var offset);
         var from = ImTextEdit.LineOffsetToViewPosition(line, offset, Text, textRect, gui.TextDrawer, in _layout);
         var to = ImTextEdit.LineOffsetToViewPosition(line, offset + span.Length, Text, textRect, gui.TextDrawer, in _layout);
-        var y = from.y - _layout.LineHeight + JumpThickness;
+        // Above an error underline, which a name that's defined can still have
+        var y = from.y - _layout.LineHeight + (ErrorThickness * 2) + JumpThickness;
         gui.Canvas.Line(new Vector2(from.x, y), new Vector2(to.x, y), palette.Get(null), JumpThickness);
     }
 
