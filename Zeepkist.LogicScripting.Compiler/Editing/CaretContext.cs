@@ -144,13 +144,13 @@ public sealed class CaretContext
     private static TextSpan FindWord(string text, int caret)
     {
         var start = caret;
-        while (start > 0 && IsNameCharacter(text[start - 1]))
+        while (start > 0 && ScriptText.IsNamePart(text[start - 1]))
         {
             start--;
         }
 
         var end = caret;
-        while (end < text.Length && IsNameCharacter(text[end]))
+        while (end < text.Length && ScriptText.IsNamePart(text[end]))
         {
             end++;
         }
@@ -394,10 +394,5 @@ public sealed class CaretContext
     internal static bool IsDefinitionStart(List<Token> tokens, int index)
     {
         return index + 1 < tokens.Count && tokens[index].Kind == TokenKind.Name && tokens[index + 1].Kind == TokenKind.Equals;
-    }
-
-    private static bool IsNameCharacter(char c)
-    {
-        return Lexer.IsNameStart(c) || Lexer.IsDigit(c);
     }
 }
