@@ -10,8 +10,7 @@ internal sealed partial class ScriptEditor
 {
     /// <summary>
     /// Every edit is recorded in the history; a caret move without an edit ends the current typing step. When
-    /// <paramref name="completing"/>, the completion list sees the text before each key and takes its own keys, so a
-    /// letter and Enter pressed in the same frame land in the order they were pressed.
+    /// <paramref name="completing"/>, the completion list sees the text before each key and takes its own keys.
     /// <paramref name="typedName"/> is set when a character that can start a name was typed after the list last saw
     /// the text, and <paramref name="typedSeparator"/> when one that can come before an argument was.
     /// </summary>
@@ -44,9 +43,8 @@ internal sealed partial class ScriptEditor
                 if (_completion.HandleKeyboardEvent(gui, i) is { } accepted)
                 {
                     Text = text;
-                    Replace(accepted.Text, accepted.Caret, gui.Input.Time);
+                    Accept(gui, ref buffer, accepted);
                     text = Text;
-                    buffer = new ImTextEditBuffer(text, gui.Arena, 0);
                     changed = true;
                     continue;
                 }

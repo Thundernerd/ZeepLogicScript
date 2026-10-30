@@ -174,8 +174,7 @@ internal sealed partial class ScriptEditor
 
             if (completed is { } accepted)
             {
-                Replace(accepted.Text, accepted.Caret, gui.Input.Time);
-                buffer = new ImTextEditBuffer(Text, gui.Arena, 0);
+                Accept(gui, ref buffer, accepted);
                 changed = true;
             }
 
@@ -194,6 +193,12 @@ internal sealed partial class ScriptEditor
         gui.Canvas.PopRectMask();
 
         return changed;
+    }
+
+    private void Accept(ImGui gui, ref ImTextEditBuffer buffer, TextSnapshot completed)
+    {
+        Replace(completed.Text, completed.Caret, gui.Input.Time);
+        buffer = new ImTextEditBuffer(Text, gui.Arena, 0);
     }
 
     private void HandleMouse(ImGui gui, ref ImTextEditBuffer buffer, ImRect textRect, bool selected, bool hovered)

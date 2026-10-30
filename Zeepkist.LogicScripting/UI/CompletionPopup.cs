@@ -10,8 +10,7 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
 /// The Script editor's completion list. The editor stays focused while it's open: the list takes its keys and clicks
-/// before the editor sees them, and only while it's open. It reads its keys in the editor's event loop, in the order
-/// they were pressed.
+/// before the editor sees them, and only while it's open.
 /// </summary>
 internal sealed class CompletionPopup
 {
@@ -185,7 +184,7 @@ internal sealed class CompletionPopup
     }
 
     /// <summary>
-    /// Call once a frame before the editor handles the keyboard: Escape closes the list.
+    /// Call once a frame, before the editor handles the keyboard.
     /// </summary>
     public void HandleEscape()
     {
