@@ -104,8 +104,19 @@ internal sealed partial class ScriptEditor
                 text = buffer.ToString();
                 typedName |= ScriptText.IsNameStart(typed);
                 typedSeparator |= ScriptText.IsArgumentSeparator(typed);
-                _history.Record(before, new TextSnapshot(text, _state.Caret, _state.Selection), gui.Input.Time);
+                var typedText = new TextSnapshot(text, _state.Caret, _state.Selection);
+                _history.Record(before, typedText, gui.Input.Time);
                 changed = true;
+
+                // A step of its own, so undo can take the outdent back and keep the typed end
+                var outdented = EditCommands.OutdentEnd(typedText);
+                if (outdented.Text != text)
+                {
+                    text = outdented.Text;
+                    buffer = new ImTextEditBuffer(text, gui.Arena, 0);
+                    _state.Caret = outdented.Caret;
+                    _history.RecordStep(typedText, outdented, gui.Input.Time);
+                }
 
                 // The new text's layout is built next frame, so scrolling to the caret has to wait for it
                 _state.Flag |= ImTextEditStateFlag.NeedScrollToCaret;

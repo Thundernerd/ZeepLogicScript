@@ -118,6 +118,32 @@ public class EditCommandsTests
     }
 
     [Theory]
+    [InlineData("function f(x) -> y|", "function f(x) -> y\n    |")]
+    [InlineData("    function f(x)|", "    function f(x)\n        |")]
+    [InlineData("function| f(x)", "function\n    | f(x)")]
+    [InlineData("functions = 1|", "functions = 1\n|")]
+    [InlineData("# function f(x)|", "# function f(x)\n|")]
+    [InlineData("  |function f(x)", "  \n  |function f(x)")]
+    public void NewLine_IndentsTheBody_AfterAFunctionHeader(string text, string expected)
+    {
+        Assert.Equal(expected, Run(text, s => EditCommands.NewLine(s)));
+    }
+
+    [Theory]
+    [InlineData("function f(x) -> y\n    y = x\n    end|", "function f(x) -> y\n    y = x\nend|")]
+    [InlineData("  function f(x)\n        end|", "  function f(x)\n  end|")]
+    [InlineData("function f(x)\n    end|\nb = 1", "function f(x)\nend|\nb = 1")]
+    [InlineData("function f(x)\nend\n    end|", "function f(x)\nend\n    end|")]
+    [InlineData("    end|", "    end|")]
+    [InlineData("function f(x)\n    end| # done", "function f(x)\n    end| # done")]
+    [InlineData("function f(x)\n    en|d", "function f(x)\n    en|d")]
+    [InlineData("function f(x)\n    blend|", "function f(x)\n    blend|")]
+    public void OutdentEnd_MatchesTheHeaderItCloses(string text, string expected)
+    {
+        Assert.Equal(expected, Run(text, s => EditCommands.OutdentEnd(s)));
+    }
+
+    [Theory]
     [InlineData("a|b", "# a|b")]
     [InlineData("|ab", "# |ab")]
     [InlineData("# a|b", "a|b")]

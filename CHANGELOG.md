@@ -21,6 +21,7 @@ All notable changes to Logic Scripting are listed here.
   A heading can be collapsed, and stays collapsed when you reopen the window.
 - Functions: `function name(inputs) -> outputs` … `end` names wiring you use more than once.
   Each call places the body's blocks inline, so the level still plays without the mod.
+- In the Script editor, Enter after a Function's first line indents the body, and typing `end` lines it up with that first line.
 
 ### Changed
 
