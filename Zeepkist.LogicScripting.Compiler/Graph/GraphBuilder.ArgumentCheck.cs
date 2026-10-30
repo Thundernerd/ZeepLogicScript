@@ -107,7 +107,7 @@ internal sealed partial class GraphBuilder
             var closest = Type.FindClosestName(argument.Name);
             if (closest != null)
             {
-                message += $"; did you mean {closest}?";
+                message += $". Did you mean {closest}?";
                 _meantNames.Add(closest);
             }
 

@@ -69,7 +69,7 @@ internal sealed class RecompilePlacement : CompilePlacement
         return isScaled || Vector3.Angle(block.transform.up, Vector3.up) > TiltToleranceDegrees;
     }
 
-    protected override string NotStoredNote => "the Script is no longer stored in the level";
+    protected override string NotStoredNote => "The Script is no longer stored in the level";
 
     protected override string GetPlacedLine(int blockCount)
     {

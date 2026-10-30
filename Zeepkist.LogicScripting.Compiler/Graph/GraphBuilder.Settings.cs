@@ -73,7 +73,7 @@ internal sealed partial class GraphBuilder
 
                 if (setting.IndexOf(option.Name) < 0)
                 {
-                    ValueError(argument, $"'{option.Name}' isn't an option of {setting.Name}; use {options}");
+                    ValueError(argument, $"'{option.Name}' isn't an option of {setting.Name}. Use {options}");
                     return null;
                 }
 
@@ -113,7 +113,7 @@ internal sealed partial class GraphBuilder
             }
             else if (block == null)
             {
-                Error(item, $"'{Describe(item)}' isn't a placed block; {setting.Name} takes names defined with {PlacedFunction}(...)");
+                Error(item, $"'{Describe(item)}' isn't a placed block, and {setting.Name} takes only names defined with {PlacedFunction}(...)");
                 failed = true;
             }
             else if (!uids.Add(block.Uid))

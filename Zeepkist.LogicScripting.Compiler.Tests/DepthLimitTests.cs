@@ -27,7 +27,7 @@ public class DepthLimitTests
         var result = SmallStack.Run(() => ScriptCompiler.Compile(text, 0));
 
         Assert.Equal(2, result.Errors.Count);
-        Assert.EndsWith($"This nests more than {Parser.MaxDepth} deep; split it into definitions", result.Errors[0].ToString());
+        Assert.EndsWith($"This nests more than {Parser.MaxDepth} deep. Split it into definitions", result.Errors[0].ToString());
         Assert.Equal(2, result.Errors[1].Position.Line);
     }
 

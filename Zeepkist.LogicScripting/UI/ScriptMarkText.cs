@@ -16,7 +16,7 @@ internal static class ScriptMarkText
         return mark switch
         {
             ScriptMark.NotCompiled => ("●", "not compiled", "Not compiled: the level holds another name or text"),
-            ScriptMark.CarrierMissing => ("!", "text missing from the level", "The level has this Script's blocks but not its text; Compile to store it again"),
+            ScriptMark.CarrierMissing => ("!", "text missing from the level", "The level has this Script's blocks but not its text. Compile to store it again"),
             ScriptMark.NeverCompiled => ("○", "never compiled", "Never compiled: the level doesn't hold this Script"),
             _ => (null, null, null)
         };

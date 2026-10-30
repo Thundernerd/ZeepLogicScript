@@ -38,7 +38,7 @@ public class Plugin : BaseUnityPlugin
             "Window",
             "Toggle key",
             KeyCode.F9,
-            "Opens and closes the Logic Script window in the level editor. None turns the key off; the Logic Script menu in ZeepSDK's menu bar still works.");
+            "Opens and closes the Logic Script window in the level editor. None turns the key off, but the Logic Script menu in ZeepSDK's menu bar still works.");
 
         var completionWhileTyping = Config.Bind(
             "Editor",

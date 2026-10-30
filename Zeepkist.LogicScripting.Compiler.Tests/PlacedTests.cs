@@ -53,7 +53,7 @@ public class PlacedTests
     {
         var result = Compile("s = placed(\"S\")\npower_display(s.x)\npower_display(s.speed)");
 
-        Assert.Equal(["3:17 'simple_telemetry' has no output 'speed' in mode local_velocity; use yaw, x, y, z"], Errors(result));
+        Assert.Equal(["3:17 'simple_telemetry' has no output 'speed' in mode local_velocity. Use yaw, x, y, z"], Errors(result));
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public class PlacedTests
         var result = Compile("p = placed(\"GROUP\")\npower_display(p)");
 
         Assert.Equal(
-            ["1:12 Block \"GROUP\" is in a Block Group, which a recompile replaces; refer to a hand-placed block, such as a Passthrough between two Scripts"],
+            ["1:12 Block \"GROUP\" is in a Block Group, which a recompile replaces. Refer to a hand-placed block, such as a Passthrough between two Scripts"],
             Errors(result));
     }
 
@@ -89,9 +89,9 @@ public class PlacedTests
     [InlineData("x = placed(1)", "1:5 placed(...) takes one UID in quotes, like placed(\"AbC12\")")]
     [InlineData("x = placed(\"L\", \"T\")", "1:5 placed(...) takes one UID in quotes, like placed(\"AbC12\")")]
     [InlineData("x = placed(uid: \"L\")", "1:5 placed(...) takes one UID in quotes, like placed(\"AbC12\")")]
-    [InlineData("x = placed", "1:5 placed takes a UID; call it like placed(\"AbC12\")")]
+    [InlineData("x = placed", "1:5 placed takes a UID. Call it like placed(\"AbC12\")")]
     [InlineData("placed = 1", "1:1 'placed' is a reserved word and can't be used as a name")]
-    [InlineData("placed(\"L\")", "1:1 A value on its own line does nothing; give it a name or pass it to a call")]
+    [InlineData("placed(\"L\")", "1:1 A value on its own line does nothing. Give it a name or pass it to a call")]
     [InlineData("x = \"L\"", "1:5 Text in quotes is only for the UID in placed(...)")]
     [InlineData("x = [1, 2]", "1:5 A list in [ ] is only for a Toggler's targets:")]
     public void BadReferences_AreErrors(string script, string error)
@@ -108,21 +108,21 @@ public class PlacedTests
     }
 
     [Theory]
-    [InlineData("l = placed(\"L\")\nl(hide: true)", "2:3 A Script never changes a placed block's Settings; set hide in the editor")]
-    [InlineData("p = placed(\"P\")\np(1, style: skinny_1h)", "2:6 A Script never changes a placed block's Settings; set style in the editor")]
-    [InlineData("l = placed(\"L\")\nl(brightness: 1)", "2:3 'l' has no input 'brightness'; use intensity, red, green, blue, range, angle")]
+    [InlineData("l = placed(\"L\")\nl(hide: true)", "2:3 A Script never changes a placed block's Settings. Set hide in the editor")]
+    [InlineData("p = placed(\"P\")\np(1, style: skinny_1h)", "2:6 A Script never changes a placed block's Settings. Set style in the editor")]
+    [InlineData("l = placed(\"L\")\nl(brightness: 1)", "2:3 'l' has no input 'brightness'. Use intensity, red, green, blue, range, angle")]
     [InlineData("l = placed(\"L\")\nl(1, 2, 3, 4, 5, 6, 7)", "2:1 'l' takes at most 6 inputs, got 7")]
     [InlineData("l = placed(\"L\")\nl(1)\nl(2)", "3:3 Input 'intensity' of 'l' is already wired on line 2")]
     [InlineData("l = placed(\"WIRED\")\nl(1)", "2:3 Input 'intensity' of 'l' already has a Wire in the level, and an input takes one Wire")]
     [InlineData("d = placed(\"DOOR\")\nd(1)", "2:1 'd' has no inputs to wire")]
     [InlineData("t = placed(\"T\")\nt(1)", "2:1 't' has no inputs to wire")]
     [InlineData("d = placed(\"DOOR\")\nd(open: yes)", "2:1 'd' has no inputs to wire")]
-    [InlineData("l = placed(\"L\")\nx = l(1)", "2:5 Wiring into 'l' gives no value; put it on its own line")]
-    [InlineData("x = 1 & 1\nx(1)", "2:1 'x' isn't a placed block, so it can't be called; only names defined with placed(...) can")]
+    [InlineData("l = placed(\"L\")\nx = l(1)", "2:5 Wiring into 'l' gives no value. Put it on its own line")]
+    [InlineData("x = 1 & 1\nx(1)", "2:1 'x' isn't a placed block, so it can't be called. Only names defined with placed(...) can")]
     [InlineData("l(1)\nl = placed(\"L\")", "1:1 'l' is defined later, on line 2")]
     [InlineData("l = placed(\"L\")\npower_display(l)", "2:15 'l' has no output to use as a value")]
     [InlineData("l = placed(\"L\")\npower_display(l.x)", "2:17 'l' has no outputs")]
-    [InlineData("d = placed(\"D\")\npower_display(d)", "2:15 'd' has several outputs; pick one, like d.distance")]
+    [InlineData("d = placed(\"D\")\npower_display(d)", "2:15 'd' has several outputs. Pick one, like d.distance")]
     public void BadReferenceCalls_AreErrors(string script, string error)
     {
         Assert.Equal([error], Errors(Compile(script)));
@@ -165,7 +165,7 @@ public class PlacedTests
     public void WiresIntoPlacedBlocks_CantCloseADependencyLoop(string script, string position)
     {
         Assert.Equal(
-            [$"{position} This Wire makes a Dependency Loop, which stops all logic in play; put a delay(...) in the loop"],
+            [$"{position} This Wire makes a Dependency Loop, which stops all logic in play. Put a delay(...) in the loop"],
             Errors(Compile(script)));
     }
 
@@ -197,7 +197,7 @@ public class PlacedTests
     [InlineData("toggler(1, targets: [])", "2:21 targets takes 1 to 8 placed blocks, like targets: [door_1, door_2]")]
     [InlineData("toggler(1, targets: [d, d])", "2:25 'd' is already a target")]
     [InlineData("toggler(1, targets: [d, placed(\"DOOR\")])", "2:25 'placed' is already a target")]
-    [InlineData("toggler(1, targets: [d, 1 & 1])", "2:27 'value' isn't a placed block; targets takes names defined with placed(...)")]
+    [InlineData("toggler(1, targets: [d, 1 & 1])", "2:27 'value' isn't a placed block, and targets takes only names defined with placed(...)")]
     [InlineData("toggler(1, targets: [d, nope])", "2:25 'nope' isn't defined")]
     [InlineData("toggler(1, targets: [d, d, d, d, d, d, d, d, d])", "2:46 A Toggler switches at most 8 blocks")]
     [InlineData("toggler(1)", "2:1 'toggler' needs targets:, 1 to 8 placed blocks to switch, like targets: [door_1, door_2]")]

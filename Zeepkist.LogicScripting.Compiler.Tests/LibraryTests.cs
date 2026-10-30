@@ -66,7 +66,7 @@ public class LibraryTests
     [InlineData("timing.nope(1)", "1:1: 'timing' has no function 'nope'")]
     [InlineData("power_display(timing.edge())", "1:15: 'timing.edge' needs input 'x'")]
     [InlineData("power_display(timing.edge(1, 2))", "1:15: 'timing.edge' takes 1 input, got 2")]
-    [InlineData("power_display(timing.edge(1).r)", "1:30: 'timing.edge' has a single output; use it without .r")]
+    [InlineData("power_display(timing.edge(1).r)", "1:30: 'timing.edge' has a single output. Use it without .r")]
     public void MissingLibraryOrFunction_AndArgumentErrors(string text, string error)
     {
         var result = Compile(text, new() { ["timing"] = Timing });
@@ -135,7 +135,7 @@ public class LibraryTests
             new() { ["T"] = new PlacedBlock(BlockManifest.Trigger.DefaultStyle.BlockId) });
 
         Assert.Equal(
-            ["1:15: In lamps.t, line 2: A Library can't use placed(...), since a UID belongs to one level; pass the block in as an input"],
+            ["1:15: In lamps.t, line 2: A Library can't use placed(...), since a UID belongs to one level. Pass the block in as an input"],
             result.Errors.Select(e => e.ToString()));
         Assert.Empty(result.PlacedBlockReferences);
     }
@@ -159,7 +159,7 @@ public class LibraryTests
             "p = player_input()\nx = 1\npower_display(pick.horn(x))\npower_display(pick.horn(p))",
             new() { ["pick"] = "# Reads the horn\nfunction horn(p) -> h\n    h = p.horn\nend" });
 
-        Assert.Equal(["3:15: In pick.horn, line 3: 'p' has a single output; use it without .horn"], result.Errors.Select(e => e.ToString()));
+        Assert.Equal(["3:15: In pick.horn, line 3: 'p' has a single output. Use it without .horn"], result.Errors.Select(e => e.ToString()));
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class LibraryTests
 
         Assert.Equal(
             [
-                "1:15: Library 'timing' has an error on line 5: A Library holds only functions; move this line into one",
+                "1:15: Library 'timing' has an error on line 5: A Library holds only functions. Move this line into one",
                 "1:15: Library 'timing' has an error on line 6: Expected ',' or ')', found 'b'"
             ],
             result.Errors.Select(e => e.ToString()));
@@ -242,11 +242,11 @@ public class LibraryTests
     }
 
     [Theory]
-    [InlineData("x = 1", "1:1: A Library holds only functions; move this line into one")]
-    [InlineData("power_display(1)", "1:1: A Library holds only functions; move this line into one")]
-    [InlineData("default hide: true", "1:1: A Library holds only functions; move this line into one")]
+    [InlineData("x = 1", "1:1: A Library holds only functions. Move this line into one")]
+    [InlineData("power_display(1)", "1:1: A Library holds only functions. Move this line into one")]
+    [InlineData("default hide: true", "1:1: A Library holds only functions. Move this line into one")]
     [InlineData("function f(x) -> y\n    y = x & nope\nend", "2:13: 'nope' isn't defined")]
-    [InlineData("function f() -> y\n    y = placed(\"A\")\nend", "2:9: A Library can't use placed(...), since a UID belongs to one level; pass the block in as an input")]
+    [InlineData("function f() -> y\n    y = placed(\"A\")\nend", "2:9: A Library can't use placed(...), since a UID belongs to one level. Pass the block in as an input")]
     [InlineData("function f(x) -> y\n    y = f(x)\nend", "2:9: 'f' calls itself, and a function can't")]
     [InlineData("function f(x) -> y\n    y = other.g(x)\nend", "2:9: No Library 'other' on this machine")]
     [InlineData("function f(x) -> y\n    y = timing.edgee(x)\nend", "2:9: 'timing' has no function 'edgee'")]
@@ -265,7 +265,7 @@ public class LibraryTests
             "function f(x) -> y\n    y = inner.g(1) & x\nend",
             _ => "function g(x) -> y\n    y = x.horn\nend");
 
-        Assert.Equal(["2:9: In inner.g, line 2: 'x' has a single output; use it without .horn"], diagnostics.Select(e => e.ToString()));
+        Assert.Equal(["2:9: In inner.g, line 2: 'x' has a single output. Use it without .horn"], diagnostics.Select(e => e.ToString()));
     }
 
     [Fact]

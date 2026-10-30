@@ -93,7 +93,7 @@ internal sealed partial class GraphBuilder
             }
             else if (inputs.Contains(output.Name))
             {
-                Error(output, $"'{output.Name}' is an input; give the output a name of its own");
+                Error(output, $"'{output.Name}' is an input. Give the output a name of its own");
                 isValid = false;
             }
             else if (!outputs.Add(output.Name))
@@ -271,7 +271,7 @@ internal sealed partial class GraphBuilder
             {
                 Error(argument, inputs.Count == 0
                     ? $"'{call.QualifiedName}' has no inputs"
-                    : $"'{call.QualifiedName}' has no input '{argument.Name}'; use {string.Join(", ", inputs.Select(i => i.Name))}");
+                    : $"'{call.QualifiedName}' has no input '{argument.Name}'. Use {string.Join(", ", inputs.Select(i => i.Name))}");
                 namesFailed = true;
             }
             else if (isGiven[input])

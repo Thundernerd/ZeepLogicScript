@@ -426,7 +426,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     {
         if (_currentLibrary != null)
         {
-            _result = $"A Library isn't compiled itself; compile a Script that calls {_currentLibrary.Name}.function(...)";
+            _result = $"A Library isn't compiled itself. Compile a Script that calls {_currentLibrary.Name}.function(...)";
             return;
         }
 

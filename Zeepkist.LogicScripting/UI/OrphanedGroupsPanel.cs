@@ -72,7 +72,7 @@ internal sealed class OrphanedGroupsPanel
             gui.EndReadOnly();
             gui.TooltipAtLastControl(orphan.Draft == null
                 ? "This machine has no Draft of this Script"
-                : "Bring the Script back from this machine's Draft; Compile to store it in the level again");
+                : "Bring the Script back from this machine's Draft. Compile to store it in the level again");
         }
 
         if (_message.Length > 0)
@@ -83,7 +83,7 @@ internal sealed class OrphanedGroupsPanel
 
     public void ShowRestored(ScriptEntry entry)
     {
-        _message = $"Restored \"{entry.Name}\" from its Draft; Compile to store it in the level again";
+        _message = $"Restored \"{entry.Name}\" from its Draft. Compile to store it in the level again";
     }
 
     private void Edit(OrphanedGroup orphan, string verb, Func<LEV_LevelEditorCentral, ScriptId, int> edit)
@@ -94,7 +94,7 @@ internal sealed class OrphanedGroupsPanel
 
         var count = LevelEdit.TryEditGroup(_logger, $"{verb} orphaned group", () => edit(central, orphan.Id));
         if (count == null)
-            _message = "That failed; level unchanged";
+            _message = "That failed, level unchanged";
         else
             _message = count == 1 ? $"{verb} 1 block" : $"{verb} {count} blocks";
     }

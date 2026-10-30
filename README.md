@@ -82,9 +82,9 @@ The new group replaces the old one, at the same spot.
     Select blocks in the level and click **Insert selected** to add them to the Script.
   - **Reference**: every block function, with its inputs, outputs and settings,
     under four headings, Inputs, Operators, Outputs and Movers, split the same way as the subfolders of the game's logic block folder.
-    Under a fifth, Libraries, are your Libraries' functions, with their inputs and outputs;
-    an input the function uses as a setting is marked `(setting)`.
-    Click a heading to collapse it; the window remembers which ones are collapsed.
+    Under a fifth, Libraries, are your Libraries' functions, with their inputs and outputs.
+    An input the function uses as a setting is marked `(setting)`.
+    Click a heading to collapse it, and the window remembers which ones are collapsed.
     Type in the filter to search: only headings with a match show, and they show open.
 
 The text editor knows the usual shortcuts:
@@ -93,14 +93,14 @@ Ctrl+/ to comment a line out, Alt+Up / Alt+Down to move lines, and Tab / Shift+T
 
 While you type a name, the editor lists the block functions, your Script's own functions and the defined names that match.
 It only lists names defined on an earlier line, except inside `delay(...)`, which can refer to any of them.
-Inside a function's body it lists only that function's inputs and the names its body defines; outside, none of them.
+Inside a function's body it lists only that function's inputs and the names its body defines. Outside a function it lists none of them.
 At the start of a line it also lists `function`, or inside a function's body, `end`.
-At the start of an argument it lists the call's inputs and settings by name first, leaving out those the call already has;
-a call to a placed block or to one of your functions lists only its inputs. After `default` it lists `hide:`.
+At the start of an argument it lists the call's inputs and settings by name first, leaving out those the call already has.
+A call to a placed block or to one of your functions lists only its inputs. After `default` it lists `hide:`.
 Starting an argument opens the list with the call's named arguments:
 typing the `(` of a call, or a comma or space before its next argument, or choosing a block function from the list.
-After a setting's `:` it lists the values the setting takes, such as the operators after `op:` or `true` and `false` after `hide:`;
-typing the `:` or a space after it, or choosing the setting from the list, opens it. Number settings list nothing.
+After a setting's `:` it lists the values the setting takes, such as the operators after `op:` or `true` and `false` after `hide:`.
+Typing the `:` or a space after it, or choosing the setting from the list, opens it. Number settings list nothing.
 Up / Down choose one, Enter or Tab writes it, and Escape closes the list.
 Ctrl+Space opens the list at any time.
 To stop it opening by itself, turn off **Completion while typing** in the mod's settings.
@@ -122,7 +122,7 @@ While Ctrl is held, the name under the mouse is underlined when there's a defini
 
 A Script is a list of lines, read from top to bottom.
 Each line places blocks and wires them together.
-A Script has no loops or `if`; its functions only name wiring you use more than once.
+A Script has no loops or `if`, and its functions only name wiring you use more than once.
 For that kind of logic, use blocks that do it while the level plays, like `multiplexer`, `transistor` or `counter`.
 
 ### Lines, names and comments
@@ -140,7 +140,7 @@ power_display(both)
 - A line without a name is for blocks that have no output, like `toggler`, `death` or `power_display`.
 - Names use letters, digits and `_`, and don't start with a digit.
   Each name is defined once, and only used below the line that defines it.
-  The one exception is `delay`; see [Feedback with delay](#feedback-with-delay).
+  The one exception is `delay`: see [Feedback with delay](#feedback-with-delay).
 - One line is one statement.
   To spread a long statement over several lines, put it in parentheses:
 
@@ -182,8 +182,8 @@ Compare operators give 1 for true and 0 for false.
 ### Calling blocks
 
 Each block function places one block.
-The function is named after the block, like `delay` or `player_input`;
-see [Blocks](#blocks) for the full list.
+The function is named after the block, like `delay` or `player_input`.
+See [Blocks](#blocks) for the full list.
 
 ```logic
 p = player_input(player: 1)
@@ -237,7 +237,7 @@ power_display(on)
 ```
 
 Each horn press flips `on`.
-Every loop of wires has to pass through a Delay; the game's logic stops when one doesn't.
+Every loop of wires has to pass through a Delay. The game's logic stops when one doesn't.
 That's why a name can only refer ahead inside `delay`.
 
 ### Blocks you placed by hand
@@ -255,12 +255,12 @@ trigger_1 = placed("trigger-uid")
 ```
 
 The text in quotes is the block's UID.
-The examples in this README use made-up UIDs; Insert selected writes the real ones.
+The examples in this README use made-up UIDs. Insert selected writes the real ones.
 It skips blocks that belong to a Script's Block Group.
 
 Insert selected names a block after its type, like `trigger_1` or `lamp_1`,
 and a block that isn't a logic block `block_1`.
-You can rename them; the examples call a wall `wall_1`.
+You can rename them. The examples call a wall `wall_1`.
 
 Use the name to read the block's outputs, and call it to wire its inputs:
 
@@ -270,7 +270,7 @@ lamp_1 = placed("lamp-uid")
 lamp_1(red: 255, green: (trigger_1 > 0) * 255)
 ```
 
-A Script never changes the settings of a placed block; set those in the editor.
+A Script never changes the settings of a placed block. Set those in the editor.
 Each input takes one wire, counting the wires that are already in the level.
 
 ### Your own functions
@@ -294,8 +294,8 @@ The level doesn't need the mod to play them.
 
 - The first line names the function, its inputs in parentheses, and after `->` its outputs.
   Everything up to `end` is the body.
-  Indenting the body is only for reading;
-  the editor indents the line after the first line, and moves `end` back under it as you type it.
+  Indenting the body is only for reading.
+  The editor indents the line after the first line, and moves `end` back under it as you type it.
 - Pass every input, in order or by name: `edge(p.horn)` or `edge(x: p.horn)`.
 - The body has to define each output.
   A function with one output is used as a value.
@@ -313,7 +313,7 @@ The level doesn't need the mod to play them.
   power_display(l.q)
   ```
 
-- A function without `->` has no outputs; call it on its own line.
+- A function without `->` has no outputs, so call it on its own line.
 - The body only sees its inputs and its own names, not the names outside it.
   It can call other functions, but not itself.
   `delay` works inside it the same way: only inside `delay` can a name refer ahead.
@@ -477,7 +477,7 @@ The editor's names end in "Logic Block", left out here.
 | `toggle_latch` | Toggle Latch | `x` | one |
 | `date_timer` | DateTime | – | `year`, `month`, `day`, `hour`, `minute`, `second` |
 | `player_input` | Player Input | – | `arms_up`, `brake`, `left`, `right`, `analog_left`, `analog_right`, `horn` |
-| `simple_telemetry` | Simple Telemetry | – | by `mode:`; see the Reference tab |
+| `simple_telemetry` | Simple Telemetry | – | by `mode:` (see the Reference tab) |
 | `wheel_telemetry` | Wheel Telemetry (Advanced) | – | `all`, `any`, `lf`, `rf`, `lr`, `rr` |
 | `passthrough` | Passthrough (all four shapes) | `x` | one |
 | `power_display` | Signal Power Display (both sizes) | `x` | one |
@@ -514,7 +514,7 @@ The editor's names end in "Logic Block", left out here.
 | `force_giver` | `player` (`all` or `1`–`4`); `force_mode`: `acceleration`, `force`, `impulse`, `velocity_change`; `space`: `local`, `global`, `follow_velocity`, `local_rotation`, `global_rotation`; `particles`: `none`, `booster`, `slowster`, `feather`, `flying`, `fan` |
 
 Every block function also takes `hide`.
-The Property Multiplier's multipliers aren't in the language yet; set them in the editor.
+The Property Multiplier's multipliers aren't in the language yet, so set them in the editor.
 
 ### Placed-only blocks
 

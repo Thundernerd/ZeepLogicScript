@@ -24,7 +24,7 @@ internal sealed partial class GraphBuilder
     private Resolved VisitPlaced(CallExpression call)
     {
         if (_isLibrary || _scope.Library != null)
-            return Fail(call, $"A Library can't use {PlacedFunction}(...), since a UID belongs to one level; pass the block in as an input");
+            return Fail(call, $"A Library can't use {PlacedFunction}(...), since a UID belongs to one level. Pass the block in as an input");
 
         if (call.Arguments.Count != 1 || call.NamedArguments.Count > 0 || call.Arguments[0] is not StringLiteral uid)
             return Fail(call, $"{PlacedFunction}(...) takes one UID in quotes, like {PlacedFunction}(\"AbC12\")");
@@ -45,7 +45,7 @@ internal sealed partial class GraphBuilder
             return Fail(call, $"'{type.Describe(style)}' doesn't match this game version and is turned off");
 
         if (placed.IsInBlockGroup)
-            return Fail(uid, $"Block \"{uid.Value}\" is in a Block Group, which a recompile replaces; refer to a hand-placed block, such as a Passthrough between two Scripts");
+            return Fail(uid, $"Block \"{uid.Value}\" is in a Block Group, which a recompile replaces. Refer to a hand-placed block, such as a Passthrough between two Scripts");
 
         if (!_placedNodes.TryGetValue(uid.Value, out var block))
         {
@@ -124,8 +124,8 @@ internal sealed partial class GraphBuilder
             }
 
             check.ReportAndFail(argument, IsSettingName(type, argument.Name)
-                ? $"A Script never changes a placed block's Settings; set {argument.Name} in the editor"
-                : $"'{call.Function}' has no input '{argument.Name}'; use {string.Join(", ", type.Inputs.Select(i => i.Name))}");
+                ? $"A Script never changes a placed block's Settings. Set {argument.Name} in the editor"
+                : $"'{call.Function}' has no input '{argument.Name}'. Use {string.Join(", ", type.Inputs.Select(i => i.Name))}");
         }
 
         if (check.Failed)
@@ -139,7 +139,7 @@ internal sealed partial class GraphBuilder
             if (feed is OutputValue output)
                 WireIntoPlaced(call, wired.IsByPosition, i, output.Output, block);
             else
-                Error(GetInputOrigin(call, wired.IsByPosition, i, block.Type), "A name defined later can't be wired into a placed block; only delay(...) can refer ahead");
+                Error(GetInputOrigin(call, wired.IsByPosition, i, block.Type), "A name defined later can't be wired into a placed block, since only delay(...) can refer ahead");
         }
     }
 
@@ -194,7 +194,7 @@ internal sealed partial class GraphBuilder
             // The scope places the error when the Wire comes from a Library's body
             _scope = wireScope;
             if (wire.To.Type != BlockManifest.Delay && Reaches(wire.To, wire.From))
-                Error(origin, "This Wire makes a Dependency Loop, which stops all logic in play; put a delay(...) in the loop");
+                Error(origin, "This Wire makes a Dependency Loop, which stops all logic in play. Put a delay(...) in the loop");
         }
 
         _scope = scope;

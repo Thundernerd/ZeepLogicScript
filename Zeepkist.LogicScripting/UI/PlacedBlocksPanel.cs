@@ -61,7 +61,7 @@ internal sealed class PlacedBlocksPanel
             if (gui.Button(id, $"{name}: {reference.Type.Function}", rect, out var state))
                 PlacedBlockHighlight.Frame(central, block);
 
-            gui.TooltipAtLastControl($"UID \"{reference.Uid}\"; click to look at it");
+            gui.TooltipAtLastControl($"UID \"{reference.Uid}\". Click to look at it");
             if (state != ImButtonState.Normal)
                 hovered = block;
         }
@@ -99,10 +99,10 @@ internal sealed class PlacedBlocksPanel
 
         _insertMessage = $"Inserted {insert.InsertedCount} placed blocks";
         if (insert.AlreadyReferencedCount > 0)
-            _insertMessage += $"; skipped {insert.AlreadyReferencedCount} the Script already refers to";
+            _insertMessage += $". Skipped {insert.AlreadyReferencedCount} the Script already refers to";
 
         if (insert.SkippedGroupBlockCount > 0)
-            _insertMessage += $"; skipped {insert.SkippedGroupBlockCount} in a Block Group, which a recompile replaces";
+            _insertMessage += $". Skipped {insert.SkippedGroupBlockCount} in a Block Group, which a recompile replaces";
 
         return insert.InsertedCount > 0;
     }

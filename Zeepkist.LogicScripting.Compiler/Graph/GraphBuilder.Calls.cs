@@ -97,7 +97,7 @@ internal sealed partial class GraphBuilder
             return null;
 
         if (_scope.Names.ContainsKey(function))
-            return $"'{function}' isn't a placed block, so it can't be called; only names defined with {PlacedFunction}(...) can";
+            return $"'{function}' isn't a placed block, so it can't be called. Only names defined with {PlacedFunction}(...) can";
 
         if (_scope.Definitions.TryGetValue(function, out var later))
             return $"'{function}' is defined later, on line {later.Position.Line}";
@@ -106,7 +106,7 @@ internal sealed partial class GraphBuilder
             return outOfScope;
 
         return BlockManifest.TryGetPlacedOnly(function, out _)
-            ? $"'{function}' is placed by hand; a Script can only refer to one with {PlacedFunction}(...)"
+            ? $"'{function}' is placed by hand, so a Script can only refer to it with {PlacedFunction}(...)"
             : $"'{function}' isn't a Block Function";
     }
 
@@ -182,7 +182,7 @@ internal sealed partial class GraphBuilder
 
         var style = type.FindStyle(word.Name);
         if (style == null)
-            ValueError(argument, $"'{word.Name}' isn't a style of {type.Function}; use {styles}");
+            ValueError(argument, $"'{word.Name}' isn't a style of {type.Function}. Use {styles}");
 
         return style;
     }

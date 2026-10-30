@@ -96,7 +96,7 @@ internal sealed class LibraryListPanel
 
         if (_deleted != null)
         {
-            gui.Text($"Delete \"{_deleted.Name}\"? Scripts that call it can't be compiled on this machine any more; their blocks in levels keep working.", wrap: true);
+            gui.Text($"Delete \"{_deleted.Name}\"? Scripts that call it can't be compiled on this machine any more, but their blocks in levels keep working.", wrap: true);
             if (gui.Button("Delete"))
             {
                 _libraries.Remove(_deleted.Id);

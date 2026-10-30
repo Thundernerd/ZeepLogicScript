@@ -112,19 +112,19 @@ internal sealed partial class GraphBuilder
             return Fail(name, $"'{name.Name}' can't refer to itself outside delay(...)");
 
         if (_scope.Definitions.TryGetValue(name.Name, out var later))
-            return Fail(name, $"'{name.Name}' is defined later, on line {later.Position.Line}; only delay(...) can refer ahead");
+            return Fail(name, $"'{name.Name}' is defined later, on line {later.Position.Line}, so only delay(...) can refer to it");
 
         if (name.Name == PlacedFunction)
-            return Fail(name, $"{PlacedFunction} takes a UID; call it like {PlacedFunction}(\"AbC12\")");
+            return Fail(name, $"{PlacedFunction} takes a UID. Call it like {PlacedFunction}(\"AbC12\")");
 
         if (Functions.ContainsKey(name.Name))
-            return Fail(name, $"'{name.Name}' is a function; call it with ( )");
+            return Fail(name, $"'{name.Name}' is a function. Call it with ( )");
 
         if (GetOutOfScopeMessage(name.Name) is { } outOfScope)
             return Fail(name, outOfScope);
 
         return Fail(name, BlockManifest.TryGetFunction(name.Name, out _)
-            ? $"'{name.Name}' is a Block Function; call it with ( )"
+            ? $"'{name.Name}' is a Block Function. Call it with ( )"
             : $"'{name.Name}' isn't defined");
     }
 
@@ -137,6 +137,6 @@ internal sealed partial class GraphBuilder
         if (_scope.Function == null || _scope.Library != null || !_topScope.Definitions.ContainsKey(name))
             return null;
 
-        return $"'{name}' isn't defined in '{_scope.Function.Name.Name}'; a function only sees its inputs and its own names";
+        return $"'{name}' isn't defined in '{_scope.Function.Name.Name}'. A function only sees its inputs and its own names";
     }
 }

@@ -38,7 +38,7 @@ internal sealed class FirstCompilePlacement : CompilePlacement
             Mathf.Round(point.z / 16) * 16);
     }
 
-    protected override string NotStoredNote => "a Script that places no blocks isn't stored in the level";
+    protected override string NotStoredNote => "A Script that places no blocks isn't stored in the level";
 
     protected override string GetPlacedLine(int blockCount)
     {

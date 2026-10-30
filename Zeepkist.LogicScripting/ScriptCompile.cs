@@ -31,7 +31,7 @@ internal static class ScriptCompile
             return FormatErrors(result);
 
         if (!check.CanPlace)
-            return $"No errors, but {StartupCheck.UpdateNeededMessage}; nothing placed";
+            return $"No errors, but {StartupCheck.UpdateNeededMessage}, so nothing placed";
 
         if (placement.ChangesNothing(result))
             return placement.GetNothingToPlaceLine();
@@ -47,12 +47,12 @@ internal static class ScriptCompile
         catch (Exception e)
         {
             logger.LogError($"Compile failed: {e}");
-            return "Compile failed; level unchanged";
+            return "Compile failed, level unchanged";
         }
 
         var line = placement.GetResultLine(result);
         if (lostWires > 0)
-            line += $"\nRemoved {lostWires} Wires between the group and other blocks that this Compile doesn't make again; to keep a hand-made one, wire the block in the Script with placed(...)";
+            line += $"\nRemoved {lostWires} Wires between the group and other blocks that this Compile doesn't make again. To keep a hand-made one, wire the block in the Script with placed(...)";
 
         return line;
     }
@@ -85,7 +85,7 @@ internal static class ScriptCompile
 
     private static string FormatErrors(CompileResult result)
     {
-        var heading = result.Errors.Count == 1 ? "1 error; nothing placed" : $"{result.Errors.Count} errors; nothing placed";
+        var heading = result.Errors.Count == 1 ? "1 error, nothing placed" : $"{result.Errors.Count} errors, nothing placed";
         return heading + "\n" + string.Join("\n", result.Errors);
     }
 }

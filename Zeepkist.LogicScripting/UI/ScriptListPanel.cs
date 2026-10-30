@@ -152,7 +152,7 @@ internal sealed class ScriptListPanel
 
         if (edited is not { } count)
         {
-            _message = "Delete failed; level unchanged";
+            _message = "Delete failed, level unchanged";
             return;
         }
 
