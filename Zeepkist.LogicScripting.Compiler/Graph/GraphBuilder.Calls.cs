@@ -92,7 +92,8 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private string GetUnknownFunctionMessage(string function)
     {
-        if (_scope.FailedNames.Contains(function))
+        // A Setting input called as a placed block is reported with its Function
+        if (_scope.FailedNames.Contains(function) || _scope.Names.TryGetValue(function, out var value) && value is SettingConstant)
             return null;
 
         if (_scope.Names.ContainsKey(function))
@@ -151,7 +152,7 @@ internal sealed partial class GraphBuilder
 
         if (argument.Name == BlockType.StyleName && check.Type.HasStyles)
         {
-            check.ChooseStyle(GetStyle(check.Type, argument));
+            check.ChooseStyle(WithSettingInput(argument, a => GetStyle(check.Type, a)));
             return;
         }
 
@@ -162,7 +163,9 @@ internal sealed partial class GraphBuilder
             return;
         }
 
-        check.GiveSettings(blockSetting, GetSettingValues(blockSetting, argument));
+        check.GiveSettings(blockSetting, blockSetting.Type == SettingType.Targets
+            ? GetTargets(blockSetting, argument)
+            : WithSettingInput(argument, a => GetSettingValues(blockSetting, a)));
     }
 
     /// <summary>

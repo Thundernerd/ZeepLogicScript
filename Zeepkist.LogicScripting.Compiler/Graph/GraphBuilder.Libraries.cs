@@ -36,6 +36,14 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
+    /// The Functions <paramref name="function"/>'s body calls without a prefix.
+    /// </summary>
+    private Dictionary<string, FunctionDefinition> FunctionsOf(FunctionDefinition function)
+    {
+        return _libraryFunctions.TryGetValue(function, out var library) ? library.Functions : _scriptFunctions;
+    }
+
+    /// <summary>
     /// The Function a call names, or null after reporting why there's none.
     /// </summary>
     private FunctionDefinition FindFunction(CallExpression call)

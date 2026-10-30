@@ -48,7 +48,15 @@ public class Plugin : BaseUnityPlugin
 
         var storage = StorageApi.CreateModStorage(this);
         var drafts = new DraftStore(storage, Logger);
-        _scriptWindow = new ScriptWindow(Logger, _startupCheck, drafts, new WindowStateStore(storage, Logger), _toggleKey, new EditorAssist(completionWhileTyping));
+        var libraries = new LibraryStore(storage, Logger);
+        _scriptWindow = new ScriptWindow(
+            Logger,
+            _startupCheck,
+            drafts,
+            libraries,
+            new WindowStateStore(storage, Logger),
+            _toggleKey,
+            new EditorAssist(completionWhileTyping, libraries.Libraries));
         UIApi.AddZeepGUIDrawer(_scriptWindow);
         _toolbarDrawer = new ScriptToolbarDrawer(_scriptWindow);
         UIApi.AddToolbarDrawer(_toolbarDrawer);
@@ -70,6 +78,7 @@ public class Plugin : BaseUnityPlugin
             UIApi.RemoveZeepGUIDrawer(_scriptWindow);
             _scriptWindow.ReleaseInput();
             _scriptWindow.SaveDrafts();
+            _scriptWindow.SaveLibraries();
             _scriptWindow.SaveState();
         }
 

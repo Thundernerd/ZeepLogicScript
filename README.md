@@ -74,6 +74,9 @@ The new group replaces the old one, at the same spot.
 - **Orphaned Groups**: compiled blocks whose Script text the level no longer holds,
   for example because you deleted the block that holds the text.
   You can delete them, untag them into plain blocks, or select them.
+- **Libraries**: your Libraries, kept on your own machine and shared by every level.
+  Click **New Library** to make one, and right-click a Library to rename or delete it.
+  See [Libraries](#libraries).
 - **Blocks**: two tabs.
   - **Placed blocks**: the blocks you placed by hand that the Script refers to.
     Select blocks in the level and click **Insert selected** to add them to the Script.
@@ -321,7 +324,62 @@ The level doesn't need the mod to play them.
   light(lamp_1, trigger_1)
   ```
 
+- An input can give a setting instead of a wire.
+  The call passes it a number, `true` or `false`, or a word,
+  and the body uses that wherever it writes the input as a setting's value:
+
+  ```logic
+  function pulse_after(x, ticks) -> out
+      out = pulser(delay(x, ticks: ticks))
+  end
+
+  p = player_input(player: 1)
+  power_display(pulse_after(p.horn, ticks: 20))
+  ```
+
+  The value is checked like one you wrote in the setting yourself.
+  The body can pass the input on to another function's setting input, like `pulse_after(x, ticks: wait)`.
+  An input that gives a setting can't also be wired, and the call can't pass it a wire.
+  A word the Script also uses as a name counts as that name, so it's a wire.
 - `default hide:` goes outside functions, and applies to the blocks they place too.
+
+### Libraries
+
+A Library is a named set of functions you can call from any Script, in any level.
+Make one in the **Libraries** section of the window, under the Scripts,
+and write functions in it the same way as in a Script:
+
+```logic
+# In a Library called timing
+function edge(x) -> rising
+    prev = delay(x, ticks: 1)
+    rising = x & !prev
+end
+```
+
+Call its functions with the Library's name and a dot in front:
+
+```logic
+p = player_input(player: 1)
+pressed = timing.edge(p.horn)
+power_display(pressed)
+```
+
+- A Library holds only functions.
+  Inside it, call its own functions without the prefix, and other Libraries' with theirs.
+- A Library can't use `placed(...)`: a UID belongs to one level.
+  Pass placed blocks in as inputs instead.
+- The window checks a Library while you type, like a Script.
+  A Library has no Compile: compile a Script that calls it.
+- A Library's name uses letters, digits and `_`, and can't be a block function's.
+  Scripts write it exactly, so renaming a Library breaks the Scripts that call it by the old name.
+- The mod saves your Libraries in `libraries.json` in its storage folder, a second after your last change.
+- Changing a Library changes the blocks of every Script that calls it, the next time you compile that Script.
+
+Libraries live only on your machine, not in the level.
+Someone without the Library, such as another player who opens your level, can't recompile a Script that calls it:
+they get `No Library 'timing' on this machine`.
+The blocks already in the level keep working, for them too.
 
 ### Tips
 
