@@ -92,6 +92,7 @@ public class HoverInfoTests
     [InlineData("p = player_input()\nd = p.|horn")]
     [InlineData("|function f(x) -> y\nend")]
     [InlineData("|default hide: true")]
+    [InlineData("x = math(1, 2, 3, op: |lerp)")]
     public void NothingToTell_IsNull(string marked)
     {
         Assert.Null(At(marked));

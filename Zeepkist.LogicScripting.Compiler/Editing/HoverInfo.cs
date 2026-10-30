@@ -90,7 +90,9 @@ public sealed class HoverInfo
         BlockReferenceRow argument = null;
         var definitionLine = 0;
         string definition = null;
-        if (name >= 0 && (name == 0 || tokens[name - 1].Kind != TokenKind.Dot))
+        // A name after a dot is an output or a Library's Function, and one after a colon a Setting's option word,
+        // which can be spelled like an alias (op: lerp)
+        if (name >= 0 && (name == 0 || tokens[name - 1].Kind is not (TokenKind.Dot or TokenKind.Colon)))
         {
             var token = tokens[name];
             if (BlockManifest.TryGetFunction(token.Text, out var type))
