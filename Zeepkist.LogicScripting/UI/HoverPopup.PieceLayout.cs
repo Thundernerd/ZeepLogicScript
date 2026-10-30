@@ -76,7 +76,7 @@ internal sealed partial class HoverPopup
         public void AddLine(string text, Color32 color, float x)
         {
             var available = Mathf.Max(1, _maxWidth - x);
-            var height = Mathf.Max(_lineHeight, _gui.MeasureTextSize(text, _wrapped, new Vector2(available, 0)).y);
+            var height = WrappedText.GetHeight(_gui, text, in _wrapped, available, _lineHeight);
             _pieces.Add(new TextPiece(text, color, new ImRect(x, _y - height, available, height), wrap: true));
             _y -= height;
             _width = Mathf.Max(_width, x + Mathf.Min(_gui.MeasureTextSize(text).x, available));

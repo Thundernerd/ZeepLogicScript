@@ -199,8 +199,7 @@ internal sealed class ReferencePanel
         var line = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0);
         var wrapped = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0, wrap: true);
         var width = gui.GetLayoutWidth();
-        var valueWidth = Mathf.Max(1, width - labelWidth);
-        var height = Mathf.Max(gui.GetTextLineHeight(), gui.MeasureTextSize(value, wrapped, new Vector2(valueWidth, 0)).y);
+        var height = WrappedText.GetHeight(gui, value, in wrapped, width - labelWidth, gui.GetTextLineHeight());
 
         gui.AddSpacingIfLayoutFrameNotEmpty();
         var rect = gui.AddLayoutRect(width, height);
