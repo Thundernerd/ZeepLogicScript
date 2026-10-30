@@ -5,13 +5,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler;
 /// </summary>
 public static class MessageFragments
 {
-    /// <summary>
-    /// Follows a clause about a name defined later, which "it" refers back to.
-    /// </summary>
-    public const string OnlyDelayRefersAhead = "only delay(...) can refer to it";
+    public const string OnlyDelayCanReferAhead = "only delay(...) can refer ahead";
 
-    /// <summary>
-    /// Why a Script can't refer to a block a Compile placed.
-    /// </summary>
     public const string InBlockGroup = "in a Block Group, which a recompile replaces";
 }

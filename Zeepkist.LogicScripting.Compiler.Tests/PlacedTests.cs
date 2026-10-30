@@ -136,7 +136,7 @@ public class PlacedTests
         Assert.Equal(
             [
                 "2:7 Wiring into 'l' gives no value. Put it on its own line",
-                "2:9 A name defined later can't be wired into a placed block, since only delay(...) can refer to it"
+                "2:9 A name defined later can't be wired into a placed block, since only delay(...) can refer ahead"
             ],
             Errors(result));
     }

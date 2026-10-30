@@ -139,7 +139,7 @@ internal sealed partial class GraphBuilder
             if (feed is OutputValue output)
                 WireIntoPlaced(call, wired.IsByPosition, i, output.Output, block);
             else
-                Error(GetInputOrigin(call, wired.IsByPosition, i, block.Type), $"A name defined later can't be wired into a placed block, since {MessageFragments.OnlyDelayRefersAhead}");
+                Error(GetInputOrigin(call, wired.IsByPosition, i, block.Type), $"A name defined later can't be wired into a placed block, since {MessageFragments.OnlyDelayCanReferAhead}");
         }
     }
 
