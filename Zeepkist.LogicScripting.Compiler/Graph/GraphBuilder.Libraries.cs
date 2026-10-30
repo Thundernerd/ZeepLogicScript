@@ -76,8 +76,9 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// The Function a call names, or null when there's none to expand, telling <paramref name="report"/> why.
-    /// <paramref name="functions"/> are the ones the caller calls without a prefix.
+    /// The Function a call names, or null when its Library has none to expand, telling <paramref name="report"/> why.
+    /// <paramref name="functions"/> are the ones the caller calls without a prefix, and must hold an unprefixed call's,
+    /// as <see cref="IsFunctionCall(CallExpression, Dictionary{string, FunctionDefinition})"/> checks.
     /// </summary>
     private FunctionDefinition FindFunction(
         CallExpression call,
@@ -85,7 +86,7 @@ internal sealed partial class GraphBuilder
         Action<string> report)
     {
         if (call.Library == null)
-            return functions.TryGetValue(call.Function, out var own) ? own : null;
+            return functions[call.Function];
 
         var library = LoadLibrary(call.Library);
         if (library == null)

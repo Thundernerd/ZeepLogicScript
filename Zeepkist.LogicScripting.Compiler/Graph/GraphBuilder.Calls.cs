@@ -157,8 +157,8 @@ internal sealed partial class GraphBuilder
                 check.GiveSettings(blockSetting, WithSettingInput(argument, a => GetSettingValues(blockSetting, a)));
                 break;
             case NamedArgumentKind.Targets:
-                var targets = type.FindSetting(argument.Name);
-                check.GiveSettings(targets, GetTargets(targets, argument));
+                var targetsSetting = type.FindSetting(argument.Name);
+                check.GiveSettings(targetsSetting, GetTargets(targetsSetting, argument));
                 break;
             default:
                 check.ReportUnknownName(argument);
@@ -167,7 +167,8 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// An input by name comes first, then the style, then a Setting.
+    /// A Setting-input analysis and the visit both ask this, so a Function's input can't be a Setting in one and a
+    /// Wire in the other. An input wins over a Setting or style of the same name.
     /// </summary>
     private static NamedArgumentKind GetNamedArgumentKind(BlockType type, string name)
     {
@@ -183,15 +184,6 @@ internal sealed partial class GraphBuilder
             SettingType.Targets => NamedArgumentKind.Targets,
             _ => NamedArgumentKind.Setting
         };
-    }
-
-    /// <summary>
-    /// Whether a named argument gives a constant: a Setting or the style. A Toggler's targets are placed blocks, so
-    /// they're names to look up.
-    /// </summary>
-    private static bool GivesConstant(BlockType type, string name)
-    {
-        return GetNamedArgumentKind(type, name) is NamedArgumentKind.Style or NamedArgumentKind.Setting;
     }
 
     /// <summary>

@@ -54,7 +54,7 @@ internal sealed partial class GraphBuilder
             {
                 known.Add(name.Name, function);
 
-                // Before the first lines are checked, which follow calls within the Library
+                // Before the first lines are checked, since checking them follows calls within this Library
                 if (_scope.Library != null)
                     _libraryFunctions.Add(function, _scope.Library);
             }

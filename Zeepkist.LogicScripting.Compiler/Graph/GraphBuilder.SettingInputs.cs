@@ -181,6 +181,15 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
+    /// Whether a named argument of a Block Function gives a constant: a Setting or the style. A Toggler's targets are
+    /// placed blocks, so they're names to look up.
+    /// </summary>
+    private static bool GivesConstant(BlockType type, string name)
+    {
+        return GetNamedArgumentKind(type, name) is NamedArgumentKind.Style or NamedArgumentKind.Setting;
+    }
+
+    /// <summary>
     /// Whether <paramref name="value"/> names one of the current Function's Setting inputs. The constant its call passed
     /// is null when the body is checked without a call.
     /// </summary>
