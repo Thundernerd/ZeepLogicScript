@@ -155,12 +155,14 @@ public static class DefinedNames
 
         var function = tokens[start].Text;
         BlockType type;
+        string placedMode = null;
         if (function == GraphBuilder.PlacedFunction)
         {
             var uid = tokens[start + 2];
             var block = uid.Kind == TokenKind.String ? findPlacedBlock?.Invoke(uid.Text) : null;
             type = block == null ? null : BlockManifest.GetPlacedType(block.BlockId);
             isPlaced = type != null;
+            placedMode = type?.Modes == null ? null : GetModeName(type, block.Settings);
         }
         else if (!BlockManifest.TryGetFunction(function, out type))
         {
@@ -175,7 +177,20 @@ public static class DefinedNames
             return null;
         }
 
+        if (isPlaced)
+            mode = placedMode;
+
         return type;
+    }
+
+    /// <summary>
+    /// Null when the level stores a mode the type doesn't have.
+    /// </summary>
+    private static string GetModeName(BlockType type, IReadOnlyList<Setting> settings)
+    {
+        var index = type.GetModeIndex(settings);
+        var options = type.Modes.Setting.Options;
+        return index >= 0 && index < options.Count ? options[index] : null;
     }
 
     /// <summary>

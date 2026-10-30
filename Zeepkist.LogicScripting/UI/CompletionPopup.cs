@@ -112,7 +112,7 @@ internal sealed class CompletionPopup
                 CompletionKind.Keyword => HighlightKind.Keyword,
                 CompletionKind.Value when item.Label is "true" or "false" => HighlightKind.Keyword,
                 CompletionKind.Value when char.IsDigit(item.Label[0]) => HighlightKind.Number,
-                CompletionKind.Name or CompletionKind.Argument or CompletionKind.Value => HighlightKind.Name,
+                CompletionKind.Name or CompletionKind.Argument or CompletionKind.Value or CompletionKind.Output => HighlightKind.Name,
                 _ => HighlightKind.Function
             };
             var labelColor = i == selected ? itemStyle.Normal.FrontColor : palette.Get(kind);

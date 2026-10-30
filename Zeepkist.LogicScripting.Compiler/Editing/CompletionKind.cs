@@ -17,5 +17,10 @@ public enum CompletionKind
     /// <summary>
     /// A value a Setting takes: an option word, <c>true</c> or <c>false</c>, a player or a style.
     /// </summary>
-    Value
+    Value,
+
+    /// <summary>
+    /// An output of the block a name stands for, picked with a dot.
+    /// </summary>
+    Output
 }

@@ -38,7 +38,6 @@ public class CompletionTests
     [InlineData("x = 12|")]
     [InlineData("x = 1|2")]
     [InlineData("x = 1lo|")]
-    [InlineData("x = p.ho|")]
     [InlineData("x = p ho|")]
     [InlineData("x = f() lo|")]
     [InlineData("lo| = 1")]
@@ -487,6 +486,111 @@ public class CompletionTests
     public void Items_NoNamedArguments_OutsideACallThatTakesThem(string text)
     {
         Assert.DoesNotContain(Names(text), i => i.Kind == CompletionKind.Argument);
+    }
+
+    [Theory]
+    [InlineData("x = p.ho|", "p")]
+    [InlineData("x = p.|", "p")]
+    [InlineData("x = p.|ho", "p")]
+    [InlineData("x = 1 & p.|", "p")]
+    [InlineData("p.|", "p")]
+    [InlineData("x = logic(p.|", "p")]
+    public void Output_AfterANameAndADot(string text, string name)
+    {
+        var context = At(text);
+
+        Assert.Equal(CaretContextKind.Output, context.Kind);
+        Assert.Equal(name, context.Target);
+    }
+
+    [Theory]
+    [InlineData("x = 1.|")]
+    [InlineData("x = f().|")]
+    [InlineData("x = p .|")]
+    [InlineData("# p.|")]
+    public void None_AfterADotThatDoesntFollowAName(string text)
+    {
+        Assert.Equal(CaretContextKind.None, At(text).Kind);
+    }
+
+    [Fact]
+    public void Items_AfterADot_TheOutputsOfTheBlockTheNameIsDefinedAs_InConnectorOrder()
+    {
+        Assert.Equal(["speed", "yaw", "up", "state"], NameLabels("t = simple_telemetry()\nx = t.|"));
+    }
+
+    [Theory]
+    [InlineData("t = simple_telemetry(mode: local_velocity)\nx = t.|", new[] { "yaw", "x", "y", "z" })]
+    [InlineData("t = simple_telemetry(1, mode: global_velocity)\nx = t.|", new[] { "x", "y", "z", "heading" })]
+    [InlineData("t = simple_telemetry(mode: basic)\nx = t.|", new[] { "speed", "yaw", "up", "state" })]
+    public void Items_AfterADot_FollowTheWrittenMode(string text, string[] expected)
+    {
+        Assert.Equal(expected, NameLabels(text));
+    }
+
+    [Fact]
+    public void Items_AfterADot_MatchThePrefix()
+    {
+        Assert.Equal(["yaw", "y"], NameLabels("t = simple_telemetry(mode: local_velocity)\nx = t.y|"));
+    }
+
+    [Fact]
+    public void Items_AfterADot_AreOutputs()
+    {
+        Assert.All(Names("t = simple_telemetry()\nx = t.|"), i => Assert.Equal(CompletionKind.Output, i.Kind));
+    }
+
+    [Theory]
+    [InlineData(0, new[] { "speed", "yaw", "up", "state" })]
+    [InlineData(2, new[] { "x", "y", "z", "heading" })]
+    public void Items_AfterAPlacedBlockReferencesDot_ItsOutputsInTheLevel(int mode, string[] expected)
+    {
+        var level = new Dictionary<string, PlacedBlock>
+        {
+            ["T"] = new PlacedBlock(
+                BlockManifest.SimpleTelemetry.DefaultStyle.BlockId,
+                [Setting.Int(BlockManifest.SimpleTelemetryMode.Key, mode)]),
+            ["D"] = new PlacedBlock(BlockManifest.DistanceSensor.DefaultStyle.BlockId)
+        };
+        var context = At("t = placed(\"T\")\nd = placed(\"D\")\nx = t.|");
+        var items = Completion.GetItems(context, DefinedNames.Read(context.Text, uid => level.GetValueOrDefault(uid)));
+
+        Assert.Equal(expected, items.Select(i => i.Label));
+
+        context = At("t = placed(\"T\")\nd = placed(\"D\")\nx = d.|");
+        items = Completion.GetItems(context, DefinedNames.Read(context.Text, uid => level.GetValueOrDefault(uid)));
+        Assert.Equal(["distance", "x", "y", "z"], items.Select(i => i.Label));
+    }
+
+    [Theory]
+    [InlineData("x = a & b\ny = x.|")]
+    [InlineData("x = 1\ny = x.|")]
+    [InlineData("x = logic(1, 2)\ny = x.|")]
+    [InlineData("x = simple_telemetry() & 1\ny = x.|")]
+    [InlineData("x = placed(\"UNKNOWN\")\ny = x.|")]
+    [InlineData("t = simple_telemetry(mode: sideways)\nx = t.|")]
+    [InlineData("y = t.|\nt = simple_telemetry()")]
+    [InlineData("y = nothing.|")]
+    [InlineData("function f(t)\n  y = t.|\nend")]
+    [InlineData("t = simple_telemetry()\nfunction f()\n  y = t.|\nend")]
+    public void Items_AfterADot_NothingWhenTheNameIsntAVisibleBlockWithSeveralOutputs(string text)
+    {
+        Assert.Empty(Names(text));
+    }
+
+    [Fact]
+    public void Items_AfterADot_InsideDelay_ALaterDefinition()
+    {
+        Assert.Equal(["speed", "yaw", "up", "state"], NameLabels("x = delay(t.|, ticks: 1)\nt = simple_telemetry()"));
+    }
+
+    [Fact]
+    public void Accept_AnOutput_WritesItsName()
+    {
+        var context = At("t = simple_telemetry()\nx = t.sp|");
+        var item = Completion.GetItems(context, DefinedNames.Read(context.Text)).First();
+
+        Assert.Equal("t = simple_telemetry()\nx = t.speed|", Format(Completion.Accept(context, item)));
     }
 
     [Fact]

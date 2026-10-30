@@ -34,5 +34,10 @@ public enum CaretContextKind
     /// The value after a Setting's colon, in a call to a Block Function or after <c>default</c>. A Setting that takes
     /// placed blocks takes an expression instead.
     /// </summary>
-    SettingValue
+    SettingValue,
+
+    /// <summary>
+    /// The output name after a name and a dot (<c>t.speed</c>).
+    /// </summary>
+    Output
 }

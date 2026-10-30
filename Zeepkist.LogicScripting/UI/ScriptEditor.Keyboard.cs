@@ -103,7 +103,7 @@ internal sealed partial class ScriptEditor
             {
                 text = buffer.ToString();
                 typedName |= ScriptText.IsNameStart(typed);
-                typedSeparator |= ScriptText.IsArgumentSeparator(typed);
+                typedSeparator |= ScriptText.IsSeparator(typed);
                 RecordTyping(gui, ref buffer, before, typed);
                 text = buffer.ToString();
                 changed = true;

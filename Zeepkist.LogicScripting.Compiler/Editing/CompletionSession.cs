@@ -63,11 +63,11 @@ public sealed class CompletionSession
     /// <summary>
     /// Call after the editor handled its input, with the text and caret it ended with. When
     /// <paramref name="whileTyping"/> is on, typing a name opens the list. So does starting an argument of a call
-    /// that takes named arguments, which lists them: typing a <see cref="ScriptText.IsArgumentSeparator">separator</see>
+    /// that takes named arguments, which lists them: typing a <see cref="ScriptText.IsSeparator">separator</see>
     /// or accepting a function, which opens its call. Starting a Setting's value lists its values the same way: typing
-    /// a separator or accepting the Setting's name. It closes when the editor loses focus, text gets selected, the
-    /// caret moves to another word, or nothing matches; an empty prefix keeps it open only when <see cref="Request"/>
-    /// or an argument's start opened it.
+    /// a separator or accepting the Setting's name. Typing the dot after a block's name lists its outputs. It closes
+    /// when the editor loses focus, text gets selected, the caret moves to another word, or nothing matches; an empty
+    /// prefix keeps it open only when <see cref="Request"/>, an argument's start or a dot opened it.
     /// </summary>
     public void Update(TextSnapshot snapshot, bool typedName, bool whileTyping, bool focused, bool typedSeparator = false)
     {
@@ -108,10 +108,10 @@ public sealed class CompletionSession
         if (requested)
             IsOpen = true;
 
-        // Anywhere but the start of an argument of a call with named arguments or of a Setting's value, it would list
-        // every expression. A name accepted before its colon leaves the caret there, not at its value.
+        // Anywhere but the start of an argument of a call with named arguments, of a Setting's value or of an output,
+        // it would list every expression. A name accepted before its colon leaves the caret there, not at its value.
         if (opensCall
-            && (!Items.Any(i => i.Kind is CompletionKind.Argument or CompletionKind.Value)
+            && (!Items.Any(i => i.Kind is CompletionKind.Argument or CompletionKind.Value or CompletionKind.Output)
                 || (accepted == CompletionKind.Argument && _context.Kind != CaretContextKind.SettingValue)))
             Close();
         else if (opensCall)
