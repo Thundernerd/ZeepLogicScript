@@ -76,7 +76,9 @@ public static partial class EditCommands
         var lineStart = GetLineStart(text, start);
         var indentEnd = Math.Min(SkipIndentation(text, lineStart), start);
         var indentation = text.Substring(lineStart, indentEnd - lineStart);
-        if (StartsWithKeyword(text, indentEnd, start, FunctionDefinition.Keyword))
+        var end = GetSelectionEnd(snapshot);
+        var lineEnd = GetLineEnd(text, end);
+        if (SkipIndentation(text, end) >= lineEnd && IsFunctionHeader(text, indentEnd, lineEnd))
             indentation += new string(' ', IndentSize);
 
         return ReplaceSelection(snapshot, "\n" + indentation);
@@ -110,7 +112,7 @@ public static partial class EditCommands
             if (StartsWithKeyword(text, aboveIndentEnd, aboveEnd, keyword))
                 return snapshot;
 
-            if (StartsWithKeyword(text, aboveIndentEnd, aboveEnd, FunctionDefinition.Keyword))
+            if (IsFunctionHeader(text, aboveIndentEnd, aboveEnd))
             {
                 var indentation = text.Substring(above, aboveIndentEnd - above);
                 return Apply(snapshot, [new Change(lineStart, indentEnd - lineStart, indentation)]);
@@ -121,14 +123,23 @@ public static partial class EditCommands
     }
 
     /// <summary>
-    /// Whether the text from <paramref name="index"/> up to <paramref name="end"/> starts with the keyword as a whole
-    /// name.
+    /// <c>function = ...</c> is an assignment the compiler rejects, not a header.
     /// </summary>
+    private static bool IsFunctionHeader(string text, int index, int end)
+    {
+        var keyword = FunctionDefinition.Keyword;
+        if (!StartsWithKeyword(text, index, end, keyword))
+            return false;
+
+        var next = SkipIndentation(text, index + keyword.Length);
+        return next >= end || text[next] != '=';
+    }
+
     private static bool StartsWithKeyword(string text, int index, int end, string keyword)
     {
         var after = index + keyword.Length;
         return after <= end
             && string.CompareOrdinal(text, index, keyword, 0, keyword.Length) == 0
-            && (after == end || !(Lexer.IsNameStart(text[after]) || Lexer.IsDigit(text[after])));
+            && (after == end || !ScriptText.IsNamePart(text[after]));
     }
 }
