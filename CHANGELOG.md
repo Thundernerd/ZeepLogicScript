@@ -15,6 +15,7 @@ All notable changes to Logic Scripting are listed here.
   and so does choosing a block function from the list.
 - Completion lists a setting's values after its `:`: option words, `true` and `false`, players and styles.
   Typing the `:` or a space after it opens the list, and so does choosing the setting from the list.
+- Inside a call, a box above the line shows its inputs and settings, highlighting the one you're writing.
 - The Reference tab lists the blocks under four headings, Inputs, Operators, Outputs and Movers,
   split the same way as the subfolders of the game's logic block folder, and sorted by name.
   A heading can be collapsed, and stays collapsed when you reopen the window.
@@ -27,6 +28,10 @@ All notable changes to Logic Scripting are listed here.
   The mod's settings, Drafts and the window layout from 0.1.0-alpha.1 aren't carried over.
   If you installed the mod by hand, delete the old `net.tnrd.zeepkist.logicscripting.dll` from `BepInEx/plugins`:
   with both files there, BepInEx loads the mod twice.
+
+### Fixed
+
+- Undo in the Script editor takes back a line break together with the typing after it, instead of on its own.
 
 ## 0.1.0-alpha.1
 

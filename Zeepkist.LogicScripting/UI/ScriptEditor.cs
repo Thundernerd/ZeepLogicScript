@@ -18,6 +18,7 @@ internal sealed partial class ScriptEditor
 {
     private readonly EditHistory _history = new();
     private readonly CompletionPopup _completion;
+    private readonly CallHelpPopup _callHelp;
     private ImTextEditState _state;
     private ImTextLayout _layout = new() { Lines = new ImTextLine[64] };
     private IReadOnlyList<TextSpan> _errors = [];
@@ -27,6 +28,7 @@ internal sealed partial class ScriptEditor
     {
         Text = text;
         _completion = new CompletionPopup(assist);
+        _callHelp = new CallHelpPopup(assist);
     }
 
     public string Text { get; private set; } = string.Empty;
@@ -42,9 +44,9 @@ internal sealed partial class ScriptEditor
     public uint Id { get; private set; }
 
     /// <summary>
-    /// Whether Escape closed the completion list this frame, which leaves the field focused.
+    /// Whether Escape closed the completion list or hid the call's help this frame, which leaves the field focused.
     /// </summary>
-    public bool TookEscape => _completion.TookEscape;
+    public bool TookEscape => _completion.TookEscape || _callHelp.TookEscape;
 
     /// <summary>
     /// Spans are character indices into <see cref="Text"/>.
@@ -135,7 +137,7 @@ internal sealed partial class ScriptEditor
         TextSnapshot? completed = null;
         if (completing)
         {
-            DrawCompletion(gui, textRect, textBounds, in buffer);
+            DrawPopups(gui, textRect, textBounds, in buffer);
             completed = _completion.HandleMouse(gui);
         }
 
@@ -148,7 +150,10 @@ internal sealed partial class ScriptEditor
         {
             ImTextEdit.DrawCaret(gui, _state.Caret, _state.BlinkTime, textRect, in _layout, in stateStyle, in buffer);
             if (completing)
+            {
                 completed ??= _completion.HandleKeyboard(gui);
+                _callHelp.HandleKeyboard(_completion.TookEscape);
+            }
 
             if (completed is { } accepted)
             {
@@ -160,7 +165,9 @@ internal sealed partial class ScriptEditor
             changed |= HandleKeyboard(gui, ref buffer, textRect, !gui.IsReadOnly, out compileRequested, out typedName, out typedSeparator);
         }
 
-        _completion.Update(GetSnapshot(), typedName, typedSeparator, completing && gui.IsControlActive(Id));
+        var focused = completing && gui.IsControlActive(Id);
+        _completion.Update(GetSnapshot(), typedName, typedSeparator, focused);
+        _callHelp.Update(GetSnapshot(), focused);
 
         gui.RegisterControl(Id, rect);
         gui.EndScrollable();
@@ -210,22 +217,27 @@ internal sealed partial class ScriptEditor
     }
 
     /// <summary>
-    /// At the word being completed, kept inside the visible text, and inside the window so its clicks never reach the
-    /// level.
+    /// The completion list at the word being completed and the call's help at the caret, kept inside the visible text,
+    /// and inside the window so their clicks never reach the level.
     /// </summary>
-    private void DrawCompletion(ImGui gui, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer)
+    private void DrawPopups(ImGui gui, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer)
     {
-        if (_completion.WordStart is not { } wordStart)
-            return;
-
-        var position = ImTextEdit.CaretToViewPosition(Mathf.Min(wordStart, buffer.Length), gui.TextDrawer, textRect, in _layout, in buffer);
-        position.x = Mathf.Clamp(position.x, textBounds.X, textBounds.Right);
-        position.y = Mathf.Clamp(position.y, textBounds.Bottom + _layout.LineHeight, textBounds.Top);
         var bounds = gui.WindowManager.TryGetDrawingWindowId(out var window)
             ? gui.WindowManager.GetWindowState(window).Rect
             : gui.Canvas.SafeScreenRect;
 
-        _completion.Draw(gui, position, _layout.LineHeight, bounds);
+        if (_completion.WordStart is { } wordStart)
+            _completion.Draw(gui, GetViewPosition(gui, wordStart, textRect, textBounds, in buffer), _layout.LineHeight, bounds);
+
+        _callHelp.Draw(gui, GetViewPosition(gui, _state.Caret, textRect, textBounds, in buffer), _layout.LineHeight, bounds, _completion.Rect);
+    }
+
+    private Vector2 GetViewPosition(ImGui gui, int index, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer)
+    {
+        var position = ImTextEdit.CaretToViewPosition(Mathf.Min(index, buffer.Length), gui.TextDrawer, textRect, in _layout, in buffer);
+        position.x = Mathf.Clamp(position.x, textBounds.X, textBounds.Right);
+        position.y = Mathf.Clamp(position.y, textBounds.Bottom + _layout.LineHeight, textBounds.Top);
+        return position;
     }
 
     private void MoveCaretToMouse(ImGui gui, ref ImTextEditBuffer buffer, ImRect textRect)

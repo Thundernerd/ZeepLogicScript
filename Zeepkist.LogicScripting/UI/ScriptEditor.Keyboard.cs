@@ -62,6 +62,8 @@ internal sealed partial class ScriptEditor
                 continue;
             }
 
+            // Using the event clears it, and evt refers to it
+            var typed = evt.Char;
             var before = new TextSnapshot(text, _state.Caret, _state.Selection);
             if (RunShortcut(in evt, before, buffer, editable) is { } after)
             {
@@ -75,7 +77,7 @@ internal sealed partial class ScriptEditor
                     buffer = new ImTextEditBuffer(text, gui.Arena, 0);
 
                     // Enter is typing, which the typing after it joins; every other shortcut is a step of its own
-                    if (evt.Char == '\n')
+                    if (typed == '\n')
                         _history.Record(before, after, gui.Input.Time);
                     else
                         _history.RecordStep(before, after, gui.Input.Time);
@@ -95,8 +97,6 @@ internal sealed partial class ScriptEditor
             if (!ImTextEdit.HandleKeyboardEvent(gui, in evt, ref _state, ref buffer, textRect, in _layout, true, editable, out var textChanged))
                 continue;
 
-            // Using the event clears it, and evt refers to it
-            var typed = evt.Char;
             _state.BlinkTime = gui.Input.Time;
             gui.Input.UseKeyboardEvent(i);
             if (textChanged)

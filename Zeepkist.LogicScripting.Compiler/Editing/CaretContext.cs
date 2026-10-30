@@ -162,7 +162,7 @@ public sealed class CaretContext
     /// The caret is inside a comment or string from just after its first character, and stays inside a string up to
     /// its closing quote.
     /// </summary>
-    private static bool IsInCommentOrString(List<Token> tokens, List<TextSpan> comments, int caret)
+    internal static bool IsInCommentOrString(List<Token> tokens, List<TextSpan> comments, int caret)
     {
         return comments.Any(c => c.Start < caret && caret <= c.End)
             || tokens.Any(t => t.Kind == TokenKind.String && t.Span.Start < caret && caret <= t.Span.Start + 1 + t.Text.Length);
@@ -391,7 +391,7 @@ public sealed class CaretContext
         return names;
     }
 
-    private static bool IsDefinitionStart(List<Token> tokens, int index)
+    internal static bool IsDefinitionStart(List<Token> tokens, int index)
     {
         return index + 1 < tokens.Count && tokens[index].Kind == TokenKind.Name && tokens[index + 1].Kind == TokenKind.Equals;
     }
