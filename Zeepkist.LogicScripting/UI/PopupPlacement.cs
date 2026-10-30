@@ -8,21 +8,20 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal static class PopupPlacement
 {
     /// <summary>
-    /// The first of the two bottoms where a popup of <paramref name="height"/> fits inside <paramref name="editor"/>,
-    /// or else the first where it fits inside <paramref name="window"/>; null when neither fits there either.
+    /// The bottom a popup of <paramref name="height"/> goes at; null when neither fits inside the window.
     /// </summary>
-    public static float? Choose(float first, float second, float height, (float Bottom, float Top) editor, (float Bottom, float Top) window)
+    public static float? Choose(float preferred, float fallback, float height, (float Bottom, float Top) editor, (float Bottom, float Top) window)
     {
-        if (Fits(first, height, editor))
-            return first;
+        if (Fits(preferred, height, editor))
+            return preferred;
 
-        if (Fits(second, height, editor))
-            return second;
+        if (Fits(fallback, height, editor))
+            return fallback;
 
-        if (Fits(first, height, window))
-            return first;
+        if (Fits(preferred, height, window))
+            return preferred;
 
-        return Fits(second, height, window) ? second : null;
+        return Fits(fallback, height, window) ? fallback : null;
     }
 
     private static bool Fits(float bottom, float height, (float Bottom, float Top) bounds)

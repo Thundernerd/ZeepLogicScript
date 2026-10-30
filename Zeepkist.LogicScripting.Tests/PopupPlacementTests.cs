@@ -10,19 +10,19 @@ public class PopupPlacementTests
     private static readonly (float Bottom, float Top) _window = (0, 500);
 
     [Fact]
-    public void TheFirstPlaceFitsTheEditor_ChoosesIt()
+    public void ThePreferredPlaceFitsTheEditor_ChoosesIt()
     {
         Assert.Equal(200, PopupPlacement.Choose(200, 250, Height, _editor, _window));
     }
 
     [Fact]
-    public void OnlyTheSecondPlaceFitsTheEditor_ChoosesIt()
+    public void OnlyTheFallbackFitsTheEditor_ChoosesIt()
     {
         Assert.Equal(250, PopupPlacement.Choose(350, 250, Height, _editor, _window));
     }
 
     [Fact]
-    public void NeitherFitsTheEditor_ChoosesTheFirstThatFitsTheWindow()
+    public void NeitherFitsTheEditor_ChoosesTheFirstOfThemThatFitsTheWindow()
     {
         Assert.Equal(50, PopupPlacement.Choose(50, 350, Height, _editor, _window));
         Assert.Equal(350, PopupPlacement.Choose(450, 350, Height, _editor, _window));

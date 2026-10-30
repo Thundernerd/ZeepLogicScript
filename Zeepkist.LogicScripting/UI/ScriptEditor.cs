@@ -237,19 +237,19 @@ internal sealed partial class ScriptEditor
     /// The completion list at the word being completed and the call's help at the caret, kept inside the visible text,
     /// and inside the editor when there's room so they don't cover the toolbar.
     /// </summary>
-    private void DrawPopups(ImGui gui, ImRect rect, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer)
+    private void DrawPopups(ImGui gui, ImRect editor, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer)
     {
-        var window = GetPopupBounds(gui);
+        var window = GetWindowBounds(gui);
         if (_completion.WordStart is { } wordStart)
-            _completion.Draw(gui, GetViewPosition(gui, wordStart, textRect, textBounds, in buffer), _layout.LineHeight, rect, window);
+            _completion.Draw(gui, GetViewPosition(gui, wordStart, textRect, textBounds, in buffer), _layout.LineHeight, editor, window);
 
-        _callHelp.Draw(gui, GetViewPosition(gui, _state.Caret, textRect, textBounds, in buffer), _layout.LineHeight, rect, window, _completion.Rect);
+        _callHelp.Draw(gui, GetViewPosition(gui, _state.Caret, textRect, textBounds, in buffer), _layout.LineHeight, editor, window, _completion.Rect);
     }
 
     /// <summary>
     /// What the mouse rests on, at the start of the line under it; shown whether or not the field is focused.
     /// </summary>
-    private void DrawHover(ImGui gui, ImRect rect, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer, bool hovered)
+    private void DrawHover(ImGui gui, ImRect editor, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer, bool hovered)
     {
         if (!_hover.IsResting(gui, hovered))
             return;
@@ -259,13 +259,13 @@ internal sealed partial class ScriptEditor
             return;
 
         var linePosition = GetViewPosition(gui, info.Span.Start, textRect, textBounds, in buffer);
-        _hover.Draw(gui, info, linePosition, _layout.LineHeight, rect, GetPopupBounds(gui));
+        _hover.Draw(gui, info, linePosition, _layout.LineHeight, editor, GetWindowBounds(gui));
     }
 
     /// <summary>
     /// The window, so a popup's clicks never reach the level.
     /// </summary>
-    private static ImRect GetPopupBounds(ImGui gui)
+    private static ImRect GetWindowBounds(ImGui gui)
     {
         return gui.WindowManager.TryGetDrawingWindowId(out var window)
             ? gui.WindowManager.GetWindowState(window).Rect
