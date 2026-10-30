@@ -149,12 +149,12 @@ public static class Completion
         List<CompletionItem> items = [];
         foreach (var type in BlockManifest.All.Where(t => !t.IsPlacedOnly))
         {
-            items.Add(new CompletionItem(type.Function, CompletionKind.Function, DescribeInputs(type)));
+            items.Add(new CompletionItem(type.Function, CompletionKind.Function, DescribeArguments(type)));
         }
 
         foreach (var alias in BlockManifest.Aliases)
         {
-            items.Add(new CompletionItem(alias.Key, CompletionKind.Function, $"{alias.Value.Function}{DescribeInputs(alias.Value)}"));
+            items.Add(new CompletionItem(alias.Key, CompletionKind.Function, $"{alias.Value.Function}{DescribeArguments(alias.Value)}"));
         }
 
         items.Add(new CompletionItem("placed", CompletionKind.Function, "(\"UID\")"));
@@ -186,8 +186,16 @@ public static class Completion
         return string.CompareOrdinal(a.Label, b.Label);
     }
 
-    private static string DescribeInputs(BlockType type)
+    /// <summary>
+    /// The inputs, then the Settings and <c>style:</c>, each with its colon; <c>hide:</c> is left out, since every
+    /// Block Function takes it.
+    /// </summary>
+    private static string DescribeArguments(BlockType type)
     {
-        return $"({string.Join(", ", type.Inputs.Select(i => i.Name))})";
+        var names = type.Inputs.Select(i => i.Name).Concat(type.Settings.Select(s => $"{s.Name}:"));
+        if (type.HasStyles)
+            names = names.Append($"{BlockType.StyleName}:");
+
+        return $"({string.Join(", ", names)})";
     }
 }

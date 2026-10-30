@@ -17,19 +17,23 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal sealed partial class ScriptEditor
 {
     private readonly EditHistory _history = new();
+    private readonly EditorAssist _assist;
     private readonly CompletionPopup _completion;
     private readonly CallHelpPopup _callHelp;
+    private readonly HoverPopup _hover;
     private ImTextEditState _state;
     private ImTextLayout _layout = new() { Lines = new ImTextLine[64] };
-    private IReadOnlyList<TextSpan> _errors = [];
+    private IReadOnlyList<ErrorUnderline> _errors = [];
     private bool _focusRequested;
     private (TextSnapshot Before, TextSnapshot After)? _outdentedEnd;
 
     public ScriptEditor(string text, EditorAssist assist)
     {
         Text = text;
+        _assist = assist;
         _completion = new CompletionPopup(assist);
         _callHelp = new CallHelpPopup(assist);
+        _hover = new HoverPopup(assist);
     }
 
     public string Text { get; private set; } = string.Empty;
@@ -52,7 +56,7 @@ internal sealed partial class ScriptEditor
     /// <summary>
     /// Spans are character indices into <see cref="Text"/>.
     /// </summary>
-    public void SetErrors(IReadOnlyList<TextSpan> errors)
+    public void SetErrors(IReadOnlyList<ErrorUnderline> errors)
     {
         _errors = errors ?? [];
     }
@@ -142,6 +146,8 @@ internal sealed partial class ScriptEditor
             completed = _completion.HandleMouse(gui);
         }
 
+        DrawHover(gui, textRect, textBounds, in buffer, hovered && !gui.IsReadOnly);
+
         HandleMouse(gui, ref buffer, textRect, selected, hovered);
 
         var changed = false;
@@ -223,14 +229,62 @@ internal sealed partial class ScriptEditor
     /// </summary>
     private void DrawPopups(ImGui gui, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer)
     {
-        var bounds = gui.WindowManager.TryGetDrawingWindowId(out var window)
-            ? gui.WindowManager.GetWindowState(window).Rect
-            : gui.Canvas.SafeScreenRect;
-
+        var bounds = GetPopupBounds(gui);
         if (_completion.WordStart is { } wordStart)
             _completion.Draw(gui, GetViewPosition(gui, wordStart, textRect, textBounds, in buffer), _layout.LineHeight, bounds);
 
         _callHelp.Draw(gui, GetViewPosition(gui, _state.Caret, textRect, textBounds, in buffer), _layout.LineHeight, bounds, _completion.Rect);
+    }
+
+    /// <summary>
+    /// What the mouse rests on, at the start of the line under it; shown whether or not the field is focused.
+    /// </summary>
+    private void DrawHover(ImGui gui, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer, bool hovered)
+    {
+        if (!_hover.IsResting(gui, hovered))
+            return;
+
+        var index = FindCharacterAt(gui, gui.Input.MousePosition, textRect, textBounds, in buffer);
+        if (_hover.Find(Text, index, _errors) is not { } info)
+            return;
+
+        var linePosition = GetViewPosition(gui, info.Span.Start, textRect, textBounds, in buffer);
+        _hover.Draw(gui, info, linePosition, _layout.LineHeight, GetPopupBounds(gui));
+    }
+
+    /// <summary>
+    /// The window, so a popup's clicks never reach the level.
+    /// </summary>
+    private static ImRect GetPopupBounds(ImGui gui)
+    {
+        return gui.WindowManager.TryGetDrawingWindowId(out var window)
+            ? gui.WindowManager.GetWindowState(window).Rect
+            : gui.Canvas.SafeScreenRect;
+    }
+
+    /// <summary>
+    /// The character under <paramref name="mouse"/>, or the end of its line when it's just past it, where an error at
+    /// the end of a line has its short underline; null over nothing else.
+    /// </summary>
+    private int? FindCharacterAt(ImGui gui, Vector2 mouse, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer)
+    {
+        if (!textBounds.Contains(mouse))
+            return null;
+
+        var caret = ImTextEdit.ViewToCaretPosition(mouse, gui.TextDrawer, textRect, in _layout, in buffer);
+        var position = ImTextEdit.CaretToViewPosition(caret, gui.TextDrawer, textRect, in _layout, in buffer);
+        if (mouse.y > position.y || mouse.y < position.y - _layout.LineHeight)
+            return null;
+
+        // The caret goes to the nearer side of a character, so a mouse left of it is on the character before
+        if (mouse.x < position.x)
+            return caret > 0 && Text[caret - 1] != '\n' ? caret - 1 : null;
+
+        var isLineEnd = caret == Text.Length || Text[caret] == '\n';
+        if (!isLineEnd)
+            return caret;
+
+        return mouse.x <= position.x + gui.TextDrawer.GetCharacterAdvance(' ', _layout.Size) ? caret : null;
     }
 
     private Vector2 GetViewPosition(ImGui gui, int index, ImRect textRect, ImRect textBounds, in ImTextEditBuffer buffer)

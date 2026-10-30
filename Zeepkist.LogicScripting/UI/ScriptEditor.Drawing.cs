@@ -16,6 +16,9 @@ internal sealed partial class ScriptEditor
     private readonly List<TextRun> _runs = [];
     private ImTextLayout _runLayout = new() { Lines = new ImTextLine[4] };
     private string _runsText;
+
+    // A Library changing on another editor changes which calls are colored here
+    private int _runsLibrariesVersion;
     private int _lineCount = 1;
 
     private void DrawText(ImGui gui, ImRect textRect, ImRect textBounds, SyntaxPalette palette)
@@ -39,12 +42,13 @@ internal sealed partial class ScriptEditor
         var minWidth = gui.TextDrawer.GetCharacterAdvance(' ', _layout.Size);
         foreach (var error in _errors)
         {
-            if (error.End > Text.Length)
+            var span = error.Span;
+            if (span.End > Text.Length)
                 continue;
 
-            var line = ImTextEdit.FindLineAtCaretPosition(error.Start, in _layout, out var offset);
+            var line = ImTextEdit.FindLineAtCaretPosition(span.Start, in _layout, out var offset);
             var from = ImTextEdit.LineOffsetToViewPosition(line, offset, Text, textRect, gui.TextDrawer, in _layout);
-            var to = ImTextEdit.LineOffsetToViewPosition(line, offset + error.Length, Text, textRect, gui.TextDrawer, in _layout);
+            var to = ImTextEdit.LineOffsetToViewPosition(line, offset + span.Length, Text, textRect, gui.TextDrawer, in _layout);
             var y = from.y - _layout.LineHeight + ErrorThickness;
             var right = Mathf.Max(to.x, from.x + minWidth);
             gui.Canvas.Line(new Vector2(from.x, y), new Vector2(right, y), palette.Error, ErrorThickness);
@@ -89,15 +93,17 @@ internal sealed partial class ScriptEditor
 
     private void UpdateRuns()
     {
-        if (ReferenceEquals(_runsText, Text))
+        var libraries = _assist.Libraries;
+        if (ReferenceEquals(_runsText, Text) && _runsLibrariesVersion == libraries.Version)
             return;
 
         _runs.Clear();
         _runsText = Text;
+        _runsLibrariesVersion = libraries.Version;
         var line = 0;
         var lineStart = 0;
         var index = 0;
-        foreach (var span in ScriptHighlighter.Highlight(Text))
+        foreach (var span in ScriptHighlighter.Highlight(Text, libraries.FunctionNames))
         {
             AddRuns(index, span.Start, null, ref line, ref lineStart);
             AddRuns(span.Start, span.Start + span.Length, span.Kind, ref line, ref lineStart);

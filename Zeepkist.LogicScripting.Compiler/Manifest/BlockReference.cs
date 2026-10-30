@@ -17,6 +17,14 @@ public static class BlockReference
     /// </summary>
     public static IReadOnlyList<BlockReferenceCategory> Categories { get; } = BlockCategory.All.Select(DescribeCategory).ToList();
 
+    /// <summary>
+    /// The entry the Reference tab shows for a type in <see cref="BlockManifest.All"/>.
+    /// </summary>
+    public static BlockReferenceEntry GetEntry(BlockType type)
+    {
+        return Categories.SelectMany(c => c.Entries).First(e => e.Function == type.Function);
+    }
+
     private static BlockReferenceCategory DescribeCategory(BlockCategory category)
     {
         var entries = BlockManifest.All

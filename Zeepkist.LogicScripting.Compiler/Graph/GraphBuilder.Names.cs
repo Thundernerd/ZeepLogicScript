@@ -100,8 +100,9 @@ internal sealed partial class GraphBuilder
 
     private Resolved LookUp(NameExpression name)
     {
+        // A Setting input used as a Signal is reported with its Function
         if (_scope.Names.TryGetValue(name.Name, out var value))
-            return value;
+            return value is SettingConstant ? null : value;
 
         // Its definition already reported why it failed
         if (_scope.FailedNames.Contains(name.Name))

@@ -16,9 +16,12 @@ public sealed class Library
     public LibraryId Id { get; }
 
     /// <summary>
-    /// What a Script writes before the dot; see <see cref="LibraryName"/>.
+    /// What a Script writes before the dot; see <see cref="LibraryName"/>. Changed through <see cref="LibraryList"/>.
     /// </summary>
-    public string Name { get; }
+    public string Name { get; internal set; }
 
-    public string Text { get; }
+    /// <summary>
+    /// Changed through <see cref="LibraryList"/>.
+    /// </summary>
+    public string Text { get; internal set; }
 }

@@ -7,6 +7,7 @@ All notable changes to Logic Scripting are listed here.
 ### Added
 
 - Completion in the Script editor: a list of block functions while you type a name, or on Ctrl+Space.
+  Next to each one it shows the block's inputs and settings, such as `(a, b, op_in, op:)` for `logic`.
   It can be turned off for typing with **Completion while typing** in the mod's settings.
 - Completion lists the names your Script defines above the line, with their block type,
   and every name inside `delay(...)`.
@@ -16,11 +17,20 @@ All notable changes to Logic Scripting are listed here.
 - Completion lists a setting's values after its `:`: option words, `true` and `false`, players and styles.
   Typing the `:` or a space after it opens the list, and so does choosing the setting from the list.
 - Inside a call, a box above the line shows its inputs and settings, highlighting the one you're writing.
+- Resting the mouse on the Script editor's text tells you about what's under it:
+  a block function's Reference entry, the line that defines a name, a named argument's input or setting,
+  and an error underline's message.
 - The Reference tab lists the blocks under four headings, Inputs, Operators, Outputs and Movers,
   split the same way as the subfolders of the game's logic block folder, and sorted by name.
   A heading can be collapsed, and stays collapsed when you reopen the window.
 - Functions: `function name(inputs) -> outputs` … `end` names wiring you use more than once.
   Each call places the body's blocks inline, so the level still plays without the mod.
+- A function's input can give a setting in its body, like `delay(x, ticks: ticks)`.
+  A call passes it a number, `true` or `false`, or a word, also on to another function's setting input.
+- Libraries: named sets of functions on your own machine, which any Script in any level calls as `timing.edge(x)`.
+  Make, rename and delete them in the Libraries section of the Script window;
+  the editor checks and colors them like a Script.
+  Someone without a Library can't recompile a Script that calls it, but the blocks in the level keep working.
 - In the Script editor, Enter after a Function's first line indents the body, and typing `end` lines it up with that first line.
 
 ### Changed

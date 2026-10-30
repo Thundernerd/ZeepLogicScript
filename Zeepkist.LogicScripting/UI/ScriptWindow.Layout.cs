@@ -274,15 +274,24 @@ internal sealed partial class ScriptWindow
     {
         gui.Layout.Push(ImAxis.Vertical, rect.WithPadding(gui.Style.Layout.Spacing));
         DrawStartupCheck(gui);
-        if (_current == null)
+        if (_editor == null)
         {
             gui.Text("No Script selected. Make one with New Script.", wrap: true);
             gui.Layout.Pop();
             return;
         }
 
-        var compileClicked = DrawHeader(gui);
-        DrawStorageWarning(gui);
+        var compileClicked = false;
+        if (_currentLibrary != null)
+        {
+            DrawLibraryHeader(gui);
+        }
+        else
+        {
+            compileClicked = DrawHeader(gui);
+            DrawStorageWarning(gui);
+        }
+
         RefreshCheck();
 
         var spacing = gui.Style.Layout.Spacing;
@@ -355,7 +364,7 @@ internal sealed partial class ScriptWindow
     {
         if (HasCurrentErrors)
         {
-            var count = _check.Errors.Count;
+            var count = _checkErrors.Count;
             return (count == 1 ? "1 error" : $"{count} errors", WindowColors.Error);
         }
 
@@ -380,6 +389,18 @@ internal sealed partial class ScriptWindow
             gui.Tooltip(tooltip, nameRect);
 
         return DrawCompileButton(gui, buttonRect);
+    }
+
+    /// <summary>
+    /// Only the name: a Library isn't compiled itself, and lives on this machine rather than in the level, so it has no
+    /// marks.
+    /// </summary>
+    private void DrawLibraryHeader(ImGui gui)
+    {
+        gui.AddSpacingIfLayoutFrameNotEmpty();
+        var row = gui.AddSingleRowRect(default);
+        var settings = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f, overflow: ImTextOverflow.Ellipsis);
+        gui.Text($"Library {_currentLibrary.Name}", settings, row);
     }
 
     /// <summary>
@@ -440,7 +461,11 @@ internal sealed partial class ScriptWindow
         gui.PushId(PlacedBlocksTab);
         BlockProperties hovered = null;
         WindowRegion.Begin(gui, content);
-        if (_current == null)
+        if (_currentLibrary != null)
+        {
+            gui.Text("A Library can't use placed(...), since a UID belongs to one level. A Script passes its placed blocks in as inputs.", wrap: true);
+        }
+        else if (_current == null)
         {
             gui.Text("No Script selected", wrap: true);
         }

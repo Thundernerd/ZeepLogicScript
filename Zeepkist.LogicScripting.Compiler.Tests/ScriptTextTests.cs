@@ -24,18 +24,20 @@ public class ScriptTextTests
     [InlineData(1, 11, 10, 3)] // the text "\"U\"" with its quotes
     [InlineData(1, 4, 3, 1)] // a space: one character
     [InlineData(1, 15, 14, 0)] // the end of the line: nothing to underline
-    public void ErrorSpan_CoversTheTokenAtTheError(int line, int column, int start, int length)
+    public void ErrorUnderline_CoversTheTokenAtTheError(int line, int column, int start, int length)
     {
-        var spans = ScriptText.GetErrorSpans("x = logic(\"U\")\n", [new Position(line, column)]);
+        var underlines = ScriptText.GetErrorUnderlines("x = logic(\"U\")\n", [new Diagnostic(new Position(line, column), "e")]);
 
-        Assert.Equal([(start, length)], spans.Select(s => (s.Start, s.Length)));
+        Assert.Equal([(start, length)], underlines.Select(u => (u.Span.Start, u.Span.Length)));
     }
 
     [Fact]
-    public void ErrorSpans_KeepTheErrorsOrder()
+    public void ErrorUnderlines_KeepTheErrorsOrderAndMessages()
     {
-        var spans = ScriptText.GetErrorSpans("ab = cd\nef", [new Position(2, 1), new Position(1, 6)]);
+        Diagnostic[] errors = [new(new Position(2, 1), "first"), new(new Position(1, 6), "second")];
 
-        Assert.Equal([(8, 2), (5, 2)], spans.Select(s => (s.Start, s.Length)));
+        var underlines = ScriptText.GetErrorUnderlines("ab = cd\nef", errors);
+
+        Assert.Equal([(8, 2, "first"), (5, 2, "second")], underlines.Select(u => (u.Span.Start, u.Span.Length, u.Message)));
     }
 }

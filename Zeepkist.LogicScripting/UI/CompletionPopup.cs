@@ -14,12 +14,20 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// </summary>
 internal sealed class CompletionPopup
 {
-    private const float MaxWidth = 480;
+    /// <summary>
+    /// Wide enough for a Block Function's hint with its Settings; a narrower window still shortens it with an ellipsis.
+    /// </summary>
+    private const float MaxWidth = 720;
 
     /// <summary>
     /// The gap between a label and its detail, in layout spacings.
     /// </summary>
     private const float DetailGap = 4;
+
+    /// <summary>
+    /// The room a long label leaves for its detail, so the detail is shortened with an ellipsis instead of vanishing.
+    /// </summary>
+    private const float MinDetailWidth = 120;
 
     private readonly CompletionSession _session;
     private readonly EditorAssist _assist;
@@ -95,7 +103,8 @@ internal sealed class CompletionPopup
 
             var item = _session.Items[i];
             var text = row.WithPadding(left: spacing, right: spacing);
-            var label = text.TakeLeft(Mathf.Min(_labelWidth, text.W), out var detail);
+            var labelRoom = item.Detail.Length > 0 ? text.W - (spacing * DetailGap) - MinDetailWidth : text.W;
+            var label = text.TakeLeft(Mathf.Clamp(_labelWidth, 0, Mathf.Max(labelRoom, text.W / 2)), out var detail);
 
             // The highlighted row's background can be the accent color, which the syntax colors aren't made for
             var kind = item.Kind switch

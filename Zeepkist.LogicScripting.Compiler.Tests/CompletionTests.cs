@@ -89,13 +89,37 @@ public class CompletionTests
     }
 
     [Fact]
-    public void Items_FunctionsDescribeTheirInputs()
+    public void Items_FunctionsDescribeTheirInputs_ThenTheirSettings()
     {
         var logic = Completion.GetItems(At("lo|")).First(i => i.Label == "logic");
-        var mux = Completion.GetItems(At("mu|")).First(i => i.Label == "mux");
 
-        Assert.Equal("(a, b, op_in)", logic.Detail);
+        Assert.Equal("(a, b, op_in, op:)", logic.Detail);
+    }
+
+    [Fact]
+    public void Items_FunctionsWithoutSettings_DescribeOnlyTheirInputs()
+    {
+        var multiplexer = Completion.GetItems(At("multi|")).First(i => i.Label == "multiplexer");
+
+        Assert.Equal("(in1, in2, in3, in4, select)", multiplexer.Detail);
+    }
+
+    [Fact]
+    public void Items_FunctionsWithStyles_DescribeTheirStyle()
+    {
+        var powerDisplay = Completion.GetItems(At("pow|")).First(i => i.Label == "power_display");
+
+        Assert.Equal("(x, style:)", powerDisplay.Detail);
+    }
+
+    [Fact]
+    public void Items_AliasesDescribeTheirFunction()
+    {
+        var mux = Completion.GetItems(At("mu|")).First(i => i.Label == "mux");
+        var lerp = Completion.GetItems(At("ler|")).First(i => i.Label == "lerp");
+
         Assert.Equal("multiplexer(in1, in2, in3, in4, select)", mux.Detail);
+        Assert.Equal("math_3_pins(start, end, t, op_in, op:)", lerp.Detail);
     }
 
     [Fact]

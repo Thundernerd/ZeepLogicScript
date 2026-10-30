@@ -123,6 +123,22 @@ public class NeverThrowsTests
         }
     }
 
+    /// <summary>
+    /// The mouse can rest anywhere, but hovering every character of every broken text would take too long.
+    /// </summary>
+    [Fact]
+    public void ValidScripts_HoveredAtEveryCharacter()
+    {
+        foreach (var script in _validScripts)
+        {
+            var underlines = ScriptText.GetErrorUnderlines(script, Compile(script).Errors);
+            for (var index = 0; index <= script.Length; index++)
+            {
+                Hover(script, index, underlines);
+            }
+        }
+    }
+
     [Fact]
     public void ValidScripts_CutOffAtEveryPosition()
     {
@@ -286,10 +302,16 @@ public class NeverThrowsTests
         var result = Compile(text);
         ScriptCompiler.CheckLibrary(text, _libraries.GetValueOrDefault);
         AssertSpansInOrder(text, ScriptHighlighter.Highlight(text, _libraryFunctions));
-        ScriptText.GetErrorSpans(text, result.Errors.Select(e => e.Position).Concat(_oddPositions));
+        var oddErrors = _oddPositions.Select(p => new Diagnostic(p, "odd"));
+        var underlines = ScriptText.GetErrorUnderlines(text, result.Errors.Concat(oddErrors));
         foreach (var position in _oddPositions)
         {
             ScriptText.GetIndex(text, position);
+        }
+
+        foreach (var index in new[] { -1, 0, text.Length / 2, text.Length - 1, text.Length, text.Length + 1 })
+        {
+            Hover(text, index, underlines);
         }
 
         var definedNames = DefinedNames.Read(text, uid => _level.GetValueOrDefault(uid));
@@ -361,6 +383,11 @@ public class NeverThrowsTests
             Completion.Accept(context, items[0]);
 
         CallHelp.At(snapshot.Text, snapshot.Caret, uid => _level.GetValueOrDefault(uid));
+    }
+
+    private static void Hover(string text, int index, IReadOnlyList<ErrorUnderline> underlines)
+    {
+        HoverInfo.At(text, index, underlines, uid => _level.GetValueOrDefault(uid));
     }
 
     private static CompileResult Compile(string text)
