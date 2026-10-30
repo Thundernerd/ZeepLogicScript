@@ -48,8 +48,8 @@ public sealed class CallHelp
     public IReadOnlyList<int> EnclosingCalls { get; }
 
     /// <summary>
-    /// The innermost call around the caret whose function is a Block Function, or whose name is a Placed Block
-    /// Reference to a block with inputs; null when there's none, and inside a comment or string. A named argument is
+    /// The innermost call around the caret whose function is a Block Function or one of the Script's own Functions with
+    /// inputs, or whose name is a Placed Block Reference to a block with inputs; null when there's none, and inside a comment or string. A named argument is
     /// active from its name on; any other argument gives the input after those the positional arguments before it give,
     /// unless a named argument comes before it, which a positional one can't follow.
     /// </summary>
@@ -68,13 +68,14 @@ public sealed class CallHelp
         if (CaretContext.IsInCommentOrString(tokens, comments, caret))
             return null;
 
+        var functions = DefinedNames.ReadFunctions(tokens).Select(f => f.Function).ToList();
         var calls = FindCallParens(tokens, caret);
         var enclosingCalls = calls.Select(c => tokens[c].Span.Start).ToList();
         foreach (var call in calls)
         {
             var callee = tokens[call - 1].Text;
             var openParen = tokens[call].Span.Start;
-            var items = GetItems(text, callee, openParen, findPlacedBlock);
+            var items = GetItems(text, callee, openParen, functions, findPlacedBlock);
             if (items.Count > 0)
                 return new CallHelp(callee, openParen, items, FindActive(text, tokens, call, caret, items), enclosingCalls);
         }
@@ -92,8 +93,8 @@ public sealed class CallHelp
         {
             switch (tokens[i].Kind)
             {
-                // A call left open while it's typed carries on to the next line, unless a definition starts there
-                case TokenKind.NewLine when open.Count == 0 || CaretContext.IsDefinitionStart(tokens, i + 1):
+                // A call left open while it's typed carries on to the next line, unless a statement starts there
+                case TokenKind.NewLine when open.Count == 0 || Lexer.IsStatementStart(tokens, i + 1):
                     open.Clear();
                     break;
 
@@ -111,10 +112,15 @@ public sealed class CallHelp
     }
 
     /// <summary>
-    /// A Block Function's inputs, Settings, <c>style:</c> and <c>hide:</c>, or a Placed Block Reference's inputs only,
-    /// since its Settings can't be changed.
+    /// A Block Function's inputs, Settings, <c>style:</c> and <c>hide:</c>, a Function's inputs, or a Placed Block
+    /// Reference's inputs only, since its Settings can't be changed.
     /// </summary>
-    private static List<CallHelpItem> GetItems(string text, string callee, int openParen, Func<string, PlacedBlock> findPlacedBlock)
+    private static List<CallHelpItem> GetItems(
+        string text,
+        string callee,
+        int openParen,
+        List<DefinedFunction> functions,
+        Func<string, PlacedBlock> findPlacedBlock)
     {
         if (BlockManifest.TryGetFunction(callee, out var type))
         {
@@ -127,13 +133,23 @@ public sealed class CallHelp
             return items;
         }
 
-        var placed = DefinedNames.Read(text, findPlacedBlock).LastOrDefault(n => n.Name == callee && n.Span.Start < openParen);
+        var function = functions.FirstOrDefault(f => f.Name != null && f.Name == callee);
+        if (function != null)
+            return function.Inputs.Select(InputItem).ToList();
+
+        var placed = DefinedNames.Read(text, findPlacedBlock)
+            .LastOrDefault(n => n.Name == callee && n.Span.Start < openParen && n.IsInScopeAt(openParen, functions));
         return placed is { IsPlaced: true, Type: not null } ? GetInputItems(placed.Type) : [];
     }
 
     private static List<CallHelpItem> GetInputItems(BlockType type)
     {
-        return type.Inputs.Select(i => new CallHelpItem(i.Name, true, "input")).ToList();
+        return type.Inputs.Select(i => InputItem(i.Name)).ToList();
+    }
+
+    private static CallHelpItem InputItem(string name)
+    {
+        return new CallHelpItem(name, true, "input");
     }
 
     private static CallHelpItem SettingItem(BlockSetting setting)

@@ -55,6 +55,20 @@ public class DefinitionJumpTests
         Assert.Equal((9, 4), (jump.Target.Start, jump.Target.Length));
     }
 
+    [Fact]
+    public void FunctionInput_InItsBody_JumpsToItsFirstLine()
+    {
+        var jump = At("x = 1\nfunction edge(x) -> y\n    y = |x\nend");
+
+        Assert.Equal(20, jump.Target.Start);
+    }
+
+    [Fact]
+    public void DefinedName_OnlyInAFunctionsBody_NoJumpOutsideIt()
+    {
+        Assert.Null(At("function f()\n    q = 1\nend\nb = |q"));
+    }
+
     [Theory]
     [InlineData("x = |nothing")]
     [InlineData("x = |logic(1, 2)")]

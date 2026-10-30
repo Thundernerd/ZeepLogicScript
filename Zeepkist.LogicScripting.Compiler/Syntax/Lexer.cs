@@ -169,7 +169,7 @@ internal static class Lexer
     /// <summary>
     /// A line that starts a definition or a Function, or is a Function's <c>end</c>.
     /// </summary>
-    private static bool IsStatementStart(List<Token> tokens, int index)
+    internal static bool IsStatementStart(List<Token> tokens, int index)
     {
         if (index == 0 || index + 1 >= tokens.Count || tokens[index - 1].Kind != TokenKind.NewLine || tokens[index].Kind != TokenKind.Name)
             return false;

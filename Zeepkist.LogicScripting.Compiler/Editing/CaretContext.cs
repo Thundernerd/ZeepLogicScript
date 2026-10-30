@@ -23,7 +23,9 @@ public sealed class CaretContext
         string settingName,
         IReadOnlyList<string> settingValues,
         IReadOnlyCollection<string> givenArguments,
-        int positionalArguments)
+        int positionalArguments,
+        bool isStatementStart,
+        IReadOnlyList<DefinedFunction> functions)
     {
         Text = text;
         Caret = caret;
@@ -36,6 +38,9 @@ public sealed class CaretContext
         SettingValues = settingValues;
         GivenArguments = givenArguments;
         PositionalArguments = positionalArguments;
+        IsStatementStart = isStatementStart;
+        Functions = functions;
+        EnclosingFunction = functions.FirstOrDefault(f => f.Contains(caret));
     }
 
     public string Text { get; }
@@ -93,6 +98,22 @@ public sealed class CaretContext
     /// </summary>
     public int PositionalArguments { get; }
 
+    /// <summary>
+    /// Whether the word is the first on its line, where <c>function</c> and <c>end</c> go.
+    /// </summary>
+    public bool IsStatementStart { get; }
+
+    /// <summary>
+    /// The Functions the text defines, which can be called from anywhere in it; one without a name only gives its body
+    /// a scope.
+    /// </summary>
+    public IReadOnlyList<DefinedFunction> Functions { get; }
+
+    /// <summary>
+    /// The Function whose body the caret is in; null at the top level.
+    /// </summary>
+    public DefinedFunction EnclosingFunction { get; }
+
     public static CaretContext At(string text, int caret)
     {
         text ??= string.Empty;
@@ -108,6 +129,8 @@ public sealed class CaretContext
         else if (settingValues != null)
             kind = CaretContextKind.SettingValue;
         else if (word.Length > 0 && Lexer.IsDigit(text[word.Start]))
+            kind = CaretContextKind.None;
+        else if (IsOnFunctionsFirstLine(tokens, word))
             kind = CaretContextKind.None;
         else
             kind = GetKind(tokens, word, call >= 0);
@@ -138,7 +161,9 @@ public sealed class CaretContext
             settingName,
             settingValues,
             givenArguments,
-            positionalArguments);
+            positionalArguments,
+            IsFirstOnLine(tokens, word),
+            DefinedNames.ReadFunctions(tokens).Select(f => f.Function).ToList());
     }
 
     private static TextSpan FindWord(string text, int caret)
@@ -156,6 +181,21 @@ public sealed class CaretContext
         }
 
         return new TextSpan(start, end - start);
+    }
+
+    private static bool IsFirstOnLine(List<Token> tokens, TextSpan word)
+    {
+        var before = tokens.FindLastIndex(t => t.Span.Start < word.Start);
+        return before < 0 || tokens[before].Kind == TokenKind.NewLine;
+    }
+
+    /// <summary>
+    /// Its name, inputs and outputs are new names, so there's nothing to complete there.
+    /// </summary>
+    private static bool IsOnFunctionsFirstLine(List<Token> tokens, TextSpan word)
+    {
+        var lineStart = tokens.FindLastIndex(t => t.Span.Start < word.Start && t.Kind == TokenKind.NewLine) + 1;
+        return tokens[lineStart].Span.Start < word.Start && DefinedNames.IsFunctionStart(tokens, lineStart);
     }
 
     /// <summary>
@@ -267,8 +307,8 @@ public sealed class CaretContext
         {
             switch (tokens[i].Kind)
             {
-                // A call left open while it's typed carries on to the next line, unless a definition starts there
-                case TokenKind.NewLine when delayCalls.Count == 0 || IsDefinitionStart(tokens, i + 1):
+                // A call left open while it's typed carries on to the next line, unless a statement starts there
+                case TokenKind.NewLine when delayCalls.Count == 0 || Lexer.IsStatementStart(tokens, i + 1):
                     statementStart = tokens[i].Span.End;
                     delayCalls.Clear();
                     break;
@@ -302,7 +342,7 @@ public sealed class CaretContext
         {
             switch (tokens[i].Kind)
             {
-                case TokenKind.NewLine when open.Count == 0 || IsDefinitionStart(tokens, i + 1):
+                case TokenKind.NewLine when open.Count == 0 || Lexer.IsStatementStart(tokens, i + 1):
                     open.Clear();
                     break;
 
@@ -332,7 +372,7 @@ public sealed class CaretContext
 
     /// <summary>
     /// The names of the call's own named arguments, and how many positional arguments it has, apart from the one the
-    /// word starts: up to its closing parenthesis, or while it's typed, the next definition.
+    /// word starts: up to its closing parenthesis, or while it's typed, the next statement.
     /// </summary>
     private static HashSet<string> FindGivenArguments(List<Token> tokens, int call, TextSpan word, out int positionalCount)
     {
@@ -348,7 +388,7 @@ public sealed class CaretContext
             // A call left open while it's typed carries on to the next line
             if (token.Kind == TokenKind.NewLine)
             {
-                if (IsDefinitionStart(tokens, i + 1))
+                if (Lexer.IsStatementStart(tokens, i + 1))
                     break;
 
                 continue;
@@ -389,10 +429,5 @@ public sealed class CaretContext
         }
 
         return names;
-    }
-
-    internal static bool IsDefinitionStart(List<Token> tokens, int index)
-    {
-        return index + 1 < tokens.Count && tokens[index].Kind == TokenKind.Name && tokens[index + 1].Kind == TokenKind.Equals;
     }
 }

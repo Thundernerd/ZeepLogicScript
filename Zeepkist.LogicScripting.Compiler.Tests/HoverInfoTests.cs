@@ -81,6 +81,28 @@ public class HoverInfoTests
         Assert.Equal((1, "function edge(x) -> rising"), (info.DefinitionLine, info.Definition));
     }
 
+    [Fact]
+    public void FunctionInput_InItsBody_IsItsFunctionsFirstLine()
+    {
+        var info = At("a = 1\nfunction f(a) -> y\n    y = |a\nend");
+
+        Assert.Equal((2, "function f(a) -> y"), (info.DefinitionLine, info.Definition));
+    }
+
+    [Theory]
+    [InlineData("a = 1\nfunction f(a)\n    a = 2\nend\nb = |a")]
+    [InlineData("function f()\n    a = 2\nend\na = 1\nb = |a")]
+    public void DefinedName_OnlyItsOwnScopesDefinitions(string marked)
+    {
+        Assert.Equal("a = 1", At(marked).Definition);
+    }
+
+    [Fact]
+    public void DefinedName_OnlyInAFunctionsBody_NothingToTellOutsideIt()
+    {
+        Assert.Null(At("function f()\n    q = 1\nend\nb = |q"));
+    }
+
     [Theory]
     [InlineData("x = |nothing")]
     [InlineData("x = 1 |+ 2")]

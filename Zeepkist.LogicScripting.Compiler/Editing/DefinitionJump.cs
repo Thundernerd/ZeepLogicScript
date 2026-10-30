@@ -64,10 +64,11 @@ public sealed class DefinitionJump
     /// </summary>
     internal static DefinitionJump Find(string text, List<Token> tokens, Token token, Func<string, PlacedBlock> findPlacedBlock)
     {
+        var functions = DefinedNames.ReadFunctions(tokens).Select(f => f.Function).ToList();
         var targets = DefinedNames.Read(text, findPlacedBlock)
-            .Where(n => n.Name == token.Text)
+            .Where(n => n.Name == token.Text && n.IsInScopeAt(token.Span.Start, functions))
             .Select(n => n.Span)
-            .Concat(FindFunctionDefinitions(tokens, token.Text))
+            .Concat(GraphBuilder.IsReserved(token.Text) ? [] : functions.Where(f => f.Name == token.Text).Select(f => f.Span))
             .OrderBy(s => s.Start)
             .ToList();
 
@@ -76,21 +77,5 @@ public sealed class DefinitionJump
 
         var above = targets.Where(s => s.Start <= token.Span.Start).ToList();
         return new DefinitionJump(token.Span, above.Count > 0 ? above[above.Count - 1] : targets[0]);
-    }
-
-    /// <summary>
-    /// Where the Script's own Functions with the name are defined: the name after the keyword.
-    /// </summary>
-    private static IEnumerable<TextSpan> FindFunctionDefinitions(List<Token> tokens, string name)
-    {
-        if (GraphBuilder.IsReserved(name))
-            yield break;
-
-        for (var i = 1; i < tokens.Count; i++)
-        {
-            var isAfterKeyword = tokens[i - 1].Kind == TokenKind.Name && tokens[i - 1].Text == FunctionDefinition.Keyword;
-            if (isAfterKeyword && tokens[i].Kind == TokenKind.Name && tokens[i].Text == name)
-                yield return tokens[i].Span;
-        }
     }
 }

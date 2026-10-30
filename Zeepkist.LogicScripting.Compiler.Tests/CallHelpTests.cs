@@ -52,6 +52,32 @@ public class CallHelpTests
         Assert.Equal(["intensity", "red", "green", "blue", "range", "angle"], help.Items.Select(i => i.Label));
     }
 
+    [Fact]
+    public void Items_ForAPlacedBlockReference_NotAFunctionsInputOfTheSameName()
+    {
+        var help = At("d = placed(\"L\")\nfunction g(d)\nend\nd(|", uid => _level.GetValueOrDefault(uid));
+
+        Assert.Equal("intensity", help.Items[0].Label);
+    }
+
+    [Fact]
+    public void Items_ForAPlacedBlockReference_OnlyInItsOwnScope()
+    {
+        Assert.Null(At("d = placed(\"L\")\nfunction g()\n    d(|\nend", uid => _level.GetValueOrDefault(uid)));
+    }
+
+    [Theory]
+    [InlineData("function edge(x, n) -> y\nend\nz = edge(|")]
+    [InlineData("z = edge(|\nfunction edge(x, n) -> y\nend")]
+    public void Items_ForAFunction_ItsInputs(string text)
+    {
+        var help = At(text);
+
+        Assert.Equal(["x", "n"], help.Items.Select(i => i.Label));
+        Assert.All(help.Items, i => Assert.True(i.IsInput));
+        Assert.Equal(0, help.Active);
+    }
+
     [Theory]
     [InlineData("x = logic(a, |", "b")]
     [InlineData("x = logic(a, |)", "b")]

@@ -67,9 +67,7 @@ public static class ScriptHighlighter
     /// </summary>
     private static HashSet<string> GetFunctionNames(List<Token> tokens)
     {
-        return new HashSet<string>(tokens
-            .Where((t, i) => t.Kind == TokenKind.Name && i > 0 && tokens[i - 1].Kind == TokenKind.Name && tokens[i - 1].Text == FunctionDefinition.Keyword)
-            .Select(t => t.Text));
+        return new HashSet<string>(DefinedNames.ReadFunctions(tokens).Select(f => f.Function.Name).Where(n => n != null));
     }
 
     /// <summary>

@@ -91,10 +91,12 @@ The text editor knows the usual shortcuts:
 Ctrl+Z / Ctrl+Y to undo and redo, Ctrl+D to duplicate a line, Ctrl+Shift+K to delete a line,
 Ctrl+/ to comment a line out, Alt+Up / Alt+Down to move lines, and Tab / Shift+Tab to indent.
 
-While you type a name, the editor lists the block functions and defined names that match.
+While you type a name, the editor lists the block functions, your Script's own functions and the defined names that match.
 It only lists names defined on an earlier line, except inside `delay(...)`, which can refer to any of them.
+Inside a function's body it lists only that function's inputs and the names its body defines; outside, none of them.
+At the start of a line it also lists `function`, or inside a function's body, `end`.
 At the start of an argument it lists the call's inputs and settings by name first, leaving out those the call already has;
-a call to a placed block lists only its inputs. After `default` it lists `hide:`.
+a call to a placed block or to one of your functions lists only its inputs. After `default` it lists `hide:`.
 Starting an argument opens the list with the call's named arguments:
 typing the `(` of a call, or a comma or space before its next argument, or choosing a block function from the list.
 After a setting's `:` it lists the values the setting takes, such as the operators after `op:` or `true` and `false` after `hide:`;
