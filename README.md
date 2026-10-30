@@ -115,6 +115,9 @@ a block function's entry from the Reference tab, the line that defines a name,
 what a named argument's input or setting takes, or the message of a red underline.
 Moving the mouse or pressing a key hides it.
 
+Ctrl+click (Cmd+click on macOS) a name your Script defines to jump to the line that defines it.
+While Ctrl is held, the name under the mouse is underlined when there's a definition to jump to.
+
 ## Writing Scripts
 
 A Script is a list of lines, read from top to bottom.
