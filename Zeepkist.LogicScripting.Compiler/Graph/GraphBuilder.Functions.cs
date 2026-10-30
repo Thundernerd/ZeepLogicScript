@@ -107,6 +107,7 @@ internal sealed partial class GraphBuilder
             }
         }
 
+        CheckSettingInputUses(function);
         return isValid;
     }
 
@@ -165,9 +166,15 @@ internal sealed partial class GraphBuilder
     {
         if (function == null || _brokenFunctions.Contains(function) || !CanExpand(call, function))
         {
-            foreach (var argument in call.Arguments.Concat(call.NamedArguments.Select(a => a.Value)))
+            for (var i = 0; i < call.Arguments.Count; i++)
             {
-                EvaluateArgumentValue(argument);
+                EvaluateInput(call, function, i, call.Arguments[i], call.Arguments[i].Position);
+            }
+
+            foreach (var argument in call.NamedArguments)
+            {
+                var input = function?.Inputs.FindIndex(i => i.Name == argument.Name) ?? -1;
+                EvaluateInput(call, function, input, argument.Value, argument.ValuePosition);
             }
 
             return null;
@@ -230,7 +237,7 @@ internal sealed partial class GraphBuilder
         var failed = false;
         for (var i = 0; i < call.Arguments.Count; i++)
         {
-            var value = EvaluateArgumentValue(call.Arguments[i]);
+            var value = EvaluateInput(call, function, i, call.Arguments[i], call.Arguments[i].Position);
             failed |= value == null;
             if (i < inputs.Count)
             {
@@ -249,9 +256,9 @@ internal sealed partial class GraphBuilder
         var namesFailed = false;
         foreach (var argument in call.NamedArguments)
         {
-            var value = EvaluateArgumentValue(argument.Value);
-            failed |= value == null;
             var input = inputs.FindIndex(i => i.Name == argument.Name);
+            var value = EvaluateInput(call, function, input, argument.Value, argument.ValuePosition);
+            failed |= value == null;
             if (!givenNames.Add(argument.Name))
             {
                 Error(argument, $"'{argument.Name}' is given twice");
@@ -296,6 +303,22 @@ internal sealed partial class GraphBuilder
         }
 
         return arguments;
+    }
+
+    /// <summary>
+    /// The value of an argument for the input at <paramref name="input"/>, which is -1 when the call names none: a
+    /// constant for a Setting input, or else what <see cref="EvaluateArgumentValue"/> gives. Null after reporting why
+    /// there's none.
+    /// </summary>
+    private Resolved EvaluateInput(CallExpression call, FunctionDefinition function, int input, Expression value, Position valuePosition)
+    {
+        if (function == null || input < 0 || input >= function.Inputs.Count)
+            return EvaluateArgumentValue(value);
+
+        var parameter = function.Inputs[input];
+        return GetSettingInputs(function, FunctionsOf(function)).ContainsKey(parameter.Name)
+            ? BindSetting(call, parameter, value, valuePosition)
+            : EvaluateArgumentValue(value);
     }
 
     /// <summary>
