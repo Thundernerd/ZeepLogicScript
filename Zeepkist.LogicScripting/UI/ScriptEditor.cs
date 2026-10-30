@@ -23,6 +23,7 @@ internal sealed partial class ScriptEditor
     private ImTextLayout _layout = new() { Lines = new ImTextLine[64] };
     private IReadOnlyList<TextSpan> _errors = [];
     private bool _focusRequested;
+    private (TextSnapshot Before, TextSnapshot After)? _outdentedEnd;
 
     public ScriptEditor(string text, EditorAssist assist)
     {

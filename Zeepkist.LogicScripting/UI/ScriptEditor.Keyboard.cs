@@ -104,19 +104,9 @@ internal sealed partial class ScriptEditor
                 text = buffer.ToString();
                 typedName |= ScriptText.IsNameStart(typed);
                 typedSeparator |= ScriptText.IsArgumentSeparator(typed);
-                var typedText = new TextSnapshot(text, _state.Caret, _state.Selection);
-                _history.Record(before, typedText, gui.Input.Time);
+                RecordTyping(gui, ref buffer, before, typed);
+                text = buffer.ToString();
                 changed = true;
-
-                // A step of its own, so undo can take the outdent back and keep the typed end
-                var outdented = EditCommands.OutdentEnd(typedText);
-                if (outdented.Text != text)
-                {
-                    text = outdented.Text;
-                    buffer = new ImTextEditBuffer(text, gui.Arena, 0);
-                    _state.Caret = outdented.Caret;
-                    _history.RecordStep(typedText, outdented, gui.Input.Time);
-                }
 
                 // The new text's layout is built next frame, so scrolling to the caret has to wait for it
                 _state.Flag |= ImTextEditStateFlag.NeedScrollToCaret;
@@ -164,6 +154,40 @@ internal sealed partial class ScriptEditor
             _ when editable && evt.Char == '\n' && !controlOrCommand => EditCommands.NewLine(before),
             _ => null,
         };
+    }
+
+    /// <summary>
+    /// Typing <c>end</c> gives its line the indentation of the Function header it closes, as a step of its own so undo
+    /// takes back only that. A name that only starts with <c>end</c>, like <c>endless</c>, puts the indentation back.
+    /// </summary>
+    private void RecordTyping(ImGui gui, ref ImTextEditBuffer buffer, TextSnapshot before, char typed)
+    {
+        var after = new TextSnapshot(buffer.ToString(), _state.Caret, _state.Selection);
+        var typedName = after.Text.Length == before.Text.Length + 1 && ScriptText.IsNamePart(typed);
+        if (typedName && _outdentedEnd is { } outdent && before.Equals(outdent.After))
+        {
+            var typedAt = outdent.Before.Caret;
+            var reindented = new TextSnapshot(outdent.Before.Text.Insert(typedAt, typed.ToString()), typedAt + 1);
+            Show(gui, ref buffer, reindented);
+            _history.RecordStep(before, reindented, gui.Input.Time);
+            return;
+        }
+
+        _history.Record(before, after, gui.Input.Time);
+        var outdented = typedName ? EditCommands.OutdentEnd(after) : after;
+        if (outdented.Equals(after))
+            return;
+
+        Show(gui, ref buffer, outdented);
+        _history.RecordStep(after, outdented, gui.Input.Time);
+        _outdentedEnd = (after, outdented);
+    }
+
+    private void Show(ImGui gui, ref ImTextEditBuffer buffer, TextSnapshot snapshot)
+    {
+        buffer = new ImTextEditBuffer(snapshot.Text, gui.Arena, 0);
+        _state.Caret = snapshot.Caret;
+        _state.Selection = snapshot.Selection;
     }
 
     /// <summary>
