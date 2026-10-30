@@ -34,8 +34,19 @@ public class NeverThrowsTests
         "function edge(x) -> rising\n    prev = delay(x, ticks: 1)\n    rising = x & !prev\nend\npower_display(edge(player_input().horn))",
         "l = latch(b: 0, a: 1)\npower_display(l.q)\nfunction latch(a, b) -> q, not_q\n    q = delay(!b & (a | q), ticks: 1)\n    not_q = !q\nend",
         "function light(lamp, x)\n    lamp(intensity: x)\n    t = placed(\"T\")\nend\nlight(placed(\"L\"), 1)\nx = delay(same(later), ticks: 1)\nlater = 1\nfunction same(v) -> w\nw = v\nend",
-        "t = simple_telemetry(mode: local_velocity)\nw = placed(\"W\")\nw(red: t.x)"
+        "t = simple_telemetry(mode: local_velocity)\nw = placed(\"W\")\nw(red: t.x)",
+        "p = player_input()\npower_display(timing.edge(p.horn) & timing.edge(1))\ntiming.show(timing.edge(x: 2))"
     ];
+
+    private static readonly Dictionary<string, string> _libraries = new()
+    {
+        ["timing"] = "function edge(x) -> rising\n    rising = x & !delay(x, ticks: 1)\nend\nfunction show(x)\n    power_display(x)\nend",
+        ["broken"] = "x = 1\nfunction f(",
+        ["loop"] = "function f(x) -> y\n    y = loop.f(x) & broken.f(x)\nend\nfunction g(lamp)\n    lamp(placed(\"T\"))\nend"
+    };
+
+    private static readonly IReadOnlyDictionary<string, IReadOnlyCollection<string>> _libraryFunctions =
+        _libraries.ToDictionary(l => l.Key, l => ScriptHighlighter.GetFunctionNames(l.Value));
 
     private static readonly Dictionary<string, PlacedBlock> _level = new()
     {
@@ -54,7 +65,7 @@ public class NeverThrowsTests
     [
         "x", "y", "later", "default", "function", "end", "->", "f", "f(x)", "function f(x) -> y\n", "\nend\n", "true", "false", "placed", "logic", "power_display", "delay", "toggler", "targets",
         "player_input", "demultiplexer", "multiplexer", "math", "op", "ticks", "hide", "style", "ch1", "horn", "and",
-        "simple_telemetry", "mode", "local_velocity",
+        "simple_telemetry", "mode", "local_velocity", "timing.edge", "timing.", "broken.f", "loop.f", "loop.g", "nope.f",
         "\"W\"", "\"G\"", "\"OTHER\"", "0", "1", "-1", "99999999999999999999", "2147483648", "\"T\"", "\"L\"", "\"", "(", ")", "[", "]", ",", ":",
         ".", "=", "==", "!=", "&", "&&", "|", "||", "^", "!", "~", "-", "+", "*", "/", "%", "<", ">", "<=", ">=", "<<",
         ">>", "#", " ", "\t", "\n", "\r\n", "$", "1.5", "é"
@@ -273,7 +284,8 @@ public class NeverThrowsTests
     private static CompileResult Read(string text)
     {
         var result = Compile(text);
-        AssertSpansInOrder(text, ScriptHighlighter.Highlight(text));
+        ScriptCompiler.CheckLibrary(text, _libraries.GetValueOrDefault);
+        AssertSpansInOrder(text, ScriptHighlighter.Highlight(text, _libraryFunctions));
         ScriptText.GetErrorSpans(text, result.Errors.Select(e => e.Position).Concat(_oddPositions));
         foreach (var position in _oddPositions)
         {
@@ -351,7 +363,7 @@ public class NeverThrowsTests
 
     private static CompileResult Compile(string text)
     {
-        return ScriptCompiler.Compile(text, 1, [], uid => _level.GetValueOrDefault(uid));
+        return ScriptCompiler.Compile(text, 1, [], uid => _level.GetValueOrDefault(uid), _libraries.GetValueOrDefault);
     }
 
     private static string Escape(string text)

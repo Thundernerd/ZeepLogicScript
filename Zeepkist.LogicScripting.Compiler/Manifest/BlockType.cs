@@ -164,6 +164,15 @@ public sealed class BlockType
     }
 
     /// <summary>
+    /// The <see cref="BlockSetting.Values"/> of the Setting with the name, or the names of the <see cref="Styles"/>
+    /// for <c>style</c>; null when the name is neither, or takes placed blocks.
+    /// </summary>
+    public IReadOnlyList<string> GetSettingValues(string name)
+    {
+        return name == StyleName && HasStyles ? Styles.Select(s => s.Name).ToList() : FindSetting(name)?.Values;
+    }
+
+    /// <summary>
     /// The input or Setting name a misspelled <paramref name="name"/> most likely meant, or null when none is close.
     /// </summary>
     public string FindClosestName(string name)

@@ -20,6 +20,8 @@ public sealed class CaretContext
         int statementStart,
         bool canReferAhead,
         string callee,
+        string settingName,
+        IReadOnlyList<string> settingValues,
         IReadOnlyCollection<string> givenArguments,
         int positionalArguments)
     {
@@ -30,6 +32,8 @@ public sealed class CaretContext
         StatementStart = statementStart;
         CanReferAhead = canReferAhead;
         Callee = callee;
+        SettingName = settingName;
+        SettingValues = settingValues;
         GivenArguments = givenArguments;
         PositionalArguments = positionalArguments;
     }
@@ -62,9 +66,20 @@ public sealed class CaretContext
 
     /// <summary>
     /// The function or name called by the call whose argument the word is, for <see cref="CaretContextKind.Argument"/>
-    /// and <see cref="CaretContextKind.ArgumentName"/>; null otherwise.
+    /// and <see cref="CaretContextKind.ArgumentName"/>, or whose Setting the word is the value of, for
+    /// <see cref="CaretContextKind.SettingValue"/>; null otherwise, and after <c>default</c>.
     /// </summary>
     public string Callee { get; }
+
+    /// <summary>
+    /// The Setting whose value the word is, for <see cref="CaretContextKind.SettingValue"/>; null otherwise.
+    /// </summary>
+    public string SettingName { get; }
+
+    /// <summary>
+    /// The words the <see cref="SettingName"/> Setting takes, in the order it stores them; empty for a number.
+    /// </summary>
+    public IReadOnlyList<string> SettingValues { get; }
 
     /// <summary>
     /// The named arguments the <see cref="Callee"/>'s call already has, before or after the word, but not the word
@@ -86,16 +101,44 @@ public sealed class CaretContext
         List<TextSpan> comments = [];
         var tokens = Lexer.Tokenize(text, [], comments);
         var call = FindArgumentCallParen(tokens, word);
-        var kind = IsInCommentOrString(tokens, comments, caret) || (word.Length > 0 && Lexer.IsDigit(text[word.Start]))
-            ? CaretContextKind.None
-            : GetKind(tokens, word, call >= 0);
+        var settingValues = FindSettingValues(tokens, word, out var settingCallee, out var settingName);
+        CaretContextKind kind;
+        if (IsInCommentOrString(tokens, comments, caret))
+            kind = CaretContextKind.None;
+        else if (settingValues != null)
+            kind = CaretContextKind.SettingValue;
+        else if (word.Length > 0 && Lexer.IsDigit(text[word.Start]))
+            kind = CaretContextKind.None;
+        else
+            kind = GetKind(tokens, word, call >= 0);
+
         var statementStart = FindStatementStart(tokens, word, out var canReferAhead);
         var inCall = kind is CaretContextKind.Argument or CaretContextKind.ArgumentName;
         var callee = inCall ? tokens[call - 1].Text : null;
         var positionalArguments = 0;
         IReadOnlyCollection<string> givenArguments = inCall ? FindGivenArguments(tokens, call, word, out positionalArguments) : [];
+        if (kind == CaretContextKind.SettingValue)
+        {
+            callee = settingCallee;
+        }
+        else
+        {
+            settingName = null;
+            settingValues = null;
+        }
 
-        return new CaretContext(text, caret, kind, word, statementStart, canReferAhead, callee, givenArguments, positionalArguments);
+        return new CaretContext(
+            text,
+            caret,
+            kind,
+            word,
+            statementStart,
+            canReferAhead,
+            callee,
+            settingName,
+            settingValues,
+            givenArguments,
+            positionalArguments);
     }
 
     private static TextSpan FindWord(string text, int caret)
@@ -171,6 +214,45 @@ public sealed class CaretContext
             return CaretContextKind.Expression;
 
         return CaretContextKind.None;
+    }
+
+    /// <summary>
+    /// The words the Setting takes when the word comes right after its colon: in a Block Function's call, or
+    /// <c>hide:</c> after <c>default</c> at the start of a statement. Null anywhere else, and after an input or a
+    /// Setting that takes placed blocks, whose value is an expression.
+    /// </summary>
+    private static IReadOnlyList<string> FindSettingValues(List<Token> tokens, TextSpan word, out string callee, out string settingName)
+    {
+        callee = null;
+        settingName = null;
+        // A call left open while it's typed carries on to the next line, so its value can be there
+        var colon = tokens.FindLastIndex(t => t.Span.Start < word.Start && t.Kind != TokenKind.NewLine);
+        var valueOnNextLine = colon >= 0 && colon + 1 < tokens.Count && tokens[colon + 1].Kind == TokenKind.NewLine
+            && tokens[colon + 1].Span.Start < word.Start;
+        if (colon < 1 || tokens[colon].Kind != TokenKind.Colon || tokens[colon - 1].Kind != TokenKind.Name)
+            return null;
+
+        var name = tokens[colon - 1].Text;
+        if (colon >= 2
+            && tokens[colon - 2].Kind == TokenKind.Name
+            && tokens[colon - 2].Text == DefaultStatement.Keyword
+            && (colon == 2 || tokens[colon - 3].Kind == TokenKind.NewLine))
+        {
+            if (valueOnNextLine)
+                return null;
+
+
+            settingName = name;
+            return name == BlockSetting.Hide.Name ? BlockSetting.Hide.Values : null;
+        }
+
+        var call = FindArgumentCallParen(tokens, tokens[colon - 1].Span);
+        if (call < 0 || !BlockManifest.TryGetFunction(tokens[call - 1].Text, out var type))
+            return null;
+
+        callee = tokens[call - 1].Text;
+        settingName = name;
+        return type.GetSettingValues(name);
     }
 
     /// <summary>

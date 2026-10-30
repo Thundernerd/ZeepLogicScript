@@ -21,16 +21,27 @@ public static class ScriptCompiler
     /// The block in the level with a UID, or null when there's none; without it, every Placed Block Reference is an
     /// error.
     /// </param>
+    /// <param name="findLibrary">
+    /// A Library's text by its name, or null when there's none on this machine; without it, every qualified call is an
+    /// error. Each Library is asked for once, by the name exactly as the Script writes it, since names in a Script are
+    /// case-sensitive.
+    /// </param>
     public static CompileResult Compile(
         string text,
         int quarterTurns,
         IReadOnlyCollection<int> disabledBlockIds = null,
-        Func<string, PlacedBlock> findPlacedBlock = null)
+        Func<string, PlacedBlock> findPlacedBlock = null,
+        Func<string, string> findLibrary = null)
     {
         List<Diagnostic> diagnostics = [];
         var tokens = Lexer.Tokenize(text ?? string.Empty, diagnostics);
         var statements = Parser.Parse(tokens, diagnostics);
-        var graph = GraphBuilder.Build(statements, diagnostics, disabledBlockIds ?? [], findPlacedBlock ?? (_ => null));
+        var graph = GraphBuilder.Build(
+            statements,
+            diagnostics,
+            disabledBlockIds ?? [],
+            findPlacedBlock ?? (_ => null),
+            findLibrary ?? (_ => null));
         var references = graph.PlacedBlockReferences.OrderBy(r => r.Position).ToList();
 
         if (diagnostics.Count > 0)
@@ -61,6 +72,26 @@ public static class ScriptCompiler
         }
 
         return new CompileResult([], blocks, wires, placedWires, references);
+    }
+
+    /// <summary>
+    /// The errors in a Library's <paramref name="text"/> on its own, without a Script calling it. It may hold only
+    /// Functions, and each body is checked with inputs that stand for whatever a caller could pass.
+    /// </summary>
+    /// <param name="text">The Library's text.</param>
+    /// <param name="findLibrary">Another Library's text by its name, as for <see cref="Compile"/>.</param>
+    /// <param name="name">
+    /// The Library's own name, so a qualified call back into it reads <paramref name="text"/> rather than what
+    /// <paramref name="findLibrary"/> has stored.
+    /// </param>
+    public static IReadOnlyList<Diagnostic> CheckLibrary(string text, Func<string, string> findLibrary = null, string name = null)
+    {
+        List<Diagnostic> diagnostics = [];
+        var tokens = Lexer.Tokenize(text ?? string.Empty, diagnostics);
+        var statements = Parser.Parse(tokens, diagnostics);
+        string FindLibrary(string library) => library == name ? text ?? string.Empty : findLibrary?.Invoke(library);
+        GraphBuilder.Build(statements, diagnostics, [], _ => null, FindLibrary, isLibrary: true);
+        return diagnostics.OrderBy(d => d.Position).ToList();
     }
 
     private static CompiledWire ToCompiledWire(GraphWire wire)

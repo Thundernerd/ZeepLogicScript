@@ -83,7 +83,8 @@ public class CompletionSessionTests
     [InlineData("x = (")]
     [InlineData("x = ")]
     [InlineData("x = logic(a ")]
-    [InlineData("x = logic(op: ")]
+    [InlineData("x = logic(b: ")]
+    [InlineData("x = delay(1, ticks: ")]
     [InlineData("x = logic(1) ")]
     [InlineData("x = placed(")]
     [InlineData("a = logic(1, 2)\nx = a(")]
@@ -159,6 +160,59 @@ public class CompletionSessionTests
         var accepted = session.Accept(0)!.Value;
         session.Update(accepted, typedName: false, whileTyping: whileTyping, focused: true);
 
+        Assert.False(session.IsOpen);
+    }
+
+    [Theory]
+    [InlineData("x = logic(a, b, op:")]
+    [InlineData("x = logic(a, b, op: ")]
+    [InlineData("default hide: ")]
+    public void TypingASettingsColonOrASpaceAfterIt_OpensWithItsValues(string text)
+    {
+        var session = new CompletionSession();
+
+        session.Update(new TextSnapshot(text, text.Length), typedName: false, whileTyping: true, focused: true, typedSeparator: true);
+
+        Assert.True(session.IsOpen);
+        Assert.Equal(CompletionKind.Value, session.Items[0].Kind);
+    }
+
+    [Fact]
+    public void AcceptingASetting_OpensWithItsValues()
+    {
+        var session = Open("x = logic(a, o");
+
+        var accepted = session.Accept(0)!.Value;
+        session.Update(accepted, typedName: false, whileTyping: true, focused: true);
+
+        Assert.Equal("x = logic(a, op: ", accepted.Text);
+        Assert.True(session.IsOpen);
+        Assert.Equal("and", session.Items[0].Label);
+    }
+
+    [Fact]
+    public void AcceptingASettingBeforeItsColon_StaysClosed()
+    {
+        var session = new CompletionSession();
+        session.Request();
+        session.Update(new TextSnapshot("x = logic(a, o: and)", 14), typedName: false, whileTyping: true, focused: true);
+
+        var accepted = session.Accept(0)!.Value;
+        session.Update(accepted, typedName: false, whileTyping: true, focused: true);
+
+        Assert.Equal("x = logic(a, op: and)", accepted.Text);
+        Assert.False(session.IsOpen);
+    }
+
+    [Fact]
+    public void AcceptingAnInput_StaysClosed()
+    {
+        var session = Open("x = logic(a, b");
+
+        var accepted = session.Accept(0)!.Value;
+        session.Update(accepted, typedName: false, whileTyping: true, focused: true);
+
+        Assert.Equal("x = logic(a, b: ", accepted.Text);
         Assert.False(session.IsOpen);
     }
 

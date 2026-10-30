@@ -9,8 +9,12 @@ The text a player writes in the Logic Scripting window: a list of definitions th
 _Avoid_: program, code file, macro
 
 **Function**:
-A named wiring pattern a Script defines with `function name(inputs) -> outputs` … `end`. Each call expands its body inline into ordinary Logic Blocks, so it places no block of its own. Its body sees only its inputs, its own definitions and other Functions. It's local to the Script that defines it.
+A named wiring pattern a Script defines with `function name(inputs) -> outputs` … `end`. Each call expands its body inline into ordinary Logic Blocks, so it places no block of its own. Its body sees only its inputs, its own definitions and other Functions. A Script's Functions are local to it; a Library's are called with the Library's name.
 _Avoid_: macro, subroutine, procedure, user function (say Block Function for the built-in ones)
+
+**Library**:
+A named set of Functions kept on the player's own machine, which any Script in any level calls by its qualified name, `timing.edge(x)`. Inside a Library, its own Functions are called without the prefix. It holds only Functions and can't use `placed(...)`, since a UID belongs to one level. Someone without the Library can't recompile a Script that calls it; the blocks already in the level keep working.
+_Avoid_: module, package, shared functions
 
 **Compile**:
 Turning a Script into placed, wired Logic Blocks in the open level, as one undoable editor action.

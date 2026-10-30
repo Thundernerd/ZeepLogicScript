@@ -59,6 +59,18 @@ public sealed class BlockSetting
     /// </summary>
     public long Maximum { get; }
 
+    /// <summary>
+    /// The words a Script can give it, for completion: none for a number, and null for placed blocks, which are
+    /// names the Script defines.
+    /// </summary>
+    public IReadOnlyList<string> Values => Type switch
+    {
+        SettingType.Bool => ["true", "false"],
+        SettingType.Option or SettingType.Player => Options,
+        SettingType.Targets => null,
+        _ => []
+    };
+
     public static BlockSetting Number(
         string name,
         string key,
