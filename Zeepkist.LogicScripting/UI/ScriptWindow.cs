@@ -395,10 +395,6 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         _editor.SetErrors([]);
     }
 
-    /// <summary>
-    /// Every error, not only the first few: the region scrolls. A message too long for one line wraps, where a one-row
-    /// button would clip both its ends, line:column included. Left-aligned, as centered wrapped lines are hard to read.
-    /// </summary>
     private bool DrawCompileButton(ImGui gui, ImRect rect)
     {
         var blocker = GetCompileBlocker();
