@@ -197,7 +197,7 @@ public class PlacedTests
     [InlineData("toggler(1, targets: [])", "2:21 targets takes 1 to 8 placed blocks, like targets: [door_1, door_2]")]
     [InlineData("toggler(1, targets: [d, d])", "2:25 'd' is already a target")]
     [InlineData("toggler(1, targets: [d, placed(\"DOOR\")])", "2:25 'placed' is already a target")]
-    [InlineData("toggler(1, targets: [d, 1 & 1])", "2:27 'value' isn't a placed block, but targets takes only names defined with placed(...)")]
+    [InlineData("toggler(1, targets: [d, 1 & 1])", "2:27 'value' isn't a placed block, and targets takes only names defined with placed(...)")]
     [InlineData("toggler(1, targets: [d, nope])", "2:25 'nope' isn't defined")]
     [InlineData("toggler(1, targets: [d, d, d, d, d, d, d, d, d])", "2:46 A Toggler switches at most 8 blocks")]
     [InlineData("toggler(1)", "2:1 'toggler' needs targets:, 1 to 8 placed blocks to switch, like targets: [door_1, door_2]")]

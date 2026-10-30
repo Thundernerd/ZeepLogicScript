@@ -38,7 +38,7 @@ Write American English in code, comments, docs, and UI text (`color`, `center`, 
 ## Punctuation
 
 Player-facing text avoids semicolons. Join two thoughts with a conjunction (`… is defined later, so only delay(...) can refer to it`), a comma (`1 error, nothing placed`), a colon before a fix or a list, or split them into two sentences (`'x' is a function. Call it with ( )`).
-Errors and result lines end without a final period, even when they hold two sentences. Prompts and notes in the window end with one.
+Errors, result lines, tooltips and one-line hints end without a final period, even when they hold two sentences. Prompts, and notes in the window that run to more than one sentence, end with one.
 Tables that list Settings may keep `;` between them.
 
 ## Names

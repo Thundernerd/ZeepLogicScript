@@ -93,7 +93,7 @@ Ctrl+/ to comment a line out, Alt+Up / Alt+Down to move lines, and Tab / Shift+T
 
 While you type a name, the editor lists the block functions, your Script's own functions and the defined names that match.
 It only lists names defined on an earlier line, except inside `delay(...)`, which can refer to any of them.
-Inside a function's body it lists only that function's inputs and the names its body defines, and outside it, none of them.
+Inside a function's body it lists only that function's inputs and the names its body defines. Outside a function it lists none of them.
 At the start of a line it also lists `function`, or inside a function's body, `end`.
 At the start of an argument it lists the call's inputs and settings by name first, leaving out those the call already has.
 A call to a placed block or to one of your functions lists only its inputs. After `default` it lists `hide:`.
@@ -237,7 +237,7 @@ power_display(on)
 ```
 
 Each horn press flips `on`.
-Every loop of wires has to pass through a Delay, or the game's logic stops when one doesn't.
+Every loop of wires has to pass through a Delay. The game's logic stops when one doesn't.
 That's why a name can only refer ahead inside `delay`.
 
 ### Blocks you placed by hand
@@ -255,12 +255,12 @@ trigger_1 = placed("trigger-uid")
 ```
 
 The text in quotes is the block's UID.
-The examples in this README use made-up UIDs, and Insert selected writes the real ones.
+The examples in this README use made-up UIDs. Insert selected writes the real ones.
 It skips blocks that belong to a Script's Block Group.
 
 Insert selected names a block after its type, like `trigger_1` or `lamp_1`,
 and a block that isn't a logic block `block_1`.
-You can rename them, and the examples call a wall `wall_1`.
+You can rename them. The examples call a wall `wall_1`.
 
 Use the name to read the block's outputs, and call it to wire its inputs:
 

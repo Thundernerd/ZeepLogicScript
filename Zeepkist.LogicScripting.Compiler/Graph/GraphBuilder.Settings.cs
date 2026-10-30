@@ -113,7 +113,7 @@ internal sealed partial class GraphBuilder
             }
             else if (block == null)
             {
-                Error(item, $"'{Describe(item)}' isn't a placed block, but {setting.Name} takes only names defined with {PlacedFunction}(...)");
+                Error(item, $"'{Describe(item)}' isn't a placed block, and {setting.Name} takes only names defined with {PlacedFunction}(...)");
                 failed = true;
             }
             else if (!uids.Add(block.Uid))
