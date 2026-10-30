@@ -1,0 +1,405 @@
+<title>Script Window Left Side</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* PROTOTYPE, throwaway (#151). Layout: one Script window, four left sides switched from the bottom bar; centre and Blocks side stay fixed so only the left side changes. Dark only, like the game's editor. */
+:root {
+  color-scheme: dark;
+  --page: #15171a; --panel: #1d1f22; --panel-2: #25282c; --panel-3: #2e3237; --line: #3b4047;
+  --text: #e8e4dd; --muted: #a09a91; --faint: #706c66;
+  --accent: #f08a2a; --accent-ink: #1d1206; --accent-soft: rgba(240,138,42,0.16);
+  --err: #e65a5a; --warn: #f2c14e; --warn-soft: rgba(242,193,78,0.08); --warn-line: rgba(242,193,78,0.35); --sel: #5aa9ff;
+  --stripe: rgba(255,255,255,0.04); --shadow: rgba(0,0,0,0.55); --bar: #f2efe9; --bar-ink: #15171a;
+  --ui: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --cond: "Barlow Condensed", "Barlow", "Arial Narrow", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+html, body { height: 100%; }
+body { background: var(--page); color: var(--text); font-family: var(--ui); font-size: 14px; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--sel); outline-offset: 1px; }
+
+.page { display: flex; flex-direction: column; gap: 16px; padding-block: 20px 96px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1180px; margin: 0 auto; }
+.intro { display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+.intro h1 { margin: 0; font-family: var(--cond); font-size: 24px; letter-spacing: 0.04em; text-transform: uppercase; text-wrap: balance; }
+.intro p { margin: 0; color: var(--muted); line-height: 1.5; }
+.vnote { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-left: 3px solid var(--accent); background: var(--panel); max-width: 80ch; }
+.vnote b { font-family: var(--cond); font-size: 16px; letter-spacing: 0.04em; text-transform: uppercase; }
+.vnote span { color: var(--muted); line-height: 1.45; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 13px; color: var(--muted); }
+.controls label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.controls input[type=range] { width: 140px; accent-color: var(--accent); }
+.controls output { font-family: var(--mono); color: var(--text); font-variant-numeric: tabular-nums; }
+
+.stage { overflow-x: auto; padding-bottom: 4px; }
+
+/* ---------- Imui-style window ---------- */
+.win { display: flex; flex-direction: column; width: 900px; height: 520px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 18px 50px var(--shadow); overflow: hidden; }
+.titlebar { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 12px; background: var(--panel-2); border-bottom: 2px solid var(--accent); }
+.titlebar h2 { margin: 0; font-family: var(--cond); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; }
+.titlebar .sp { flex: 1; }
+.x { color: var(--muted); }
+.body { display: flex; flex: 1; min-height: 0; }
+.side { display: flex; flex-direction: column; flex-shrink: 0; min-height: 0; border-right: 1px solid var(--line); position: relative; }
+.side.right { width: 220px; border-right: 0; border-left: 1px solid var(--line); }
+.centre { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.scroll { overflow: auto; min-height: 0; flex: 1; }
+
+.label { font-family: var(--cond); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.btn { padding: 4px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel-3); cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: #5a6068; }
+.btn.small { padding: 2px 8px; font-size: 12px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.full { width: 100%; text-align: left; }
+.iconbtn { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 3px; background: none; color: var(--muted); cursor: pointer; flex-shrink: 0; }
+.iconbtn:hover { background: var(--panel-3); color: var(--text); }
+
+/* tabs, like the Blocks side */
+.tabs { display: flex; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.tab { flex: 1; min-width: 0; padding: 6px 4px; border: 0; background: none; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; gap: 4px; align-items: center; justify-content: center; }
+.tab.on { color: var(--text); border-bottom-color: var(--accent); background: var(--panel); }
+.tab .dot { width: 6px; height: 6px; border-radius: 3px; background: var(--accent); flex-shrink: 0; }
+.tab .count { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+
+/* lists */
+.list { display: flex; flex-direction: column; gap: 1px; padding: 4px; }
+.row { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; cursor: pointer; border: 0; background: none; text-align: left; width: 100%; }
+.row:hover { background: var(--panel-3); }
+.row.on { background: var(--accent-soft); }
+.row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .kind { font-family: var(--mono); font-size: 10px; color: var(--faint); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; flex-shrink: 0; }
+.mark { width: 12px; text-align: center; font-size: 12px; flex-shrink: 0; }
+.mark.nc { color: var(--accent); } .mark.cm { color: var(--warn); } .mark.nv { color: var(--muted); }
+.foot { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px 8px; }
+.empty { color: var(--faint); font-size: 12px; padding: 4px 8px; line-height: 1.4; }
+.msg { font-size: 12px; color: var(--muted); padding: 6px 8px; border-top: 1px solid var(--line); line-height: 1.4; }
+.warnbox { margin: 6px; padding: 6px 8px; border: 1px solid var(--warn-line); background: var(--warn-soft); color: var(--warn); border-radius: 4px; font-size: 12px; line-height: 1.4; }
+
+/* section headers (variant B, D) */
+.sechead { display: flex; align-items: center; gap: 4px; padding: 5px 4px 5px 6px; border-bottom: 1px solid var(--line); background: var(--panel-2); cursor: pointer; border-top: 1px solid var(--line); }
+.sechead:first-child { border-top: 0; }
+.sechead .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sechead .chev { width: 12px; color: var(--faint); font-size: 10px; }
+.sechead .count { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.sechead.warn .label, .sechead.warn .count { color: var(--warn); }
+.subhead { padding: 8px 10px 2px; font-family: var(--cond); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+
+/* orphaned groups */
+.orphs { display: flex; flex-direction: column; gap: 6px; padding: 6px; }
+.orow { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px; border: 1px solid var(--warn-line); background: var(--warn-soft); border-radius: 4px; }
+.orow .t { font-size: 13px; }
+.orow .acts { display: flex; flex-wrap: wrap; gap: 4px; }
+.orphline { display: flex; align-items: center; gap: 6px; margin: 4px; padding: 5px 8px; border: 1px solid var(--warn-line); background: var(--warn-soft); color: var(--warn); border-radius: 4px; cursor: pointer; text-align: left; font-size: 13px; }
+.orphline .nm { flex: 1; }
+.overlay { position: absolute; inset: 0; background: var(--panel); display: flex; flex-direction: column; z-index: 3; }
+.overlay .oh { display: flex; align-items: center; gap: 6px; padding: 6px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.overlay .oh .label { color: var(--warn); }
+.overlay p { margin: 0; padding: 6px 8px 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+/* new menu (variant D) */
+.newwrap { position: relative; }
+.menu { position: absolute; left: 0; right: 0; bottom: 100%; margin-bottom: 4px; display: flex; flex-direction: column; background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 8px 20px var(--shadow); padding: 3px; z-index: 4; }
+.menu button { border: 0; background: none; text-align: left; padding: 5px 8px; border-radius: 3px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
+.menu button:hover { background: var(--panel-3); }
+.menu small { color: var(--faint); font-size: 11px; }
+.filter { margin: 6px 6px 2px; padding: 4px 8px; background: var(--page); border: 1px solid var(--line); border-radius: 4px; color: var(--text); font: inherit; font-size: 13px; }
+
+/* context menu */
+.ctx { position: fixed; z-index: 20; display: flex; flex-direction: column; min-width: 150px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 8px 20px var(--shadow); padding: 3px; }
+.ctx button { border: 0; background: none; text-align: left; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
+.ctx button:hover { background: var(--panel-3); }
+.ctx button.danger { color: var(--err); }
+
+/* tooltip */
+.tip { position: fixed; z-index: 30; max-width: 240px; padding: 5px 8px; background: #0e0f11; border: 1px solid var(--line); border-radius: 4px; font-size: 12px; color: var(--text); line-height: 1.4; pointer-events: none; }
+
+/* centre */
+.head { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+.head .kindtag { font-family: var(--cond); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+.head .nm { font-weight: 600; font-size: 15px; }
+.head .sp { flex: 1; }
+.editor { flex: 1; display: flex; background: #17191b; min-height: 0; overflow: hidden; }
+.gutter { width: 36px; padding: 8px 0; border-right: 1px solid #2a2d31; flex-shrink: 0; }
+.gutter div, .code div { height: 20px; line-height: 20px; font-family: var(--mono); font-size: 12.5px; }
+.gutter div { text-align: right; padding-right: 8px; color: var(--faint); }
+.code { padding: 8px 10px; min-width: 0; overflow: hidden; white-space: pre; }
+.k { color: #e5a0c6; } .f { color: #f3a65a; } .n { color: #c6a6ff; } .c { color: #6f7a74; font-style: italic; } .a { color: #b9b3a9; } .r { color: #8fc7ff; }
+.errors { border-top: 1px solid var(--line); padding: 6px 10px; font-size: 12.5px; color: var(--muted); }
+
+/* blocks side stub */
+.stub { padding: 8px 10px; color: var(--faint); font-size: 12px; line-height: 1.5; }
+
+/* state strip */
+.state { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.state b { color: var(--text); font-weight: 500; }
+
+/* switcher */
+.switcher { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 4px; background: var(--bar); color: var(--bar-ink); border-radius: 999px; padding: 4px; box-shadow: 0 6px 24px var(--shadow); z-index: 40; max-width: calc(100% - 32px); }
+.switcher button { border: 0; background: none; color: var(--bar-ink); width: 32px; height: 32px; border-radius: 16px; cursor: pointer; font-size: 16px; flex-shrink: 0; }
+.switcher button:hover { background: rgba(0,0,0,0.08); }
+.switcher .cur { padding: 0 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <div class="intro">
+    <h1>Script window left side (#151)</h1>
+    <p>Prototype. Four ways to declutter the left side, now that it holds Scripts, Orphaned Groups and Libraries. Click rows to open them, right-click for the context menu, and hover the lists and buttons to see help moved into tooltips. Use the arrows below (or ← →) to switch.</p>
+  </div>
+  <div class="vnote" id="vnote"></div>
+  <div class="controls">
+    <label><input type="checkbox" id="optOrphans" checked> Level has an orphaned group</label>
+    <label><input type="checkbox" id="optEmpty"> Level has no Scripts</label>
+    <label><input type="checkbox" id="optBroken"> libraries.json unreadable</label>
+    <label>Left side width <input type="range" id="optWidth" min="140" max="320" value="190"> <output id="widthOut">190px</output></label>
+  </div>
+  <div class="stage">
+    <div class="win">
+      <div class="titlebar"><h2>Logic Script</h2><span class="sp"></span><span class="x">✕</span></div>
+      <div class="body">
+        <div class="side" id="left"></div>
+        <div class="centre">
+          <div class="head"><span class="kindtag" id="openKind"></span><span class="nm" id="openName"></span><span class="sp"></span><button class="btn primary small" id="compileBtn">Compile</button></div>
+          <div class="editor"><div class="gutter" id="gutter"></div><div class="code" id="code"></div></div>
+          <div class="errors">No errors found</div>
+        </div>
+        <div class="side right">
+          <div class="tabs"><button class="tab on">Placed blocks</button><button class="tab">Reference</button></div>
+          <div class="stub">The Blocks side, unchanged. Its tabs are what variants A and C copy.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="state" id="state"></div>
+</div>
+
+<div class="switcher" role="group" aria-label="Variant">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span class="cur" id="cur"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+
+<script>
+const VARIANTS = [
+  { key: 'a', name: 'Tabs', note: 'Scripts and Libraries tabs, like the Blocks side. Orphaned Groups sit under the Scripts list as a collapsible section. Help text moves into tooltips and shows inline only while a list is empty. The tab holding the open item gets a dot; switching tabs leaves the editor alone until you pick something.' },
+  { key: 'b', name: 'Collapsible sections', note: 'No tabs: one scroll region with three collapsible sections, each with a count and its own + button for New. Orphaned Groups only appear when there are any, in the warning color. Help text moves into tooltips on the headings and buttons.' },
+  { key: 'c', name: 'Tabs, orphans as one line', note: 'Tabs as in A, but Orphaned Groups shrink to one warning line under the Scripts list. Clicking it opens the groups over the side, with Back to return. The Scripts tab stays a plain list most of the time.' },
+  { key: 'd', name: 'One list with a filter', note: 'One list for everything, grouped under "In this level" and "On this machine", with a filter at the top and a single New menu (Script or Library). Library rows carry a lib tag. Orphaned Groups are a group of their own when there are any.' },
+];
+const scripts = [
+  { id: 's1', name: 'HornBooster', mark: '' },
+  { id: 's2', name: 'Gate timer', mark: 'nc' },
+  { id: 's3', name: 'Lap counter', mark: 'nv' },
+];
+const libraries = [ { id: 'l1', name: 'timing' }, { id: 'l2', name: 'latches' } ];
+const orphans = [ { id: 'o1', name: 'Old boost', blocks: 9 } ];
+const MARKS = { nc: ['●', 'Not compiled: the level holds another name or text'], nv: ['○', 'Never compiled: the level doesn\'t hold this Script'], cm: ['!', 'The level has this Script\'s blocks but not its text. Compile to store it again'] };
+const HELP = {
+  scripts: 'Scripts in this level. Right-click a Script to rename it, select its blocks or delete it.',
+  libraries: 'Libraries are on this machine, for Scripts in every level. Right-click a Library to rename or delete it.',
+  orphans: 'Blocks of Scripts whose text the level no longer holds. They can\'t be recompiled.',
+  broken: 'Couldn\'t read libraries.json, so changes to Libraries aren\'t saved. Fix or remove the file, then restart the game.',
+};
+const CODE = {
+  s1: ['input = player_input(player: 1)', 'wheels = wheel_telemetry(player: 1, mode: grounded)', 'boost = input.horn & wheels.any & !input.brake', 'force_giver(boost, 0, 0, 200000, force_mode: acceleration)', 'honks = counter(pulser(input.horn, mode: rise))', 'power_display(honks, style: compact)'],
+  s2: ['# opens the gate for 3 seconds after the trigger', 'gate = placed("Xq81B")', 'open = timer(placed("Tr4Zk").on, ticks: 180)', 'gate(open)'],
+  s3: ['laps = counter(placed("Fn02a").on)', 'power_display(laps)'],
+  l1: ['function edge(x) -> rising', '    prev = delay(x, ticks: 1)', '    rising = x & !prev', 'end', '', 'function pulse_after(x, ticks) -> out', '    out = edge(delay(x, ticks: ticks))', 'end'],
+  l2: ['function sr(set, reset) -> q, not_q', '    q = delay(!reset & (set | q), ticks: 1)', '    not_q = !q', 'end'],
+};
+
+const st = { v: 0, tab: 'scripts', open: 's1', collapsed: new Set(), orphView: false, newMenu: false, filter: '', msg: '', width: 190 };
+const $ = id => document.getElementById(id);
+const opt = () => ({ orphans: $('optOrphans').checked, empty: $('optEmpty').checked, broken: $('optBroken').checked });
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const itemOf = id => scripts.find(s => s.id === id) || libraries.find(l => l.id === id);
+const isLib = id => libraries.some(l => l.id === id);
+
+function scriptRows(list) {
+  return list.map(s => `<button class="row${st.open === s.id ? ' on' : ''}" data-open="${s.id}" data-ctx="script">
+    <span class="mark ${s.mark}" ${s.mark ? `data-tip="${esc(MARKS[s.mark][1])}"` : ''}>${s.mark ? MARKS[s.mark][0] : ''}</span>
+    <span class="nm">${esc(s.name)}</span></button>`).join('');
+}
+function libRows(list, tag) {
+  return list.map(l => `<button class="row${st.open === l.id ? ' on' : ''}" data-open="${l.id}" data-ctx="library">
+    <span class="mark"></span><span class="nm">${esc(l.name)}</span>${tag ? '<span class="kind">lib</span>' : ''}</button>`).join('');
+}
+function orphanRows() {
+  return orphans.map(o => `<div class="orow"><div class="t">${esc(o.name)}, ${o.blocks} blocks</div><div class="acts">
+    <button class="btn small" data-act="Deleted &quot;${esc(o.name)}&quot; and its ${o.blocks} blocks">Delete</button>
+    <button class="btn small" data-act="Untagged &quot;${esc(o.name)}&quot; and kept its ${o.blocks} blocks as plain Logic Blocks">Untag</button>
+    <button class="btn small" data-act="Selected ${o.blocks} blocks of &quot;${esc(o.name)}&quot;">Select</button>
+    <button class="btn small" data-act="Restored &quot;${esc(o.name)}&quot; from its Draft. Compile to store it in the level again">Restore from Draft</button></div></div>`).join('');
+}
+const visibleScripts = () => opt().empty ? [] : scripts;
+const msgHtml = () => st.msg ? `<div class="msg">${esc(st.msg)}</div>` : '';
+const brokenHtml = () => opt().broken ? `<div class="warnbox">${esc(HELP.broken)}</div>` : '';
+const dotIf = which => (which === 'libraries') === isLib(st.open) ? '<span class="dot" data-tip="The open item is in this tab"></span>' : '';
+
+function tabsHtml() {
+  const o = opt();
+  return `<div class="tabs">
+    <button class="tab${st.tab === 'scripts' ? ' on' : ''}" data-tab="scripts" data-tip="${esc(HELP.scripts)}">${dotIf('scripts')}Scripts${o.orphans ? ' <span class="count" style="color:var(--warn)">!</span>' : ''}</button>
+    <button class="tab${st.tab === 'libraries' ? ' on' : ''}" data-tab="libraries" data-tip="${esc(HELP.libraries)}">${dotIf('libraries')}Libraries</button></div>`;
+}
+
+function variantA() {
+  const o = opt(), list = visibleScripts();
+  if (st.tab === 'scripts') {
+    const orph = o.orphans ? `<div class="sechead warn" data-sec="orphans" data-tip="${esc(HELP.orphans)}"><span class="chev">${st.collapsed.has('orphans') ? '▶' : '▼'}</span><span class="label">Orphaned Groups</span><span class="count">${orphans.length}</span></div>${st.collapsed.has('orphans') ? '' : orphanRows().replace(/^/, '<div class="orphs">') + '</div>'}` : '';
+    return tabsHtml() + `<div class="scroll"><div class="list">${list.length ? scriptRows(list) : '<div class="empty">None yet in this level. New Script makes one, and right-clicking a Script renames, selects or deletes it.</div>'}</div>${orph}</div>
+      <div class="foot"><button class="btn full" data-act="New Script prompt opens here" data-tip="Adds a Script to this level">+ New Script</button></div>${msgHtml()}`;
+  }
+  return tabsHtml() + `${brokenHtml()}<div class="scroll"><div class="list">${libRows(libraries)}</div></div>
+    <div class="foot"><button class="btn full" data-act="New Library prompt opens here" data-tip="On this machine, for Scripts in every level">+ New Library</button></div>${msgHtml()}`;
+}
+
+function sec(key, title, count, plusLabel, body, warn, tip) {
+  const c = st.collapsed.has(key);
+  return `<div class="sechead${warn ? ' warn' : ''}" data-sec="${key}" data-tip="${esc(tip)}"><span class="chev">${c ? '▶' : '▼'}</span><span class="label">${title}</span><span class="count">${count}</span>${plusLabel ? `<button class="iconbtn" data-act="${plusLabel} prompt opens here" data-tip="${plusLabel}">+</button>` : ''}</div>${c ? '' : body}`;
+}
+function variantB() {
+  const o = opt(), list = visibleScripts();
+  return `<div class="scroll">
+    ${sec('scripts', 'Scripts', list.length, 'New Script', `<div class="list">${list.length ? scriptRows(list) : '<div class="empty">None yet in this level</div>'}</div>`, false, HELP.scripts)}
+    ${o.orphans ? sec('orphans', 'Orphaned Groups', orphans.length, '', `<div class="orphs">${orphanRows()}</div>`, true, HELP.orphans) : ''}
+    ${sec('libraries', 'Libraries', libraries.length, 'New Library', `${brokenHtml()}<div class="list">${libRows(libraries)}</div>`, false, HELP.libraries)}
+  </div>${msgHtml()}`;
+}
+
+function variantC() {
+  const o = opt(), list = visibleScripts();
+  if (st.tab === 'scripts') {
+    const line = o.orphans ? `<button class="orphline" data-orph="1" data-tip="${esc(HELP.orphans)}"><span>!</span><span class="nm">${orphans.length} orphaned group</span><span>›</span></button>` : '';
+    const overlay = st.orphView && o.orphans ? `<div class="overlay"><div class="oh"><button class="iconbtn" data-orph="0" aria-label="Back">‹</button><span class="label">Orphaned Groups</span></div><p>${esc(HELP.orphans)}</p><div class="scroll"><div class="orphs">${orphanRows()}</div></div>${msgHtml()}</div>` : '';
+    return tabsHtml() + `<div class="scroll"><div class="list">${list.length ? scriptRows(list) : '<div class="empty">None yet in this level</div>'}</div></div>${line}
+      <div class="foot"><button class="btn full" data-act="New Script prompt opens here" data-tip="Adds a Script to this level">+ New Script</button></div>${msgHtml()}${overlay}`;
+  }
+  return variantA();
+}
+
+function variantD() {
+  const o = opt(), f = st.filter.trim().toLowerCase();
+  const match = n => !f || n.toLowerCase().includes(f);
+  const list = visibleScripts().filter(s => match(s.name)), libs = libraries.filter(l => match(l.name));
+  const menu = st.newMenu ? `<div class="menu"><button data-act="New Script prompt opens here">Script<small>In this level</small></button><button data-act="New Library prompt opens here">Library<small>On this machine, for every level</small></button></div>` : '';
+  return `<input class="filter" id="filterBox" placeholder="Filter" value="${esc(st.filter)}" aria-label="Filter Scripts and Libraries">
+    ${brokenHtml()}<div class="scroll">
+      <div class="subhead" data-tip="${esc(HELP.scripts)}">In this level</div>
+      <div class="list">${list.length ? scriptRows(list) : `<div class="empty">${f ? 'No match' : 'None yet in this level'}</div>`}</div>
+      ${o.orphans && !f ? `<div class="subhead" style="color:var(--warn)" data-tip="${esc(HELP.orphans)}">Orphaned</div><div class="orphs">${orphanRows()}</div>` : ''}
+      <div class="subhead" data-tip="${esc(HELP.libraries)}">On this machine</div>
+      <div class="list">${libs.length ? libRows(libs, true) : '<div class="empty">No match</div>'}</div>
+    </div>
+    <div class="foot newwrap">${menu}<button class="btn full" data-newmenu="1">+ New ▾</button></div>${msgHtml()}`;
+}
+
+function render() {
+  const v = VARIANTS[st.v];
+  $('cur').textContent = `${v.key.toUpperCase()} (${v.name})`;
+  $('vnote').innerHTML = `<b>${v.key.toUpperCase()}: ${esc(v.name)}</b><span>${esc(v.note)}</span>`;
+  const left = $('left');
+  left.style.width = st.width + 'px';
+  const hadFocus = document.activeElement && document.activeElement.id === 'filterBox';
+  left.innerHTML = [variantA, variantB, variantC, variantD][st.v]();
+  if (hadFocus && $('filterBox')) { const fb = $('filterBox'); fb.focus(); fb.setSelectionRange(fb.value.length, fb.value.length); }
+  const item = itemOf(st.open), lib = isLib(st.open);
+  $('openKind').textContent = lib ? 'Library' : 'Script';
+  $('openName').textContent = item.name;
+  $('compileBtn').hidden = lib;
+  const lines = CODE[st.open];
+  $('gutter').innerHTML = lines.map((_, i) => `<div>${i + 1}</div>`).join('');
+  $('code').innerHTML = lines.map(l => `<div>${highlight(l)}</div>`).join('');
+  const usesTabs = st.v === 0 || st.v === 2;
+  $('state').innerHTML = [
+    `variant <b>${v.key.toUpperCase()}</b>`,
+    usesTabs ? `shown tab <b>${st.tab}</b>` : 'tabs <b>none</b>',
+    `open <b>${lib ? 'Library' : 'Script'} "${esc(item.name)}"</b>`,
+    st.v === 1 || st.v === 0 ? `collapsed <b>${[...st.collapsed].join(', ') || 'none'}</b>` : '',
+    st.v === 2 ? `orphan view <b>${st.orphView && opt().orphans ? 'open' : 'closed'}</b>` : '',
+    st.v === 3 ? `filter <b>"${esc(st.filter)}"</b>` : '',
+    `left width <b>${st.width}px</b>`,
+  ].filter(Boolean).join('<span></span>');
+  try { history.replaceState(null, '', '#' + v.key); } catch (e) {}
+}
+function highlight(line) {
+  if (line.trim().startsWith('#')) return `<span class="c">${esc(line)}</span>`;
+  return esc(line)
+    .replace(/\b(function|end)\b/g, '<span class="k">$1</span>')
+    .replace(/(&quot;[^&]*&quot;)/g, '<span class="r">$1</span>')
+    .replace(/\b([a-z_]+)(?=\()/g, '<span class="f">$1</span>')
+    .replace(/\b(\d+)\b/g, '<span class="n">$1</span>')
+    .replace(/\b([a-z_]+)(?=:)/g, '<span class="a">$1</span>');
+}
+
+// events
+const left = $('left');
+left.addEventListener('click', e => {
+  const t = e.target.closest('[data-open],[data-tab],[data-sec],[data-act],[data-orph],[data-newmenu]');
+  if (!t || !left.contains(t)) return;
+  if (t.dataset.act) { e.stopPropagation(); st.msg = t.dataset.act.replace(/&quot;/g, '"'); st.newMenu = false; }
+  else if (t.dataset.open) st.open = t.dataset.open;
+  else if (t.dataset.tab) st.tab = t.dataset.tab;
+  else if (t.dataset.sec) { st.collapsed.has(t.dataset.sec) ? st.collapsed.delete(t.dataset.sec) : st.collapsed.add(t.dataset.sec); }
+  else if (t.dataset.orph) st.orphView = t.dataset.orph === '1';
+  else if (t.dataset.newmenu) st.newMenu = !st.newMenu;
+  hideTip(); render();
+});
+left.addEventListener('input', e => { if (e.target.id === 'filterBox') { st.filter = e.target.value; render(); } });
+
+let ctx = null;
+left.addEventListener('contextmenu', e => {
+  const row = e.target.closest('[data-ctx]');
+  if (!row) return;
+  e.preventDefault();
+  closeCtx();
+  const name = itemOf(row.dataset.open).name;
+  const items = row.dataset.ctx === 'script'
+    ? [['Rename', `Rename prompt for "${name}" opens here`], ['Select group', `Selected 11 blocks of "${name}"`], ['Delete', `Delete prompt for "${name}" opens here`, 'danger']]
+    : [['Rename', `Rename prompt for "${name}" opens here`], ['Delete', `Delete confirm for "${name}" opens here`, 'danger']];
+  ctx = document.createElement('div');
+  ctx.className = 'ctx';
+  ctx.innerHTML = items.map(([l, m, c]) => `<button class="${c || ''}" data-m="${esc(m)}">${l}</button>`).join('');
+  ctx.style.left = Math.min(e.clientX, innerWidth - 170) + 'px';
+  ctx.style.top = Math.min(e.clientY, innerHeight - 120) + 'px';
+  ctx.addEventListener('click', ev => { const b = ev.target.closest('button'); if (b) { st.msg = b.dataset.m; closeCtx(); render(); } });
+  document.body.appendChild(ctx);
+});
+function closeCtx() { if (ctx) { ctx.remove(); ctx = null; } }
+document.addEventListener('click', e => { if (ctx && !ctx.contains(e.target)) closeCtx(); });
+
+let tip = null, tipTimer = 0;
+document.addEventListener('mouseover', e => {
+  const t = e.target.closest('[data-tip]');
+  clearTimeout(tipTimer);
+  if (!t) { hideTip(); return; }
+  tipTimer = setTimeout(() => {
+    hideTip();
+    tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.textContent = t.dataset.tip;
+    document.body.appendChild(tip);
+    const r = t.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(r.left, innerWidth - tip.offsetWidth - 8)) + 'px';
+    tip.style.top = (r.bottom + 6 + tip.offsetHeight > innerHeight ? r.top - tip.offsetHeight - 6 : r.bottom + 6) + 'px';
+  }, 350);
+});
+function hideTip() { if (tip) { tip.remove(); tip = null; } }
+
+['optOrphans', 'optEmpty', 'optBroken'].forEach(id => $(id).addEventListener('change', render));
+$('optWidth').addEventListener('input', e => { st.width = +e.target.value; $('widthOut').textContent = st.width + 'px'; render(); });
+
+function go(d) { st.v = (st.v + d + VARIANTS.length) % VARIANTS.length; st.msg = ''; st.newMenu = false; st.orphView = false; render(); }
+$('prev').addEventListener('click', () => go(-1));
+$('next').addEventListener('click', () => go(1));
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input, textarea, [contenteditable]')) return;
+  if (e.key === 'ArrowLeft') go(-1);
+  if (e.key === 'ArrowRight') go(1);
+});
+const start = VARIANTS.findIndex(v => '#' + v.key === location.hash);
+if (start >= 0) st.v = start;
+render();
+</script>
