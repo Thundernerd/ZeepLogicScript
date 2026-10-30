@@ -135,10 +135,11 @@ public sealed class HoverInfo
         Func<string, PlacedBlock> findPlacedBlock,
         out string definition)
     {
+        var functions = DefinedNames.ReadFunctions(tokens).Select(f => f.Function).ToList();
         var starts = DefinedNames.Read(text, findPlacedBlock)
-            .Where(n => n.Name == token.Text)
+            .Where(n => n.Name == token.Text && n.IsInScopeAt(token.Span.Start, functions))
             .Select(n => n.Span.Start)
-            .Concat(FindFunctionDefinitions(tokens, token.Text))
+            .Concat(GraphBuilder.IsReserved(token.Text) ? [] : functions.Where(f => f.Name == token.Text).Select(f => f.Span.Start))
             .OrderBy(s => s)
             .ToList();
 
@@ -153,21 +154,5 @@ public sealed class HoverInfo
         var lineEnd = ScriptText.GetLineEnd(lineStarts, text.Length, line);
         definition = text.Substring(lineStarts[line], lineEnd - lineStarts[line]).Trim();
         return line + 1;
-    }
-
-    /// <summary>
-    /// Where the Script's own Functions with the name are defined: the name after the keyword.
-    /// </summary>
-    private static IEnumerable<int> FindFunctionDefinitions(List<Token> tokens, string name)
-    {
-        if (GraphBuilder.IsReserved(name))
-            yield break;
-
-        for (var i = 1; i < tokens.Count; i++)
-        {
-            var isAfterKeyword = tokens[i - 1].Kind == TokenKind.Name && tokens[i - 1].Text == FunctionDefinition.Keyword;
-            if (isAfterKeyword && tokens[i].Kind == TokenKind.Name && tokens[i].Text == name)
-                yield return tokens[i].Span.Start;
-        }
     }
 }

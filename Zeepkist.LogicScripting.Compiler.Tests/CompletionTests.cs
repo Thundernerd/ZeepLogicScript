@@ -233,6 +233,29 @@ public class CompletionTests
     }
 
     [Fact]
+    public void Items_NoEnd_InACallLeftOpen()
+    {
+        Assert.DoesNotContain("end", Labels("function f(x)\n    a = logic(x,\n    |"));
+    }
+
+    [Fact]
+    public void Items_ANameAFunctionHas_OnlyAsTheFunction()
+    {
+        var items = Names("f = 1\nfunction f(x)\nend\nb = |").Where(i => i.Label == "f").ToList();
+
+        Assert.Equal(CompletionKind.Function, Assert.Single(items).Kind);
+    }
+
+    [Fact]
+    public void Items_InsideAFunctionWithoutAName_OnlyItsOwnNames()
+    {
+        var labels = NameLabels("a = 1\nfunction (x)\n    q = 1\n    r = |\nend");
+
+        Assert.Contains("q", labels);
+        Assert.DoesNotContain("a", labels);
+    }
+
+    [Fact]
     public void Items_NoEnd_OutsideAFunction_NorFunction_InsideOne()
     {
         Assert.DoesNotContain("end", Labels("x = 1\n|"));

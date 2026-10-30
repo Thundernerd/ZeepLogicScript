@@ -15,10 +15,13 @@ public sealed class DefinedFunction
         Body = body;
     }
 
+    /// <summary>
+    /// Null when the first line has none; the compiler drops such a Function, but its body is still a scope of its own.
+    /// </summary>
     public string Name { get; }
 
     /// <summary>
-    /// Where the name is written on the Function's first line.
+    /// Where the name is written on the Function's first line, or the keyword when it has none.
     /// </summary>
     public TextSpan Span { get; }
 

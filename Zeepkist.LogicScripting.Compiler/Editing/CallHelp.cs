@@ -68,13 +68,14 @@ public sealed class CallHelp
         if (CaretContext.IsInCommentOrString(tokens, comments, caret))
             return null;
 
+        var functions = DefinedNames.ReadFunctions(tokens).Select(f => f.Function).ToList();
         var calls = FindCallParens(tokens, caret);
         var enclosingCalls = calls.Select(c => tokens[c].Span.Start).ToList();
         foreach (var call in calls)
         {
             var callee = tokens[call - 1].Text;
             var openParen = tokens[call].Span.Start;
-            var items = GetItems(text, callee, openParen, findPlacedBlock);
+            var items = GetItems(text, callee, openParen, functions, findPlacedBlock);
             if (items.Count > 0)
                 return new CallHelp(callee, openParen, items, FindActive(text, tokens, call, caret, items), enclosingCalls);
         }
@@ -114,7 +115,12 @@ public sealed class CallHelp
     /// A Block Function's inputs, Settings, <c>style:</c> and <c>hide:</c>, or a Placed Block Reference's inputs only,
     /// since its Settings can't be changed.
     /// </summary>
-    private static List<CallHelpItem> GetItems(string text, string callee, int openParen, Func<string, PlacedBlock> findPlacedBlock)
+    private static List<CallHelpItem> GetItems(
+        string text,
+        string callee,
+        int openParen,
+        List<DefinedFunction> functions,
+        Func<string, PlacedBlock> findPlacedBlock)
     {
         if (BlockManifest.TryGetFunction(callee, out var type))
         {
@@ -127,7 +133,8 @@ public sealed class CallHelp
             return items;
         }
 
-        var placed = DefinedNames.Read(text, findPlacedBlock).LastOrDefault(n => n.Name == callee && n.Span.Start < openParen);
+        var placed = DefinedNames.Read(text, findPlacedBlock)
+            .LastOrDefault(n => n.Name == callee && n.Span.Start < openParen && n.IsInScopeAt(openParen, functions));
         return placed is { IsPlaced: true, Type: not null } ? GetInputItems(placed.Type) : [];
     }
 

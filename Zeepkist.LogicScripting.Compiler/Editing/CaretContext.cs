@@ -104,7 +104,8 @@ public sealed class CaretContext
     public bool IsStatementStart { get; }
 
     /// <summary>
-    /// The Functions the text defines, which can be called from anywhere in it.
+    /// The Functions the text defines, which can be called from anywhere in it; one without a name only gives its body
+    /// a scope.
     /// </summary>
     public IReadOnlyList<DefinedFunction> Functions { get; }
 
@@ -194,10 +195,7 @@ public sealed class CaretContext
     private static bool IsOnFunctionsFirstLine(List<Token> tokens, TextSpan word)
     {
         var lineStart = tokens.FindLastIndex(t => t.Span.Start < word.Start && t.Kind == TokenKind.NewLine) + 1;
-        return tokens[lineStart].Span.Start < word.Start
-            && tokens[lineStart].Kind == TokenKind.Name
-            && tokens[lineStart].Text == FunctionDefinition.Keyword
-            && tokens[lineStart + 1].Kind != TokenKind.Equals;
+        return tokens[lineStart].Span.Start < word.Start && DefinedNames.IsFunctionStart(tokens, lineStart);
     }
 
     /// <summary>

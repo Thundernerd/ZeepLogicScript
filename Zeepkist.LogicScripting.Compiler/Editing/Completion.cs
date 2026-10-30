@@ -110,7 +110,7 @@ public static class Completion
     private static IEnumerable<CompletionItem> GetFunctionItems(CaretContext context)
     {
         return context.Functions
-            .Where(f => !GraphBuilder.IsReserved(f.Name))
+            .Where(f => f.Name != null && !GraphBuilder.IsReserved(f.Name))
             .GroupBy(f => f.Name)
             .Select(g => new CompletionItem(g.Key, CompletionKind.Function, $"({string.Join(", ", g.First().Inputs)})"));
     }
@@ -132,7 +132,7 @@ public static class Completion
             return IsGiven(BlockSetting.Hide.Name) ? items : items.Append(ArgumentItem(BlockSetting.Hide));
         }
 
-        var function = context.Functions.FirstOrDefault(f => f.Name == context.Callee);
+        var function = context.Functions.FirstOrDefault(f => f.Name != null && f.Name == context.Callee);
         if (function != null)
             return GetInputItems(context, function.Inputs);
 
@@ -193,11 +193,12 @@ public static class Completion
     }
 
     /// <summary>
-    /// A name defined twice is offered once.
+    /// A name defined twice is offered once, and a Function's name only as the Function, which the compiler takes it
+    /// for.
     /// </summary>
     private static IEnumerable<CompletionItem> GetNameItems(CaretContext context, IReadOnlyList<DefinedName> definedNames)
     {
-        HashSet<string> offered = [];
+        HashSet<string> offered = [.. context.Functions.Select(f => f.Name)];
         foreach (var name in definedNames)
         {
             if (IsVisible(context, name) && offered.Add(name.Name))
@@ -207,8 +208,8 @@ public static class Completion
 
     private static bool IsVisible(CaretContext context, DefinedName name)
     {
-        var isInScope = name.Function == null ? context.EnclosingFunction == null : name.Function.Contains(context.Caret);
-        return isInScope && (context.CanReferAhead || name.Span.Start < context.StatementStart);
+        return name.IsInScopeAt(context.Caret, context.Functions)
+            && (context.CanReferAhead || name.Span.Start < context.StatementStart);
     }
 
     private static int CompareLabels(CompletionItem a, CompletionItem b)

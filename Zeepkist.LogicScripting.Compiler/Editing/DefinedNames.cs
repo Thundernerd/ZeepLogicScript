@@ -42,8 +42,8 @@ public static class DefinedNames
                 continue;
 
             var type = ReadType(tokens, i + 2, findPlacedBlock, out var mode, out var isPlaced);
-            var body = functions.Select(f => f.Function).FirstOrDefault(f => f.Contains(tokens[i].Span.Start));
-            names.Add(new DefinedName(name, tokens[i].Span, type, mode, isPlaced, body));
+            var function = functions.Select(f => f.Function).FirstOrDefault(f => f.Contains(tokens[i].Span.Start));
+            names.Add(new DefinedName(name, tokens[i].Span, type, mode, isPlaced, function));
         }
 
         return names.OrderBy(n => n.Span.Start).ToList();
@@ -52,14 +52,15 @@ public static class DefinedNames
     /// <summary>
     /// Every Function with a name, in text order; a Function defined twice is listed twice.
     /// </summary>
-    public static IReadOnlyList<DefinedFunction> ReadFunctions(string text)
+    internal static IReadOnlyList<DefinedFunction> ReadFunctions(string text)
     {
-        return ReadFunctions(Lexer.Tokenize(text ?? string.Empty, [])).Select(f => f.Function).ToList();
+        return ReadFunctions(Lexer.Tokenize(text ?? string.Empty, [])).Select(f => f.Function).Where(f => f.Name != null).ToList();
     }
 
     /// <summary>
     /// Reads them the way the parser does: a body ends at its first <c>end</c> line, or before the next Function's
-    /// first line, since Functions can't be defined inside each other.
+    /// first line, since Functions can't be defined inside each other. A Function without a name still has a body,
+    /// which is a scope of its own.
     /// </summary>
     internal static List<(DefinedFunction Function, List<Token> Inputs)> ReadFunctions(List<Token> tokens)
     {
@@ -69,10 +70,10 @@ public static class DefinedNames
             if (!IsFunctionStart(tokens, i))
                 continue;
 
-            var name = tokens[i + 1];
+            var name = tokens[i + 1].Kind == TokenKind.Name ? tokens[i + 1] : (Token?)null;
             List<Token> inputs = [];
-            var j = i + 2;
-            if (tokens[j].Kind == TokenKind.OpenParen)
+            var j = name == null ? i + 1 : i + 2;
+            if (name != null && tokens[j].Kind == TokenKind.OpenParen)
             {
                 for (j++; tokens[j].Kind is not (TokenKind.CloseParen or TokenKind.NewLine or TokenKind.End); j++)
                 {
@@ -110,19 +111,23 @@ public static class DefinedNames
             }
 
             var body = new TextSpan(bodyStart, Math.Max(0, bodyEnd - bodyStart));
-            functions.Add((new DefinedFunction(name.Text, name.Span, inputs.Select(t => t.Text).ToList(), body), inputs));
+            var function = new DefinedFunction(name?.Text, name?.Span ?? tokens[i].Span, inputs.Select(t => t.Text).ToList(), body);
+            functions.Add((function, inputs));
             i = j - 1;
         }
 
         return functions;
     }
 
-    private static bool IsFunctionStart(List<Token> tokens, int index)
+    /// <summary>
+    /// Like the parser, <c>function = ...</c> is a definition, and anything else after the keyword starts a Function.
+    /// </summary>
+    internal static bool IsFunctionStart(List<Token> tokens, int index)
     {
         return (index == 0 || tokens[index - 1].Kind == TokenKind.NewLine)
             && tokens[index].Kind == TokenKind.Name
             && tokens[index].Text == FunctionDefinition.Keyword
-            && tokens[index + 1].Kind == TokenKind.Name;
+            && tokens[index + 1].Kind != TokenKind.Equals;
     }
 
     private static bool IsEndLine(List<Token> tokens, int index)
