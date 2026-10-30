@@ -102,7 +102,7 @@ internal sealed class PlacedBlocksPanel
             _insertMessage += $". Skipped {insert.AlreadyReferencedCount} the Script already refers to";
 
         if (insert.SkippedGroupBlockCount > 0)
-            _insertMessage += $". Skipped {insert.SkippedGroupBlockCount} in a Block Group, which a recompile replaces";
+            _insertMessage += $". Skipped {insert.SkippedGroupBlockCount} {MessageFragments.InBlockGroup}";
 
         return insert.InsertedCount > 0;
     }

@@ -112,7 +112,7 @@ internal sealed partial class GraphBuilder
             return Fail(name, $"'{name.Name}' can't refer to itself outside delay(...)");
 
         if (_scope.Definitions.TryGetValue(name.Name, out var later))
-            return Fail(name, $"'{name.Name}' is defined later, on line {later.Position.Line}, so only delay(...) can refer to it");
+            return Fail(name, $"'{name.Name}' is defined later, on line {later.Position.Line}, so {MessageFragments.OnlyDelayRefersAhead}");
 
         if (name.Name == PlacedFunction)
             return Fail(name, $"{PlacedFunction} takes a UID. Call it like {PlacedFunction}(\"AbC12\")");

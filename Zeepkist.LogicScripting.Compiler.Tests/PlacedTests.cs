@@ -129,6 +129,19 @@ public class PlacedTests
     }
 
     [Fact]
+    public void ANameDefinedLater_CantBeWiredIntoAPlacedBlock()
+    {
+        var result = Compile("l = placed(\"L\")\ndelay(l(y), ticks: 1)\ny = 1");
+
+        Assert.Equal(
+            [
+                "2:7 Wiring into 'l' gives no value. Put it on its own line",
+                "2:9 A name defined later can't be wired into a placed block, since only delay(...) can refer to it"
+            ],
+            Errors(result));
+    }
+
+    [Fact]
     public void ACallToABlockWithNoInputs_StillChecksItsNamedValues()
     {
         var result = Compile("d = placed(\"DOOR\")\nd(open: nope & 1)");
