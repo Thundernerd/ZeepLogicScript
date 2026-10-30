@@ -388,6 +388,7 @@ public class NeverThrowsTests
     private static void Hover(string text, int index, IReadOnlyList<ErrorUnderline> underlines)
     {
         HoverInfo.At(text, index, underlines, uid => _level.GetValueOrDefault(uid));
+        DefinitionJump.At(text, index, uid => _level.GetValueOrDefault(uid));
     }
 
     private static CompileResult Compile(string text)

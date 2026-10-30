@@ -80,8 +80,13 @@ internal sealed partial class ScriptEditor
     /// </summary>
     public void JumpTo(Position position)
     {
+        JumpTo(ScriptText.GetIndex(Text, position));
+    }
+
+    private void JumpTo(int index)
+    {
         _completion.Close();
-        _state.Caret = ScriptText.GetIndex(Text, position);
+        _state.Caret = index;
         _state.Selection = 0;
         _state.Flag |= ImTextEditStateFlag.NeedScrollToCaret;
         _history.BreakGroup();
@@ -148,7 +153,12 @@ internal sealed partial class ScriptEditor
 
         DrawHover(gui, textRect, textBounds, in buffer, hovered && !gui.IsReadOnly);
 
-        HandleMouse(gui, ref buffer, textRect, selected, hovered);
+        var jump = FindJump(gui, textRect, textBounds, in buffer, hovered && !gui.IsReadOnly);
+        if (jump != null)
+            DrawJumpUnderline(gui, jump, textRect, palette);
+
+        if (!HandleJumpClick(gui, jump))
+            HandleMouse(gui, ref buffer, textRect, selected, hovered);
 
         var changed = false;
         var typedName = false;

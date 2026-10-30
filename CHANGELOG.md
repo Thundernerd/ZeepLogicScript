@@ -20,6 +20,7 @@ All notable changes to Logic Scripting are listed here.
 - Resting the mouse on the Script editor's text tells you about what's under it:
   a block function's Reference entry, the line that defines a name, a named argument's input or setting,
   and an error underline's message.
+- Ctrl+click (Cmd+click on macOS) a name in the Script editor to jump to the line that defines it.
 - The Reference tab lists the blocks under four headings, Inputs, Operators, Outputs and Movers,
   split the same way as the subfolders of the game's logic block folder, and sorted by name.
   A heading can be collapsed, and stays collapsed when you reopen the window.
