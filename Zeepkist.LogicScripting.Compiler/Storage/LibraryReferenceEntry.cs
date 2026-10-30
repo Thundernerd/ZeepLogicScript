@@ -10,6 +10,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 public sealed class LibraryReferenceEntry
 {
     private const string SettingMark = " (setting)";
+    private const string LibraryErrorsNote = "its Library has errors, so it can't be called";
 
     private readonly IReadOnlyList<string> _names;
 
@@ -32,6 +33,11 @@ public sealed class LibraryReferenceEntry
         Outputs = ReferenceText.JoinNames(outputs);
         _names = inputs.Concat(outputs).ToList();
         LibraryHasErrors = libraryHasErrors;
+        Layout = new ReferenceEntryLayout(
+            Function,
+            libraryHasErrors ? LibraryErrorsNote : string.Empty,
+            [new ReferenceRow(ReferenceEntryLayout.InputsLabel, Inputs), new ReferenceRow(ReferenceEntryLayout.OutputsLabel, Outputs)],
+            []);
     }
 
     /// <summary>
@@ -50,6 +56,8 @@ public sealed class LibraryReferenceEntry
     /// A Script can't call the Function until its Library's errors are fixed, as any of them stops every call into it.
     /// </summary>
     public bool LibraryHasErrors { get; }
+
+    public ReferenceEntryLayout Layout { get; }
 
     /// <summary>
     /// Whether the qualified name, an input's or an output's name contains <paramref name="filter"/>, ignoring case;

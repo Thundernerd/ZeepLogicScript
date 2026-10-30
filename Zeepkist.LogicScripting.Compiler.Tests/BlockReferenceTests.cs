@@ -137,7 +137,7 @@ public class BlockReferenceTests
         Assert.Equal(expected, Find(function).Matches(filter));
     }
 
-    private static List<(string, string)> Rows(IReadOnlyList<BlockReferenceRow> rows)
+    private static List<(string, string)> Rows(IReadOnlyList<ReferenceRow> rows)
     {
         return rows.Select(r => (r.Name, r.Value)).ToList();
     }

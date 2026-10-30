@@ -18,7 +18,7 @@ internal sealed class CallHelpPopup
     private const string Separator = ", ";
 
     private readonly CallHelpSession _session;
-    private readonly List<(string Text, Color32 Color, ImRect Rect)> _pieces = [];
+    private readonly List<TextPiece> _pieces = [];
     private CallHelp _laidOut;
     private float _laidOutWidth;
     private Vector2 _size;
@@ -157,7 +157,7 @@ internal sealed class CallHelpPopup
                 y -= lineHeight;
             }
 
-            _pieces.Add((piece, color, new ImRect(x, y - lineHeight, pieceWidth, lineHeight)));
+            _pieces.Add(new TextPiece(piece, color, new ImRect(x, y - lineHeight, pieceWidth, lineHeight)));
             x += pieceWidth;
             width = Mathf.Max(width, x);
         }

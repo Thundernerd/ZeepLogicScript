@@ -16,16 +16,6 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal sealed class ReferencePanel
 {
     private const string LibrariesHeader = "Libraries";
-    private const string PlacedOnlyNote = "placed(\"UID\") only";
-    private const string LibraryErrorsNote = "its Library has errors, so it can't be called";
-    private const string InputsLabel = "inputs";
-    private const string OutputsLabel = "outputs";
-    private const string SettingsLabel = "settings";
-
-    /// <summary>
-    /// The most of an entry's width a name column takes, so the options beside it still have room.
-    /// </summary>
-    private const float MaxNameColumn = 0.45f;
 
     private readonly LibraryList _libraries;
 
@@ -78,7 +68,7 @@ internal sealed class ReferencePanel
             foreach (var entry in category.Entries)
             {
                 if (entry.Matches(_filter))
-                    DrawEntry(gui, entry);
+                    DrawEntry(gui, entry.Layout);
             }
         }
 
@@ -91,7 +81,7 @@ internal sealed class ReferencePanel
                 foreach (var entry in libraryEntries)
                 {
                     if (entry.Matches(_filter))
-                        DrawEntry(gui, entry);
+                        DrawEntry(gui, entry.Layout);
                 }
             }
         }
@@ -137,88 +127,43 @@ internal sealed class ReferencePanel
         return open;
     }
 
-    /// <summary>
-    /// The name in the editor's Block Function color, then a row per part with its label in a column of its own, and
-    /// each Setting or mode on a row under its heading.
-    /// </summary>
-    private static void DrawEntry(ImGui gui, BlockReferenceEntry entry)
-    {
-        var palette = DrawName(gui, entry.Function);
-        var text = gui.Style.Text.Color;
-        var nameColor = palette.Get(HighlightKind.Keyword);
-        var note = GetNote(entry);
-        if (note.Length > 0)
-            gui.Text(note, WindowColors.Muted, wrap: true);
-
-        var labelWidth = GetLabelWidth(gui);
-        DrawRow(gui, InputsLabel, WindowColors.Muted, entry.Inputs, text, labelWidth);
-
-        if (entry.Outputs != null)
-        {
-            DrawRow(gui, OutputsLabel, WindowColors.Muted, entry.Outputs, text, labelWidth);
-        }
-        else
-        {
-            gui.Text(OutputsLabel, WindowColors.Muted);
-            DrawNamedRows(gui, entry.ModeOutputs, nameColor, text);
-        }
-
-        if (entry.Settings.Count > 0)
-        {
-            gui.Text(SettingsLabel, WindowColors.Muted);
-            DrawNamedRows(gui, entry.Settings, nameColor, text);
-        }
-    }
-
-    /// <summary>
-    /// Laid out like a Block Function's entry, with the inputs used as a Setting marked in the inputs' row, and a note
-    /// while the Library has errors.
-    /// </summary>
-    private static void DrawEntry(ImGui gui, LibraryReferenceEntry entry)
-    {
-        DrawName(gui, entry.Function);
-        if (entry.LibraryHasErrors)
-            gui.Text(LibraryErrorsNote, WindowColors.Muted, wrap: true);
-
-        var text = gui.Style.Text.Color;
-        var labelWidth = GetLabelWidth(gui);
-        DrawRow(gui, InputsLabel, WindowColors.Muted, entry.Inputs, text, labelWidth);
-        DrawRow(gui, OutputsLabel, WindowColors.Muted, entry.Outputs, text, labelWidth);
-    }
-
-    /// <summary>
-    /// The separator above an entry, and its name in the editor's Block Function color.
-    /// </summary>
-    private static SyntaxPalette DrawName(ImGui gui, string function)
+    private static void DrawEntry(ImGui gui, ReferenceEntryLayout entry)
     {
         gui.Separator();
         var palette = SyntaxPalette.For(gui.Style.Window.Box.BackColor, gui.Style.Text.Color);
-        gui.Text(function, palette.Get(HighlightKind.Function), wrap: true);
-        return palette;
+        gui.Text(entry.Function, palette.Get(HighlightKind.Function), wrap: true);
+        if (entry.Note.Length > 0)
+            gui.Text(entry.Note, WindowColors.Muted, wrap: true);
+
+        var text = gui.Style.Text.Color;
+        var nameColor = palette.Get(HighlightKind.Keyword);
+        var labelWidth = GetLabelWidth(gui);
+        foreach (var row in entry.Rows)
+        {
+            DrawRow(gui, row.Name, WindowColors.Muted, row.Value, text, labelWidth);
+        }
+
+        foreach (var group in entry.Groups)
+        {
+            gui.Text(group.Heading, WindowColors.Muted);
+            DrawNamedRows(gui, group.Rows, nameColor, text);
+        }
     }
 
     private static float GetLabelWidth(ImGui gui)
     {
-        return gui.MeasureTextSize(OutputsLabel).x + gui.Style.Layout.Indent;
-    }
-
-    private static string GetNote(BlockReferenceEntry entry)
-    {
-        if (entry.IsPlacedOnly)
-            return PlacedOnlyNote;
-
-        return entry.Aliases.Length > 0 ? $"alias {entry.Aliases}" : string.Empty;
+        return gui.MeasureTextSize(ReferenceEntryLayout.OutputsLabel).x + gui.Style.Layout.Indent;
     }
 
     /// <summary>
     /// Indented, with the names in a column as wide as the longest. A name too long for that column gets a row of its
     /// own, with its value on the next.
     /// </summary>
-    private static void DrawNamedRows(ImGui gui, IReadOnlyList<BlockReferenceRow> rows, Color32 nameColor, Color32 valueColor)
+    private static void DrawNamedRows(ImGui gui, IReadOnlyList<ReferenceRow> rows, Color32 nameColor, Color32 valueColor)
     {
         gui.BeginIndent();
         var indent = gui.Style.Layout.Indent;
-        var maxNameWidth = gui.GetLayoutWidth() * MaxNameColumn;
+        var maxNameWidth = gui.GetLayoutWidth() * ReferenceEntryLayout.MaxNameColumn;
         var widths = new float[rows.Count];
         var nameWidth = 0f;
         for (var i = 0; i < rows.Count; i++)

@@ -46,20 +46,20 @@ public static class BlockReference
             type.IsPlacedOnly);
     }
 
-    private static List<BlockReferenceRow> DescribeModeOutputs(BlockType type)
+    private static List<ReferenceRow> DescribeModeOutputs(BlockType type)
     {
         if (type.Modes == null)
             return [];
 
         var options = type.Modes.Setting.Options;
-        return options.Select((option, i) => new BlockReferenceRow(option, JoinNames(type.Modes.Outputs[i]))).ToList();
+        return options.Select((option, i) => new ReferenceRow(option, JoinNames(type.Modes.Outputs[i]))).ToList();
     }
 
-    private static List<BlockReferenceRow> DescribeSettings(BlockType type)
+    private static List<ReferenceRow> DescribeSettings(BlockType type)
     {
         var settings = type.Settings.Select(DescribeSetting).ToList();
         if (type.HasStyles)
-            settings.Add(new BlockReferenceRow(BlockType.StyleName, string.Join(", ", type.Styles.Select(s => s.Name))));
+            settings.Add(new ReferenceRow(BlockType.StyleName, string.Join(", ", type.Styles.Select(s => s.Name))));
 
         if (!type.IsPlacedOnly)
             settings.Add(DescribeSetting(BlockSetting.Hide));
@@ -67,9 +67,9 @@ public static class BlockReference
         return settings;
     }
 
-    private static BlockReferenceRow DescribeSetting(BlockSetting setting)
+    private static ReferenceRow DescribeSetting(BlockSetting setting)
     {
-        return new BlockReferenceRow(setting.Name, DescribeValues(setting));
+        return new ReferenceRow(setting.Name, DescribeValues(setting));
     }
 
     /// <summary>

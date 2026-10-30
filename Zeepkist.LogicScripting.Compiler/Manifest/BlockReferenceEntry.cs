@@ -8,13 +8,15 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
 /// </summary>
 public sealed class BlockReferenceEntry
 {
+    private const string PlacedOnlyNote = "placed(\"UID\") only";
+
     public BlockReferenceEntry(
         string function,
         string aliases,
         string inputs,
         string outputs,
-        IReadOnlyList<BlockReferenceRow> modeOutputs,
-        IReadOnlyList<BlockReferenceRow> settings,
+        IReadOnlyList<ReferenceRow> modeOutputs,
+        IReadOnlyList<ReferenceRow> settings,
         bool isPlacedOnly)
     {
         Function = function;
@@ -24,6 +26,7 @@ public sealed class BlockReferenceEntry
         ModeOutputs = modeOutputs;
         Settings = settings;
         IsPlacedOnly = isPlacedOnly;
+        Layout = CreateLayout();
     }
 
     public string Function { get; }
@@ -43,17 +46,19 @@ public sealed class BlockReferenceEntry
     /// <summary>
     /// One row per mode, empty unless the mode renames the outputs.
     /// </summary>
-    public IReadOnlyList<BlockReferenceRow> ModeOutputs { get; }
+    public IReadOnlyList<ReferenceRow> ModeOutputs { get; }
 
     /// <summary>
     /// Empty when the type takes none.
     /// </summary>
-    public IReadOnlyList<BlockReferenceRow> Settings { get; }
+    public IReadOnlyList<ReferenceRow> Settings { get; }
 
     /// <summary>
     /// A type Scripts only reach through <c>placed("UID")</c>.
     /// </summary>
     public bool IsPlacedOnly { get; }
+
+    public ReferenceEntryLayout Layout { get; }
 
     /// <summary>
     /// Whether any part contains <paramref name="filter"/>, ignoring case; a blank filter matches every entry.
@@ -67,5 +72,28 @@ public sealed class BlockReferenceEntry
             || ReferenceText.Contains(Inputs, trimmed)
             || (Outputs != null && ReferenceText.Contains(Outputs, trimmed))
             || ModeOutputs.Concat(Settings).Any(r => ReferenceText.Contains(r.Name, trimmed) || ReferenceText.Contains(r.Value, trimmed));
+    }
+
+    private ReferenceEntryLayout CreateLayout()
+    {
+        List<ReferenceRow> rows = [new ReferenceRow(ReferenceEntryLayout.InputsLabel, Inputs)];
+        List<ReferenceEntryGroup> groups = [];
+        if (Outputs != null)
+            rows.Add(new ReferenceRow(ReferenceEntryLayout.OutputsLabel, Outputs));
+        else
+            groups.Add(new ReferenceEntryGroup(ReferenceEntryLayout.OutputsLabel, ModeOutputs));
+
+        if (Settings.Count > 0)
+            groups.Add(new ReferenceEntryGroup(ReferenceEntryLayout.SettingsLabel, Settings));
+
+        return new ReferenceEntryLayout(Function, GetNote(), rows, groups);
+    }
+
+    private string GetNote()
+    {
+        if (IsPlacedOnly)
+            return PlacedOnlyNote;
+
+        return Aliases.Length > 0 ? $"alias {Aliases}" : string.Empty;
     }
 }
