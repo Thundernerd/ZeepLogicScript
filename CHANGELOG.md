@@ -21,6 +21,8 @@ All notable changes to Logic Scripting are listed here.
   A heading can be collapsed, and stays collapsed when you reopen the window.
 - Functions: `function name(inputs) -> outputs` … `end` names wiring you use more than once.
   Each call places the body's blocks inline, so the level still plays without the mod.
+- A function's input can give a setting in its body, like `delay(x, ticks: ticks)`.
+  A call passes it a number, `true` or `false`, or a word, also on to another function's setting input.
 - Libraries: named sets of functions on your own machine, which any Script in any level calls as `timing.edge(x)`.
   Make, rename and delete them in the Libraries section of the Script window;
   the editor checks and colors them like a Script.

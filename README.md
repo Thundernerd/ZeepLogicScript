@@ -319,6 +319,23 @@ The level doesn't need the mod to play them.
   light(lamp_1, trigger_1)
   ```
 
+- An input can give a setting instead of a wire.
+  The call passes it a number, `true` or `false`, or a word,
+  and the body uses that wherever it writes the input as a setting's value:
+
+  ```logic
+  function pulse_after(x, ticks) -> out
+      out = pulser(delay(x, ticks: ticks))
+  end
+
+  p = player_input(player: 1)
+  power_display(pulse_after(p.horn, ticks: 20))
+  ```
+
+  The value is checked like one you wrote in the setting yourself.
+  The body can pass the input on to another function's setting input, like `pulse_after(x, ticks: wait)`.
+  An input that gives a setting can't also be wired, and the call can't pass it a wire.
+  A word the Script also uses as a name counts as that name, so it's a wire.
 - `default hide:` goes outside functions, and applies to the blocks they place too.
 
 ### Libraries

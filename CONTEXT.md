@@ -9,7 +9,7 @@ The text a player writes in the Logic Scripting window: a list of definitions th
 _Avoid_: program, code file, macro
 
 **Function**:
-A named wiring pattern a Script defines with `function name(inputs) -> outputs` … `end`. Each call expands its body inline into ordinary Logic Blocks, so it places no block of its own. Its body sees only its inputs, its own definitions and other Functions. A Script's Functions are local to it; a Library's are called with the Library's name.
+A named wiring pattern a Script defines with `function name(inputs) -> outputs` … `end`. Each call expands its body inline into ordinary Logic Blocks, so it places no block of its own. Its body sees only its inputs, its own definitions and other Functions. An input its body uses as a Setting's value takes a constant from each call, a number or a word, instead of a Wire. A Script's Functions are local to it; a Library's are called with the Library's name.
 _Avoid_: macro, subroutine, procedure, user function (say Block Function for the built-in ones)
 
 **Library**:
