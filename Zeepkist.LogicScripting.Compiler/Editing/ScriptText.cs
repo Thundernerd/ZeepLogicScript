@@ -36,7 +36,7 @@ public static class ScriptText
     /// Whether the character can come right before an argument or a named argument's value: a call's opening
     /// parenthesis, a comma, a colon, or a space; or before an output: a dot.
     /// </summary>
-    public static bool IsSeparator(char c)
+    public static bool OpensCompletion(char c)
     {
         return c is '(' or ',' or ':' or ' ' or '.';
     }

@@ -19,9 +19,9 @@ public static class Completion
 
     /// <summary>
     /// The items whose label starts with the typed prefix, then those that only contain it, each in alphabetical
-    /// order, or for a Setting's values or a block's outputs, in the order the block stores them; at the start of an argument, the named
-    /// arguments come before the expressions. Case is ignored. A Number Setting lists nothing. The Script's own
-    /// Functions are offered anywhere, and at the start of a statement, <c>function</c> at the top level or <c>end</c>
+    /// order, or for a Setting's values, in the order the Setting stores them, and for a block's outputs, in Connector
+    /// order; at the start of an argument, the named arguments come before the expressions. Case is ignored. A Number
+    /// Setting lists nothing. The Script's own Functions are offered anywhere, and at the start of a statement, <c>function</c> at the top level or <c>end</c>
     /// in a Function's body. Of the <paramref name="definedNames"/>, only those in the caret's scope are offered: the
     /// top level's, or the inputs and definitions of the Function the caret is in. Of those, only the ones defined
     /// before the caret's statement, unless the caret is inside <c>delay(...)</c>.
@@ -155,14 +155,15 @@ public static class Completion
     /// <summary>
     /// The outputs of the block the name before the dot stands for, in its written mode or, for a Placed Block
     /// Reference, its mode in the level. A block with one output is used without a dot, so it offers none; nor does a
-    /// name whose value isn't a block, or a Function's name, which the compiler takes for the Function.
+    /// name whose value isn't a block, or a Function's name, which the compiler takes for the Function. A name defined
+    /// twice is the first definition, which the compiler keeps.
     /// </summary>
     private static IEnumerable<CompletionItem> GetOutputItems(CaretContext context, IReadOnlyList<DefinedName> definedNames)
     {
-        if (context.Functions.Any(f => f.Name == context.Target))
+        if (context.Functions.Any(f => f.Name == context.DottedName))
             return [];
 
-        var name = definedNames.LastOrDefault(n => n.Name == context.Target && IsVisible(context, n));
+        var name = definedNames.FirstOrDefault(n => n.Name == context.DottedName && IsVisible(context, n));
         var outputs = name?.Type?.GetOutputs(name.Mode) ?? [];
         return outputs.Count > 1 ? outputs.Select(o => new CompletionItem(o.Name, CompletionKind.Output, OutputDetail)) : [];
     }

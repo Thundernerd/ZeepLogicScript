@@ -500,7 +500,7 @@ public class CompletionTests
         var context = At(text);
 
         Assert.Equal(CaretContextKind.Output, context.Kind);
-        Assert.Equal(name, context.Target);
+        Assert.Equal(name, context.DottedName);
     }
 
     [Theory]
@@ -576,6 +576,14 @@ public class CompletionTests
     public void Items_AfterADot_NothingWhenTheNameIsntAVisibleBlockWithSeveralOutputs(string text)
     {
         Assert.Empty(Names(text));
+    }
+
+    [Fact]
+    public void Items_AfterADot_TheFirstDefinitionOfANameDefinedTwice()
+    {
+        const string Text = "t = simple_telemetry(mode: global_velocity)\nt = simple_telemetry()\nx = t.|";
+
+        Assert.Equal(["x", "y", "z", "heading"], NameLabels(Text));
     }
 
     [Fact]
