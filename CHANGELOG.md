@@ -31,6 +31,8 @@ All notable changes to Logic Scripting are listed here.
   Make, rename and delete them in the Libraries section of the Script window;
   the editor checks and colors them like a Script.
   Someone without a Library can't recompile a Script that calls it, but the blocks in the level keep working.
+- The Reference tab lists your Libraries' functions under a Libraries heading, as `timing.edge`,
+  with their inputs and outputs. An input the function uses as a setting is marked `(setting)`.
 - In the Script editor, Enter after a Function's first line indents the body, and typing `end` lines it up with that first line.
 
 ### Changed
