@@ -1,0 +1,41 @@
+using System.Collections.Generic;
+
+namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
+
+/// <summary>
+/// A Function a Script defines, as the editor reads it.
+/// </summary>
+public sealed class DefinedFunction
+{
+    public DefinedFunction(string name, TextSpan span, IReadOnlyList<string> inputs, TextSpan body)
+    {
+        Name = name;
+        Span = span;
+        Inputs = inputs;
+        Body = body;
+    }
+
+    public string Name { get; }
+
+    /// <summary>
+    /// Where the name is written on the Function's first line.
+    /// </summary>
+    public TextSpan Span { get; }
+
+    public IReadOnlyList<string> Inputs { get; }
+
+    /// <summary>
+    /// From the line after the first line to the end of its <c>end</c>; while it has none, to the next Function or the
+    /// end of the text.
+    /// </summary>
+    public TextSpan Body { get; }
+
+    /// <summary>
+    /// Whether <paramref name="index"/> is in the body, which sees only the Function's inputs and its own definitions.
+    /// Right after its <c>end</c> counts, so the word being typed there is still the body's.
+    /// </summary>
+    public bool Contains(int index)
+    {
+        return Body.Start <= index && index <= Body.End;
+    }
+}

@@ -188,6 +188,131 @@ public class CompletionTests
     }
 
     [Theory]
+    [InlineData("function edge(x, n) -> y\nend\nz = |")]
+    [InlineData("z = |\nfunction edge(x, n) -> y\nend")]
+    [InlineData("function edge(x, n) -> y\n    a = |\nend")]
+    public void Items_TheScriptsFunctions_WithTheirInputs(string text)
+    {
+        var edge = Completion.GetItems(At(text)).First(i => i.Label == "edge");
+
+        Assert.Equal(CompletionKind.Function, edge.Kind);
+        Assert.Equal("(x, n)", edge.Detail);
+    }
+
+    [Fact]
+    public void Items_AFunctionDefinedTwice_Once()
+    {
+        Assert.Single(Labels("function f()\nend\nfunction f(a)\nend\nx = |"), l => l == "f");
+    }
+
+    [Theory]
+    [InlineData("|", "function")]
+    [InlineData("x = 1\nfu|", "function")]
+    [InlineData("function f()\nend\n|", "function")]
+    [InlineData("function f()\n    |\nend", "end")]
+    [InlineData("function f()\n    x = 1\n    en|", "end")]
+    [InlineData("function f()\n    x = 1\nend|", "end")]
+    public void Items_FunctionAndEnd_AtTheStartOfAStatement(string text, string keyword)
+    {
+        var item = Completion.GetItems(At(text)).First(i => i.Label == keyword);
+
+        Assert.Equal(CompletionKind.Keyword, item.Kind);
+    }
+
+    [Theory]
+    [InlineData("x = |")]
+    [InlineData("x = 1 & |")]
+    [InlineData("logic(|")]
+    [InlineData("function f()\n    x = |\nend")]
+    public void Items_NoFunctionOrEnd_InsideAStatement(string text)
+    {
+        var labels = Labels(text);
+
+        Assert.DoesNotContain("function", labels);
+        Assert.DoesNotContain("end", labels);
+    }
+
+    [Fact]
+    public void Items_NoEnd_OutsideAFunction_NorFunction_InsideOne()
+    {
+        Assert.DoesNotContain("end", Labels("x = 1\n|"));
+        Assert.DoesNotContain("function", Labels("function f()\n    |\nend"));
+    }
+
+    [Theory]
+    [InlineData("function f(|")]
+    [InlineData("function f(a, |")]
+    [InlineData("function f(a) -> |")]
+    [InlineData("function f(a) -> b, |\nend")]
+    [InlineData("function fo|")]
+    public void None_OnAFunctionsFirstLine(string text)
+    {
+        Assert.Equal(CaretContextKind.None, At(text).Kind);
+    }
+
+    [Fact]
+    public void Items_InsideAFunction_ItsInputsAndDefinitionsAbove_NotTheTopLevels()
+    {
+        var labels = NameLabels("a = 1\nfunction f(x)\n    b = 1\n    c = |\n    d = 1\nend");
+
+        Assert.Contains("x", labels);
+        Assert.Contains("b", labels);
+        Assert.DoesNotContain("a", labels);
+        Assert.DoesNotContain("c", labels);
+        Assert.DoesNotContain("d", labels);
+    }
+
+    [Fact]
+    public void Items_AFunctionsInputs_DescribedAsInputs()
+    {
+        Assert.Equal("input", Names("function f(x)\n    c = |\nend").First(i => i.Label == "x").Detail);
+    }
+
+    [Fact]
+    public void Items_InsideDelayInAFunction_OnlyItsOwnNames()
+    {
+        var labels = NameLabels("a = 1\nfunction f(x)\n    c = delay(|)\n    d = 1\nend\nb = 1");
+
+        Assert.Contains("x", labels);
+        Assert.Contains("d", labels);
+        Assert.DoesNotContain("a", labels);
+        Assert.DoesNotContain("b", labels);
+    }
+
+    [Theory]
+    [InlineData("function f(x)\n    b = 1\nend\nc = |")]
+    [InlineData("c = delay(|)\nfunction f(x)\n    b = 1\nend")]
+    public void Items_OutsideAFunction_NoneOfItsNames(string text)
+    {
+        var labels = NameLabels(text);
+
+        Assert.DoesNotContain("x", labels);
+        Assert.DoesNotContain("b", labels);
+    }
+
+    [Theory]
+    [InlineData("function f(a, b)\nend\nf(|", new[] { "a:", "b:" })]
+    [InlineData("function f(a, b)\nend\nf(1, |", new[] { "b:" })]
+    [InlineData("function f(a, b)\nend\nf(b: 1, |", new[] { "a:" })]
+    [InlineData("f(|\nfunction f(a, b)\nend", new[] { "a:", "b:" })]
+    public void Items_InACallToAFunction_ItsInputsItDoesntHaveYet(string text, string[] arguments)
+    {
+        var items = Completion.GetItems(At(text)).Where(i => i.Kind == CompletionKind.Argument).ToList();
+
+        Assert.Equal(arguments, items.Select(i => i.Label));
+        Assert.All(items, i => Assert.Equal("input", i.Detail));
+    }
+
+    [Fact]
+    public void Accept_AFunction_OpensItsCall()
+    {
+        var context = At("function edge(x)\nend\nz = ed|");
+        var item = Completion.GetItems(context).First(i => i.Label == "edge");
+
+        Assert.Equal("function edge(x)\nend\nz = edge(|", Format(Completion.Accept(context, item)));
+    }
+
+    [Theory]
     [InlineData("x = lo|", "logic", "x = logic(|")]
     [InlineData("x = lo|gic", "logic", "x = logic(|")]
     [InlineData("x = lo|(1, 2)", "logic", "x = logic(|1, 2)")]

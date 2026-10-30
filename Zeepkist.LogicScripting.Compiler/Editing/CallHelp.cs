@@ -92,8 +92,8 @@ public sealed class CallHelp
         {
             switch (tokens[i].Kind)
             {
-                // A call left open while it's typed carries on to the next line, unless a definition starts there
-                case TokenKind.NewLine when open.Count == 0 || CaretContext.IsDefinitionStart(tokens, i + 1):
+                // A call left open while it's typed carries on to the next line, unless a statement starts there
+                case TokenKind.NewLine when open.Count == 0 || Lexer.IsStatementStart(tokens, i + 1):
                     open.Clear();
                     break;
 

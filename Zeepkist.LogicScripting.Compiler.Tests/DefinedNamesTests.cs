@@ -106,6 +106,47 @@ public class DefinedNamesTests
         Assert.Equal(["a", "a"], Read("a = 1\na = 2").Select(n => n.Name));
     }
 
+    [Fact]
+    public void Read_AFunctionsInputsAndDefinitions_WithTheirFunction()
+    {
+        var names = Read("a = 1\nfunction f(x, y) -> z\n    z = x & y\nend\nb = 1");
+
+        Assert.Equal(["a", "x", "y", "z", "b"], names.Select(n => n.Name));
+        Assert.Equal([null, "f", "f", "f", null], names.Select(n => n.Function?.Name));
+        Assert.Equal([false, true, true, false, false], names.Select(n => n.IsInput));
+    }
+
+    [Fact]
+    public void Read_EachFunction_WithItsInputsAndBody()
+    {
+        var text = "function f(x, y) -> z\n    z = x\nend\nfunction g()\nend";
+        var functions = DefinedNames.ReadFunctions(text);
+
+        Assert.Equal(["f", "g"], functions.Select(f => f.Name));
+        Assert.Equal(["x", "y"], functions[0].Inputs);
+        Assert.Empty(functions[1].Inputs);
+        Assert.Equal(text.IndexOf("    z"), functions[0].Body.Start);
+        Assert.Equal(text.IndexOf("end") + 3, functions[0].Body.End);
+    }
+
+    [Theory]
+    [InlineData("function f(x\n    z = 1", "f")]
+    [InlineData("function f(x) -> z\n    z = 1\nfunction g()\nend", "f")]
+    public void Read_AFunctionWithoutEnd_ToTheNextFunctionOrTheEnd(string text, string function)
+    {
+        Assert.Equal(function, Read(text).Single(n => n.Name == "z").Function?.Name);
+    }
+
+    [Theory]
+    [InlineData("function = 1")]
+    [InlineData("x = function")]
+    [InlineData("function")]
+    [InlineData("function (x)")]
+    public void ReadFunctions_NoneWithoutAName(string text)
+    {
+        Assert.Empty(DefinedNames.ReadFunctions(text));
+    }
+
     private static IReadOnlyList<DefinedName> Read(string text)
     {
         return DefinedNames.Read(text, uid => _level.GetValueOrDefault(uid));
