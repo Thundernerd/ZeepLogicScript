@@ -45,27 +45,19 @@ internal sealed partial class HoverPopup
         public void AddRows(IReadOnlyList<ReferenceRow> rows, Color32 labelColor, Color32 valueColor, float indent)
         {
             var space = _gui.MeasureTextSize(" ").x;
-            var maxColumn = (_maxWidth - indent) * ReferenceEntryLayout.MaxNameColumn;
-            var column = 0f;
-            foreach (var row in rows)
+            var column = NameColumn.Fit(rows, name => _gui.MeasureTextSize(name).x, space, _maxWidth - indent);
+            for (var i = 0; i < rows.Count; i++)
             {
-                var labelWidth = _gui.MeasureTextSize(row.Name).x + space;
-                if (labelWidth <= maxColumn)
-                    column = Mathf.Max(column, labelWidth);
-            }
-
-            foreach (var row in rows)
-            {
-                var labelWidth = _gui.MeasureTextSize(row.Name).x;
-                if (labelWidth + space > maxColumn)
+                var row = rows[i];
+                if (!column.Fits(i))
                 {
                     AddLine(row.Name, labelColor, indent);
                     AddLine(row.Value, valueColor, indent + _gui.Style.Layout.Indent);
                     continue;
                 }
 
-                _pieces.Add(new TextPiece(row.Name, labelColor, new ImRect(indent, _y - _lineHeight, labelWidth, _lineHeight)));
-                AddLine(row.Value, valueColor, indent + column);
+                _pieces.Add(new TextPiece(row.Name, labelColor, new ImRect(indent, _y - _lineHeight, column.GetNameWidth(i), _lineHeight)));
+                AddLine(row.Value, valueColor, indent + column.Width);
             }
         }
 
