@@ -269,12 +269,18 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
 
     private void DrawScriptsTab(ImGui gui)
     {
+        // A scope each for the lists, so a Script or Orphaned Group coming or going doesn't change the id, and with it
+        // the focus and text, of the name field drawn under them
+        gui.PushId("scripts list");
         var selected = _scriptListPanel.DrawEntries(gui, _current);
+        gui.PopId();
 
         // Restored after drawing, which goes through the list that restoring changes
+        gui.PushId("orphaned groups");
         var collapsed = _state.OrphanedGroupsCollapsed;
         var orphan = _orphanedGroupsPanel.Draw(gui, _scripts.OrphanedGroups, ref collapsed);
         _state.OrphanedGroupsCollapsed = collapsed;
+        gui.PopId();
         if (orphan != null)
         {
             var restored = _scripts.Restore(orphan);
