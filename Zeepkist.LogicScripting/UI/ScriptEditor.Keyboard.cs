@@ -9,15 +9,17 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal sealed partial class ScriptEditor
 {
     /// <summary>
-    /// Every edit is recorded in the history; a caret move without an edit ends the current typing step.
-    /// <paramref name="typedName"/> is set when a character that can start a name was typed, and
-    /// <paramref name="typedSeparator"/> when one that can come before an argument was.
+    /// Every edit is recorded in the history; a caret move without an edit ends the current typing step. When
+    /// <paramref name="completing"/>, the completion list sees the text before each key and takes its own keys.
+    /// <paramref name="typedName"/> is set when a character that can start a name was typed after the list last saw
+    /// the text, and <paramref name="typedSeparator"/> when one that can come before an argument was.
     /// </summary>
     private bool HandleKeyboard(
         ImGui gui,
         ref ImTextEditBuffer buffer,
         ImRect textRect,
         bool editable,
+        bool completing,
         out bool compileRequested,
         out bool typedName,
         out bool typedSeparator)
@@ -32,6 +34,25 @@ internal sealed partial class ScriptEditor
             ref readonly var evt = ref gui.Input.GetKeyboardEvent(i);
             if (evt.Type != ImKeyboardEventType.Down)
                 continue;
+
+            if (completing)
+            {
+                _completion.Update(new TextSnapshot(text, _state.Caret, _state.Selection), typedName, typedSeparator, gui.IsControlActive(Id));
+                typedName = false;
+                typedSeparator = false;
+                if (_completion.HandleKeyboardEvent(gui, i) is { } accepted)
+                {
+                    Text = text;
+                    Accept(gui, ref buffer, accepted);
+                    text = Text;
+                    changed = true;
+                    continue;
+                }
+
+                // Using the event clears it, and evt refers to it
+                if (evt.Type != ImKeyboardEventType.Down)
+                    continue;
+            }
 
             var command = IsCommand(evt);
             if (command && evt.Key is KeyCode.Return or KeyCode.KeypadEnter)

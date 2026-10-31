@@ -61,7 +61,7 @@ public sealed class CompletionSession
     }
 
     /// <summary>
-    /// Call after the editor handled its input, with the text and caret it ended with. When
+    /// Call before each key the editor handles, with the text and caret so far, and after it handled its input. When
     /// <paramref name="whileTyping"/> is on, typing a name opens the list. So does starting an argument of a call
     /// that takes named arguments, which lists them: typing a <see cref="ScriptText.OpensCompletion">separator</see>
     /// or accepting a function, which opens its call. Starting a Setting's value lists its values the same way: typing

@@ -168,18 +168,17 @@ internal sealed partial class ScriptEditor
             ImTextEdit.DrawCaret(gui, _state.Caret, _state.BlinkTime, textRect, in _layout, in stateStyle, in buffer);
             if (completing)
             {
-                completed ??= _completion.HandleKeyboard(gui);
+                _completion.HandleEscape();
                 _callHelp.HandleKeyboard(_completion.TookEscape);
             }
 
             if (completed is { } accepted)
             {
-                Replace(accepted.Text, accepted.Caret, gui.Input.Time);
-                buffer = new ImTextEditBuffer(Text, gui.Arena, 0);
+                Accept(gui, ref buffer, accepted);
                 changed = true;
             }
 
-            changed |= HandleKeyboard(gui, ref buffer, textRect, !gui.IsReadOnly, out compileRequested, out typedName, out typedSeparator);
+            changed |= HandleKeyboard(gui, ref buffer, textRect, !gui.IsReadOnly, completing, out compileRequested, out typedName, out typedSeparator);
         }
 
         var focused = completing && gui.IsControlActive(Id);
@@ -194,6 +193,12 @@ internal sealed partial class ScriptEditor
         gui.Canvas.PopRectMask();
 
         return changed;
+    }
+
+    private void Accept(ImGui gui, ref ImTextEditBuffer buffer, TextSnapshot completed)
+    {
+        Replace(completed.Text, completed.Caret, gui.Input.Time);
+        buffer = new ImTextEditBuffer(Text, gui.Arena, 0);
     }
 
     private void HandleMouse(ImGui gui, ref ImTextEditBuffer buffer, ImRect textRect, bool selected, bool hovered)
