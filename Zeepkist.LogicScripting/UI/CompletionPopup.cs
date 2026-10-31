@@ -31,6 +31,7 @@ internal sealed class CompletionPopup
 
     private readonly CompletionSession _session;
     private readonly EditorAssist _assist;
+    private readonly HeldEscape _heldEscape = new();
     private IReadOnlyList<CompletionItem> _measuredItems;
     private float _labelWidth;
     private float _detailWidth;
@@ -46,7 +47,7 @@ internal sealed class CompletionPopup
     }
 
     /// <summary>
-    /// Whether Escape closed the list this frame, so it doesn't also take the editor's focus.
+    /// Whether the list took Escape this frame, so it doesn't also take the editor's focus.
     /// </summary>
     public bool TookEscape { get; private set; }
 
@@ -184,30 +185,44 @@ internal sealed class CompletionPopup
     }
 
     /// <summary>
-    /// Call once a frame, before the editor handles the keyboard.
+    /// Call once a frame, before the editor handles the keyboard. Escape is taken here, by the same check as the one
+    /// that unfocuses the editor, but the list only closes at its key event, which comes a frame later, so a key
+    /// pressed before it still reaches the list.
     /// </summary>
     public void HandleEscape()
     {
         TookEscape = false;
-
-        // The same check as the one that unfocuses the editor, which Imui's own Escape event arrives a frame after
-        if (_session.IsOpen && Input.GetKeyDown(KeyCode.Escape))
-        {
+        var frame = Time.frameCount;
+        if (_heldEscape.Expire(frame))
             Close();
+
+        if (_session.IsOpen && Input.GetKeyDown(KeyCode.Escape) && _heldEscape.Hold(frame))
             TookEscape = true;
-        }
     }
 
     /// <summary>
     /// Call for each key event before the editor handles it, in the editor's own event loop, so a letter typed earlier
     /// in the frame has already changed the list when Enter accepts. Ctrl+Space asks for the list; while it's open, Up
-    /// and Down move through it, Enter and Tab accept. A key the list takes is used up.
+    /// and Down move through it, Enter and Tab accept, and the Escape <see cref="HandleEscape"/> took closes it. A key
+    /// the list takes is used up.
     /// </summary>
     public TextSnapshot? HandleKeyboardEvent(ImGui gui, int index)
     {
         ref readonly var evt = ref gui.Input.GetKeyboardEvent(index);
         if (evt.Type != ImKeyboardEventType.Down)
             return null;
+
+        // Still used up when a key before it already closed the list: it was meant for the list, not the editor
+        if (evt.Key == KeyCode.Escape)
+        {
+            if (_heldEscape.Release(Time.frameCount))
+            {
+                gui.Input.UseKeyboardEvent(index);
+                Close();
+            }
+
+            return null;
+        }
 
         var control = (evt.Modifiers & EventModifiers.Control) != 0;
         if (evt.Key == KeyCode.Space && control)

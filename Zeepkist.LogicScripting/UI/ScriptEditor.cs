@@ -49,7 +49,7 @@ internal sealed partial class ScriptEditor
     public uint Id { get; private set; }
 
     /// <summary>
-    /// Whether Escape closed the completion list or hid the call's help this frame, which leaves the field focused.
+    /// Whether Escape went to the completion list or hid the call's help this frame, which leaves the field focused.
     /// </summary>
     public bool TookEscape => _completion.TookEscape || _callHelp.TookEscape;
 
