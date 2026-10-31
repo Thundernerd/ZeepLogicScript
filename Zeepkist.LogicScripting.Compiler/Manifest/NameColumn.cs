@@ -12,17 +12,15 @@ public sealed class NameColumn
     /// <summary>
     /// The most of the width the column takes, so the values beside it still have room.
     /// </summary>
-    public const float MaxShare = 0.45f;
+    private const float MaxShare = 0.45f;
 
     private readonly float[] _nameWidths;
-    private readonly float _gap;
-    private readonly float _maxWidth;
+    private readonly bool[] _fits;
 
-    private NameColumn(float[] nameWidths, float gap, float maxWidth, float width)
+    private NameColumn(float[] nameWidths, bool[] fits, float width)
     {
         _nameWidths = nameWidths;
-        _gap = gap;
-        _maxWidth = maxWidth;
+        _fits = fits;
         Width = width;
     }
 
@@ -39,15 +37,17 @@ public sealed class NameColumn
     {
         var maxWidth = availableWidth * MaxShare;
         var nameWidths = new float[rows.Count];
+        var fits = new bool[rows.Count];
         var width = 0f;
         for (var i = 0; i < rows.Count; i++)
         {
             nameWidths[i] = measure(rows[i].Name);
-            if (nameWidths[i] + gap <= maxWidth)
+            fits[i] = nameWidths[i] + gap <= maxWidth;
+            if (fits[i])
                 width = Math.Max(width, nameWidths[i] + gap);
         }
 
-        return new NameColumn(nameWidths, gap, maxWidth, width);
+        return new NameColumn(nameWidths, fits, width);
     }
 
     /// <summary>
@@ -56,7 +56,7 @@ public sealed class NameColumn
     /// </summary>
     public bool Fits(int index)
     {
-        return _nameWidths[index] + _gap <= _maxWidth;
+        return _fits[index];
     }
 
     /// <summary>
