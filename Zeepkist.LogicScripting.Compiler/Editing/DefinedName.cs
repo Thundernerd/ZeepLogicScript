@@ -17,7 +17,7 @@ public sealed class DefinedName
         bool isPlaced = false,
         DefinedFunction function = null,
         bool isInput = false,
-        string callee = null)
+        DefinedFunction callee = null)
     {
         Name = name;
         Span = span;
@@ -64,9 +64,9 @@ public sealed class DefinedName
     public bool IsInput { get; }
 
     /// <summary>
-    /// The name of the Script's own Function the value calls, when the whole value is one call to it; null otherwise.
+    /// The Script's own Function the value calls, when the whole value is one call to it; null otherwise.
     /// </summary>
-    public string Callee { get; }
+    public DefinedFunction Callee { get; }
 
     /// <summary>
     /// Whether the text at <paramref name="index"/> sees the name: it's in the same Function's body, or both are at the

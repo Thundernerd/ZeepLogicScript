@@ -27,10 +27,6 @@ public sealed class DefinedFunction
     public TextSpan Span { get; }
 
     public IReadOnlyList<string> Inputs { get; }
-
-    /// <summary>
-    /// The names after <c>-></c> on the first line, in the order it writes them.
-    /// </summary>
     public IReadOnlyList<string> Outputs { get; }
 
     /// <summary>

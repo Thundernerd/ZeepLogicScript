@@ -43,7 +43,7 @@ public static class DefinedNames
 
             var type = ReadType(tokens, i + 2, findPlacedBlock, out var mode, out var isPlaced);
             var function = functions.Select(f => f.Function).FirstOrDefault(f => f.Contains(tokens[i].Span.Start));
-            var callee = ReadCallee(tokens, i + 2);
+            var callee = ReadCallee(tokens, i + 2, functions.Select(f => f.Function));
             names.Add(new DefinedName(name, tokens[i].Span, type, mode, isPlaced, function, callee: callee));
         }
 
@@ -161,7 +161,7 @@ public static class DefinedNames
     {
         mode = null;
         isPlaced = false;
-        if (start + 1 >= tokens.Count || tokens[start].Kind != TokenKind.Name || tokens[start + 1].Kind != TokenKind.OpenParen)
+        if (!IsCall(tokens, start))
             return null;
 
         var function = tokens[start].Text;
@@ -180,7 +180,7 @@ public static class DefinedNames
         }
 
         var end = FindCallEnd(tokens, start + 1, type, out mode);
-        if (tokens[end].Kind is not (TokenKind.NewLine or TokenKind.End))
+        if (!IsValueEnd(tokens[end]))
         {
             mode = null;
             isPlaced = false;
@@ -194,21 +194,26 @@ public static class DefinedNames
     }
 
     /// <summary>
-    /// The name called when the whole value starting at <paramref name="start"/> is one call to a name that isn't
-    /// reserved, which only the Script's own Functions can be.
+    /// The Function the value starting at <paramref name="start"/> calls when the whole value is one call to it. A
+    /// reserved name is never a Function's, and of a Function defined twice, the first is the one the compiler keeps.
     /// </summary>
-    private static string ReadCallee(List<Token> tokens, int start)
+    private static DefinedFunction ReadCallee(List<Token> tokens, int start, IEnumerable<DefinedFunction> functions)
     {
-        if (start + 1 >= tokens.Count
-            || tokens[start].Kind != TokenKind.Name
-            || tokens[start + 1].Kind != TokenKind.OpenParen
-            || GraphBuilder.IsReserved(tokens[start].Text))
-        {
+        if (!IsCall(tokens, start) || GraphBuilder.IsReserved(tokens[start].Text))
             return null;
-        }
 
         var end = FindCallEnd(tokens, start + 1, null, out _);
-        return tokens[end].Kind is TokenKind.NewLine or TokenKind.End ? tokens[start].Text : null;
+        return IsValueEnd(tokens[end]) ? functions.FirstOrDefault(f => f.Name == tokens[start].Text) : null;
+    }
+
+    private static bool IsCall(List<Token> tokens, int start)
+    {
+        return start + 1 < tokens.Count && tokens[start].Kind == TokenKind.Name && tokens[start + 1].Kind == TokenKind.OpenParen;
+    }
+
+    private static bool IsValueEnd(Token token)
+    {
+        return token.Kind is TokenKind.NewLine or TokenKind.End;
     }
 
     /// <summary>

@@ -165,9 +165,12 @@ public static class Completion
             return [];
 
         var name = definedNames.FirstOrDefault(n => n.Name == context.DottedName && IsVisible(context, n));
-        var outputs = name?.Type?.GetOutputs(name.Mode).Select(o => o.Name).ToList()
-            ?? context.Functions.FirstOrDefault(f => name?.Callee != null && f.Name == name.Callee)?.Outputs
-            ?? [];
+        IReadOnlyList<string> outputs = [];
+        if (name?.Type != null)
+            outputs = name.Type.GetOutputs(name.Mode).Select(o => o.Name).ToList();
+        else if (name?.Callee != null)
+            outputs = name.Callee.Outputs;
+
         return outputs.Count > 1 ? outputs.Select(o => new CompletionItem(o, CompletionKind.Output, OutputDetail)) : [];
     }
 
