@@ -16,7 +16,8 @@ public sealed class DefinedName
         string mode,
         bool isPlaced = false,
         DefinedFunction function = null,
-        bool isInput = false)
+        bool isInput = false,
+        string callee = null)
     {
         Name = name;
         Span = span;
@@ -25,6 +26,7 @@ public sealed class DefinedName
         IsPlaced = isPlaced;
         Function = function;
         IsInput = isInput;
+        Callee = callee;
     }
 
     public string Name { get; }
@@ -60,6 +62,11 @@ public sealed class DefinedName
     /// Whether the name is one of the <see cref="Function"/>'s inputs, written on its first line.
     /// </summary>
     public bool IsInput { get; }
+
+    /// <summary>
+    /// The name of the Script's own Function the value calls, when the whole value is one call to it; null otherwise.
+    /// </summary>
+    public string Callee { get; }
 
     /// <summary>
     /// Whether the text at <paramref name="index"/> sees the name: it's in the same Function's body, or both are at the

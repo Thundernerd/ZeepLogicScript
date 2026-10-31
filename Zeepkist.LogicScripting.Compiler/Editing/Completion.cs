@@ -154,8 +154,9 @@ public static class Completion
 
     /// <summary>
     /// The outputs of the block the name before the dot stands for, in its written mode or, for a Placed Block
-    /// Reference, its mode in the level. A block with one output is used without a dot, so it offers none; nor does a
-    /// name whose value isn't a block, or a Function's name, which the compiler takes for the Function. A name defined
+    /// Reference, its mode in the level, or of the Script's own Function its value calls, in the order its first line
+    /// writes them. A block or Function with one output is used without a dot, so it offers none; nor does a name whose
+    /// value is neither, or a Function's name, which the compiler takes for the Function. A name or Function defined
     /// twice is the first definition, which the compiler keeps.
     /// </summary>
     private static IEnumerable<CompletionItem> GetOutputItems(CaretContext context, IReadOnlyList<DefinedName> definedNames)
@@ -164,8 +165,10 @@ public static class Completion
             return [];
 
         var name = definedNames.FirstOrDefault(n => n.Name == context.DottedName && IsVisible(context, n));
-        var outputs = name?.Type?.GetOutputs(name.Mode) ?? [];
-        return outputs.Count > 1 ? outputs.Select(o => new CompletionItem(o.Name, CompletionKind.Output, OutputDetail)) : [];
+        var outputs = name?.Type?.GetOutputs(name.Mode).Select(o => o.Name).ToList()
+            ?? context.Functions.FirstOrDefault(f => name?.Callee != null && f.Name == name.Callee)?.Outputs
+            ?? [];
+        return outputs.Count > 1 ? outputs.Select(o => new CompletionItem(o, CompletionKind.Output, OutputDetail)) : [];
     }
 
     private static IEnumerable<CompletionItem> GetInputItems(CaretContext context, IEnumerable<string> inputs)
