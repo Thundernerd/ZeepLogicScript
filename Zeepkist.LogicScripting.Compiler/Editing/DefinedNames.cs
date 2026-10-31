@@ -43,7 +43,8 @@ public static class DefinedNames
 
             var type = ReadType(tokens, i + 2, findPlacedBlock, out var mode, out var isPlaced);
             var function = functions.Select(f => f.Function).FirstOrDefault(f => f.Contains(tokens[i].Span.Start));
-            names.Add(new DefinedName(name, tokens[i].Span, type, mode, isPlaced, function));
+            var callee = ReadCallee(tokens, i + 2, functions.Select(f => f.Function));
+            names.Add(new DefinedName(name, tokens[i].Span, type, mode, isPlaced, function, callee: callee));
         }
 
         return names.OrderBy(n => n.Span.Start).ToList();
@@ -72,6 +73,7 @@ public static class DefinedNames
 
             var name = tokens[i + 1].Kind == TokenKind.Name ? tokens[i + 1] : (Token?)null;
             List<Token> inputs = [];
+            List<string> outputs = [];
             var j = name == null ? i + 1 : i + 2;
             if (name != null && tokens[j].Kind == TokenKind.OpenParen)
             {
@@ -79,6 +81,15 @@ public static class DefinedNames
                 {
                     if (tokens[j].Kind == TokenKind.Name && tokens[j - 1].Kind is TokenKind.OpenParen or TokenKind.Comma)
                         inputs.Add(tokens[j]);
+                }
+
+                if (tokens[j].Kind == TokenKind.CloseParen && tokens[j + 1].Kind == TokenKind.Arrow)
+                {
+                    for (j += 2; tokens[j].Kind is not (TokenKind.NewLine or TokenKind.End); j++)
+                    {
+                        if (tokens[j].Kind == TokenKind.Name && tokens[j - 1].Kind is TokenKind.Arrow or TokenKind.Comma)
+                            outputs.Add(tokens[j].Text);
+                    }
                 }
             }
 
@@ -111,7 +122,7 @@ public static class DefinedNames
             }
 
             var body = new TextSpan(bodyStart, Math.Max(0, bodyEnd - bodyStart));
-            var function = new DefinedFunction(name?.Text, name?.Span ?? tokens[i].Span, inputs.Select(t => t.Text).ToList(), body);
+            var function = new DefinedFunction(name?.Text, name?.Span ?? tokens[i].Span, inputs.Select(t => t.Text).ToList(), outputs, body);
             functions.Add((function, inputs));
             i = j - 1;
         }
@@ -150,7 +161,7 @@ public static class DefinedNames
     {
         mode = null;
         isPlaced = false;
-        if (start + 1 >= tokens.Count || tokens[start].Kind != TokenKind.Name || tokens[start + 1].Kind != TokenKind.OpenParen)
+        if (!IsCall(tokens, start))
             return null;
 
         var function = tokens[start].Text;
@@ -169,7 +180,7 @@ public static class DefinedNames
         }
 
         var end = FindCallEnd(tokens, start + 1, type, out mode);
-        if (tokens[end].Kind is not (TokenKind.NewLine or TokenKind.End))
+        if (!IsValueEnd(tokens[end]))
         {
             mode = null;
             isPlaced = false;
@@ -180,6 +191,29 @@ public static class DefinedNames
             mode = GetPlacedMode(type, block);
 
         return type;
+    }
+
+    /// <summary>
+    /// The Function the value starting at <paramref name="start"/> calls when the whole value is one call to it. A
+    /// reserved name is never a Function's, and of a Function defined twice, the first is the one the compiler keeps.
+    /// </summary>
+    private static DefinedFunction ReadCallee(List<Token> tokens, int start, IEnumerable<DefinedFunction> functions)
+    {
+        if (!IsCall(tokens, start) || GraphBuilder.IsReserved(tokens[start].Text))
+            return null;
+
+        var end = FindCallEnd(tokens, start + 1, null, out _);
+        return IsValueEnd(tokens[end]) ? functions.FirstOrDefault(f => f.Name == tokens[start].Text) : null;
+    }
+
+    private static bool IsCall(List<Token> tokens, int start)
+    {
+        return start + 1 < tokens.Count && tokens[start].Kind == TokenKind.Name && tokens[start + 1].Kind == TokenKind.OpenParen;
+    }
+
+    private static bool IsValueEnd(Token token)
+    {
+        return token.Kind is TokenKind.NewLine or TokenKind.End;
     }
 
     /// <summary>

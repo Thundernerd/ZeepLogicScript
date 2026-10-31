@@ -7,11 +7,12 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 /// </summary>
 public sealed class DefinedFunction
 {
-    public DefinedFunction(string name, TextSpan span, IReadOnlyList<string> inputs, TextSpan body)
+    public DefinedFunction(string name, TextSpan span, IReadOnlyList<string> inputs, IReadOnlyList<string> outputs, TextSpan body)
     {
         Name = name;
         Span = span;
         Inputs = inputs;
+        Outputs = outputs;
         Body = body;
     }
 
@@ -26,6 +27,7 @@ public sealed class DefinedFunction
     public TextSpan Span { get; }
 
     public IReadOnlyList<string> Inputs { get; }
+    public IReadOnlyList<string> Outputs { get; }
 
     /// <summary>
     /// From the line after the first line to the end of its <c>end</c>; while it has none, to the next Function or the

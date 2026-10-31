@@ -588,7 +588,12 @@ public class CompletionTests
     [InlineData("y = nothing.|")]
     [InlineData("function f(t)\n  y = t.|\nend")]
     [InlineData("t = simple_telemetry()\nfunction f()\n  y = t.|\nend")]
-    public void Items_AfterADot_NothingWhenTheNameIsntAVisibleBlockWithSeveralOutputs(string text)
+    [InlineData("function f(a) -> hi\nend\nr = f(1)\nx = r.|")]
+    [InlineData("function f(a)\nend\nr = f(1)\nx = r.|")]
+    [InlineData("function f(a) -> hi, lo\nend\nr = f(1) & 1\nx = r.|")]
+    [InlineData("r = g(1)\nx = r.|")]
+    [InlineData("function f(a) -> hi, lo\nend\nfunction g()\n  r = f(1)\nend\nx = r.|")]
+    public void Items_AfterADot_NothingWhenTheNameIsntAVisibleBlockOrFunctionCallWithSeveralOutputs(string text)
     {
         Assert.Empty(Names(text));
     }
@@ -605,6 +610,26 @@ public class CompletionTests
     public void Items_AfterADot_InsideDelay_ALaterDefinition()
     {
         Assert.Equal(["speed", "yaw", "up", "state"], NameLabels("x = delay(t.|, ticks: 1)\nt = simple_telemetry()"));
+    }
+
+    [Fact]
+    public void Items_AfterADot_TheOutputsOfTheFunctionTheNameCalls_InTheOrderItWritesThem()
+    {
+        Assert.Equal(["lo", "hi"], NameLabels("function f(a) -> lo, hi\nend\nr = f(1)\nx = r.|"));
+    }
+
+    [Fact]
+    public void Items_AfterADot_TheOutputsOfTheFirstDefinitionOfAFunctionDefinedTwice()
+    {
+        const string Text = "function f(a) -> lo, hi\nend\nfunction f(a) -> x, y, z\nend\nr = f(1)\nx = r.|";
+
+        Assert.Equal(["lo", "hi"], NameLabels(Text));
+    }
+
+    [Fact]
+    public void Items_AfterADot_TheOutputsOfAFunctionCallInsideAFunction()
+    {
+        Assert.Equal(["lo", "hi"], NameLabels("function f(a) -> lo, hi\nend\nfunction g()\n  r = f(1)\n  x = r.|\nend"));
     }
 
     [Fact]
