@@ -14,7 +14,7 @@ internal sealed class CallExpression : Expression
         string function,
         List<Expression> arguments,
         List<NamedArgument> namedArguments)
-        : base(position, 1 + GetDepth(arguments.Concat(namedArguments.Select(a => a.Value))))
+        : base(position, [.. arguments, .. namedArguments.Select(a => a.Value)])
     {
         Library = library;
         Function = function;
