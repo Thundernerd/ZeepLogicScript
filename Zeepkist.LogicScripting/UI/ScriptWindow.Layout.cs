@@ -84,6 +84,9 @@ internal sealed partial class ScriptWindow
     {
         BlockProperties hovered = null;
         var open = true;
+
+        // A field sets whether it has focus as it's drawn, so one in a hidden tab or a collapsed side has none
+        ReleasePanelFocus();
         if (gui.BeginWindow(
                 Title,
                 ref open,
@@ -531,12 +534,6 @@ internal sealed partial class ScriptWindow
         gui.TooltipAtLastControl(LibraryListPanel.Help);
 
         gui.Box(content, in gui.Style.Tabs.ContainerBox);
-
-        // The hidden tab's name field isn't drawn, so it can't update whether it has focus
-        if (_state.ShowLibraries)
-            _scriptListPanel.ReleaseFocus();
-        else
-            _libraryListPanel.ReleaseFocus();
 
         // A scope per tab, so their scroll areas don't share one id, and with it one scroll position
         gui.PushId(_state.ShowLibraries ? LibrariesTab : ScriptsTab);

@@ -206,11 +206,16 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     {
         _mouseOver = false;
         _fieldFocused = false;
+        ReleasePanelFocus();
+        SetMouseBlocked(false);
+        SetKeyboardBlocked(false);
+    }
+
+    private void ReleasePanelFocus()
+    {
         _scriptListPanel.ReleaseFocus();
         _libraryListPanel.ReleaseFocus();
         _referencePanel.ReleaseFocus();
-        SetMouseBlocked(false);
-        SetKeyboardBlocked(false);
     }
 
     /// <summary>
