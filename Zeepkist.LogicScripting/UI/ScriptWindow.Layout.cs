@@ -221,8 +221,7 @@ internal sealed partial class ScriptWindow
     {
         var settings = ImTabsPane.GetTextSettings(gui);
         var widestLabel = Mathf.Max(gui.MeasureTextSize(PlacedBlocksTab, settings).x, gui.MeasureTextSize(ReferenceTab, settings).x);
-        var tabWidth = widestLabel + (gui.Style.Layout.Indent * 2);
-        return Mathf.Max(MinBlocksWidth, (tabWidth * 2) + (gui.Style.Layout.Spacing * 4));
+        return GetMinTabsWidth(gui, widestLabel, MinBlocksWidth);
     }
 
     /// <summary>
@@ -231,8 +230,16 @@ internal sealed partial class ScriptWindow
     private static float GetMinScriptsWidth(ImGui gui)
     {
         var widestLabel = Mathf.Max(SideTab.GetLabelWidth(gui, ScriptsTab), SideTab.GetLabelWidth(gui, LibrariesTab));
+        return GetMinTabsWidth(gui, widestLabel, MinScriptsWidth);
+    }
+
+    /// <summary>
+    /// A side with two tabs, each half its width, and at least <paramref name="min"/>.
+    /// </summary>
+    private static float GetMinTabsWidth(ImGui gui, float widestLabel, float min)
+    {
         var tabWidth = widestLabel + (gui.Style.Layout.Indent * 2);
-        return Mathf.Max(MinScriptsWidth, (tabWidth * 2) + (gui.Style.Layout.Spacing * 4));
+        return Mathf.Max(min, (tabWidth * 2) + (gui.Style.Layout.Spacing * 4));
     }
 
     private static void DrawDivider(ImGui gui, ImRect edge)

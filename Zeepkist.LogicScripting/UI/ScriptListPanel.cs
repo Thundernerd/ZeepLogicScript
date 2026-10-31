@@ -13,12 +13,12 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// </summary>
 internal sealed class ScriptListPanel
 {
+    public const string Help = "Right-click a Script to rename it, select its blocks or delete it";
+
     private readonly ManualLogSource _logger;
     private readonly ScriptList _scripts;
     private readonly DraftSaver _draftSaver;
     private readonly Action<ScriptEntry> _deleted;
-    public const string Help = "Right-click a Script to rename it, select its blocks or delete it";
-
     private readonly NamePrompt _namePrompt = new("Script");
     private readonly DeletePrompt _deletePrompt = new();
     private ScriptEntry _renamed;

@@ -22,7 +22,7 @@ internal static class SideTab
         var clicked = gui.Button(gui.GetNextControlId(), rect, in style, out var state);
         var color = ImButton.GetStateFrontColor(in style, state);
 
-        var settings = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f);
+        var settings = GetTextSettings(gui);
         var spacing = gui.Style.Layout.InnerSpacing;
         var dotSize = GetDotSize(gui);
         var labelWidth = gui.MeasureTextSize(label, settings).x;
@@ -48,9 +48,17 @@ internal static class SideTab
     /// </summary>
     public static float GetLabelWidth(ImGui gui, string label)
     {
-        var settings = ImTabsPane.GetTextSettings(gui);
+        var settings = GetTextSettings(gui);
         var spacing = gui.Style.Layout.InnerSpacing;
         return GetDotSize(gui) + spacing + gui.MeasureTextSize(label, settings).x + spacing + gui.MeasureTextSize(WarningMark, settings).x;
+    }
+
+    /// <summary>
+    /// Left-aligned, as the label and marks are placed one after another.
+    /// </summary>
+    private static ImTextSettings GetTextSettings(ImGui gui)
+    {
+        return new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f);
     }
 
     private static float GetDotSize(ImGui gui)
