@@ -59,18 +59,18 @@ internal static class ErrorTable
     public static Position? DrawRows(ImGui gui, IReadOnlyList<Diagnostic> errors, ErrorColumns columns)
     {
         var numberSettings = GetSingleLineSettings(gui, 1);
-        var wrapped = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0, wrap: true);
+        var wrapped = WrappedText.GetSettings(gui);
         var spacing = gui.Style.Layout.Spacing;
         var width = gui.GetLayoutWidth();
-        var messageBounds = new Vector2(Mathf.Max(1, width - columns.Line - columns.Column - (spacing * 2)), 0);
+        var messageWidth = width - columns.Line - columns.Column - (spacing * 2);
         var hover = gui.Style.Menu.ItemNormal.Hovered.BackColor;
 
         Position? clicked = null;
         for (var i = 0; i < errors.Count; i++)
         {
             var error = errors[i];
-            var originHeight = error.Origin == null ? 0 : gui.MeasureTextSize(error.Origin, in wrapped, messageBounds).y;
-            var detailHeight = gui.MeasureTextSize(error.Detail, in wrapped, messageBounds).y;
+            var originHeight = error.Origin == null ? 0 : WrappedText.GetHeight(gui, error.Origin, in wrapped, messageWidth, minHeight: 0);
+            var detailHeight = WrappedText.GetHeight(gui, error.Detail, in wrapped, messageWidth, minHeight: 0);
             var height = Mathf.Max(gui.GetRowHeight(), originHeight + detailHeight + gui.Style.Layout.ExtraRowHeight);
 
             // No spacing between rows, so the alternating backgrounds meet

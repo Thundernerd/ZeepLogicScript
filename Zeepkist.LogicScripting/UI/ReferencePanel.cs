@@ -197,10 +197,9 @@ internal sealed class ReferencePanel
     private static void DrawRow(ImGui gui, string label, Color32 labelColor, string value, Color32 valueColor, float labelWidth)
     {
         var line = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0);
-        var wrapped = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0, wrap: true);
+        var wrapped = WrappedText.GetSettings(gui);
         var width = gui.GetLayoutWidth();
-        var valueWidth = Mathf.Max(1, width - labelWidth);
-        var height = Mathf.Max(gui.GetTextLineHeight(), gui.MeasureTextSize(value, wrapped, new Vector2(valueWidth, 0)).y);
+        var height = WrappedText.GetHeight(gui, value, in wrapped, width - labelWidth, gui.GetTextLineHeight());
 
         gui.AddSpacingIfLayoutFrameNotEmpty();
         var rect = gui.AddLayoutRect(width, height);

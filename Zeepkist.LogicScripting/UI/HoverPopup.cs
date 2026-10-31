@@ -91,7 +91,7 @@ internal sealed partial class HoverPopup
         gui.BeginPopup();
         gui.Box(rect, in gui.Style.Menu.Box);
         var line = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0);
-        var wrapped = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0, wrap: true);
+        var wrapped = WrappedText.GetSettings(gui);
         var origin = new Vector2(rect.X + padding.Left, rect.Top - padding.Top);
         foreach (var piece in _pieces)
         {
