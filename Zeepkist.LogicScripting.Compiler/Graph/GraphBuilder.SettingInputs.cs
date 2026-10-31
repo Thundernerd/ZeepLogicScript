@@ -114,6 +114,7 @@ internal sealed partial class GraphBuilder
             }
         }
 
+        // Only a call's arguments can be Settings, so every other kind of expression is just its children
         void VisitExpression(Expression expression)
         {
             switch (expression)
@@ -121,21 +122,15 @@ internal sealed partial class GraphBuilder
                 case NameExpression name when inputs.Contains(name.Name):
                     use(name.Name, name, false);
                     break;
-                case MemberExpression member:
-                    VisitExpression(member.Target);
-                    break;
-                case UnaryExpression unary:
-                    VisitExpression(unary.Operand);
-                    break;
-                case BinaryExpression binary:
-                    VisitExpression(binary.Left);
-                    VisitExpression(binary.Right);
-                    break;
-                case ListExpression list:
-                    list.Items.ForEach(VisitExpression);
-                    break;
                 case CallExpression call:
                     VisitCall(call);
+                    break;
+                default:
+                    foreach (var child in expression.Children)
+                    {
+                        VisitExpression(child);
+                    }
+
                     break;
             }
         }

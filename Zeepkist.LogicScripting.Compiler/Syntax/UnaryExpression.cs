@@ -3,7 +3,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 internal sealed class UnaryExpression : Expression
 {
     public UnaryExpression(Position position, UnaryOperator op, Expression operand)
-        : base(position, 1 + operand.Depth)
+        : base(position, [operand])
     {
         Operator = op;
         Operand = operand;

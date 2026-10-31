@@ -6,7 +6,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
 internal sealed class MemberExpression : Expression
 {
     public MemberExpression(Position position, Expression target, string output)
-        : base(position, 1 + target.Depth)
+        : base(position, [target])
     {
         Target = target;
         Output = output;
