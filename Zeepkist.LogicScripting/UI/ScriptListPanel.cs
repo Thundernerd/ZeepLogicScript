@@ -13,6 +13,8 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// </summary>
 internal sealed class ScriptListPanel
 {
+    public const string Help = "Right-click a Script to rename it, select its blocks or delete it";
+
     private readonly ManualLogSource _logger;
     private readonly ScriptList _scripts;
     private readonly DraftSaver _draftSaver;
@@ -40,11 +42,6 @@ internal sealed class ScriptListPanel
         _namePrompt.Focused = false;
     }
 
-    public void CloseNamePrompt()
-    {
-        _namePrompt.Close();
-    }
-
     public void Clear()
     {
         _namePrompt.Close();
@@ -53,9 +50,9 @@ internal sealed class ScriptListPanel
     }
 
     /// <summary>
-    /// Returns the Script the player clicked or made, or null.
+    /// Returns the Script the player clicked, or null.
     /// </summary>
-    public ScriptEntry Draw(ImGui gui, ScriptEntry current)
+    public ScriptEntry DrawEntries(ImGui gui, ScriptEntry current)
     {
         ScriptEntry selected = null;
         foreach (var entry in _scripts.Entries)
@@ -67,8 +64,7 @@ internal sealed class ScriptListPanel
             if (gui.Button(gui.GetNextControlId(), glyph == null ? entry.Name : $"{glyph} {entry.Name}", rect, in style, out _) && entry != current)
                 selected = entry;
 
-            if (tooltip != null)
-                gui.TooltipAtLastControl(tooltip);
+            gui.TooltipAtLastControl(tooltip == null ? Help : $"{tooltip}. {Help}");
 
             if (gui.BeginContextMenu(rect))
             {
@@ -92,8 +88,17 @@ internal sealed class ScriptListPanel
         }
 
         if (_scripts.Entries.Count == 0)
-            gui.Text("None yet in this level", wrap: true);
+            gui.Text("None yet in this level. New Script makes one, and right-clicking a Script renames it, selects its blocks or deletes it.", WindowColors.Muted, wrap: true);
 
+        return selected;
+    }
+
+    /// <summary>
+    /// New Script, the name and delete prompts and the result line. Returns the Script the player made, or null.
+    /// </summary>
+    public ScriptEntry DrawActions(ImGui gui)
+    {
+        ScriptEntry made = null;
         if (gui.Button("New Script"))
         {
             _deletePrompt.Close();
@@ -101,15 +106,12 @@ internal sealed class ScriptListPanel
             _namePrompt.OpenNew();
         }
 
-        if (_scripts.Entries.Count > 0)
-            gui.Text("Right-click a Script to rename it, select its blocks or delete it", WindowColors.Muted, wrap: true);
-
         var named = _namePrompt.Draw(gui, name => _scripts.GetNameError(name, _renamed?.Id));
         if (named != null)
         {
             _message = string.Empty;
             if (_renamed == null)
-                selected = _scripts.Add(named);
+                made = _scripts.Add(named);
             else
                 _renamed.Name = named;
 
@@ -127,7 +129,7 @@ internal sealed class ScriptListPanel
         if (_message.Length > 0)
             gui.Text(_message, wrap: true);
 
-        return selected;
+        return made;
     }
 
     /// <summary>

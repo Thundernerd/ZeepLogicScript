@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using BepInEx.Logging;
 using Imui.Controls;
 using Imui.Core;
+using Imui.Rendering;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
@@ -29,9 +31,10 @@ internal sealed class OrphanedGroupsPanel
     }
 
     /// <summary>
-    /// Returns the Orphaned Group whose Script the player chose to restore from its Draft, or null.
+    /// Returns the Orphaned Group whose Script the player chose to restore from its Draft, or null. Collapsed, the
+    /// section is its heading and the result line.
     /// </summary>
-    public OrphanedGroup Draw(ImGui gui, IReadOnlyList<OrphanedGroup> orphanedGroups)
+    public OrphanedGroup Draw(ImGui gui, IReadOnlyList<OrphanedGroup> orphanedGroups, ref bool collapsed)
     {
         if (orphanedGroups.Count == 0)
         {
@@ -39,9 +42,18 @@ internal sealed class OrphanedGroupsPanel
             return null;
         }
 
-        gui.Text("Orphaned Groups", wrap: true);
-        gui.Text("Blocks of Scripts whose text the level no longer holds. They can't be recompiled.", wrap: true);
+        if (DrawHeading(gui, orphanedGroups.Count, collapsed))
+            collapsed = !collapsed;
 
+        var restored = collapsed ? null : DrawGroups(gui, orphanedGroups);
+        if (_message.Length > 0)
+            gui.Text(_message, wrap: true);
+
+        return restored;
+    }
+
+    private OrphanedGroup DrawGroups(ImGui gui, IReadOnlyList<OrphanedGroup> orphanedGroups)
+    {
         OrphanedGroup restored = null;
         foreach (var orphan in orphanedGroups)
         {
@@ -75,10 +87,34 @@ internal sealed class OrphanedGroupsPanel
                 : "Bring the Script back from this machine's Draft. Compile to store it in the level again");
         }
 
-        if (_message.Length > 0)
-            gui.Text(_message, wrap: true);
-
         return restored;
+    }
+
+    /// <summary>
+    /// Drawn like a Reference category's header, in the warning color and with the count on the right. Returns whether
+    /// it was clicked.
+    /// </summary>
+    private static bool DrawHeading(ImGui gui, int count, bool collapsed)
+    {
+        gui.AddSpacingIfLayoutFrameNotEmpty();
+        var rect = gui.AddSingleRowRect(default);
+        var clicked = gui.Button(gui.GetNextControlId(), rect, in gui.Style.Foldout.Button, out _);
+        gui.TooltipAtLastControl("Blocks of Scripts whose text the level no longer holds. They can't be recompiled");
+
+        var spacing = gui.Style.Layout.InnerSpacing;
+        var content = ImButton.CalculateContentRect(gui, rect);
+        var arrowRect = content.TakeLeft(gui.Style.Layout.TextSize, spacing, out var labelRect).WithAspect(1.0f);
+        if (collapsed)
+            ImFoldout.DrawArrowRight(gui.Canvas, arrowRect, WindowColors.Warning, gui.Style.Foldout.ArrowScale);
+        else
+            ImFoldout.DrawArrowDown(gui.Canvas, arrowRect, WindowColors.Warning, gui.Style.Foldout.ArrowScale);
+
+        var settings = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f, overflow: ImTextOverflow.Ellipsis);
+        var countText = count.ToString(CultureInfo.InvariantCulture);
+        var countRect = labelRect.TakeRight(gui.MeasureTextSize(countText, settings).x, spacing, out labelRect);
+        gui.Text("Orphaned Groups", settings, WindowColors.Warning, labelRect);
+        gui.Text(countText, settings, WindowColors.Warning, countRect);
+        return clicked;
     }
 
     public void ShowRestored(ScriptEntry entry)

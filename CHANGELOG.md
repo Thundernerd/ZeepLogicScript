@@ -50,6 +50,9 @@ All notable changes to Logic Scripting are listed here.
 - Errors and result lines read as plain sentences, such as `'x' is a function. Call it with ( )` and `1 error, nothing placed`.
 - The error panel is a table, with the line, column and message of each error in columns of their own.
   An error inside a Library's Function shows where in the Library it is above the message.
+- The Scripts side has two tabs, Scripts and Libraries, so it shows one list at a time.
+  Orphaned Groups sit under the Scripts list and can be collapsed, and the Scripts tab shows a `!` while there are any.
+  The help text moved into tooltips on the tabs and the lists.
 
 ### Fixed
 

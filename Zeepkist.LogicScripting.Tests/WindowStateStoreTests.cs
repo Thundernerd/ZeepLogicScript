@@ -106,6 +106,51 @@ public class WindowStateStoreTests
     }
 
     [Fact]
+    public void TheScriptsSideTabAndOrphanedGroups_AreSavedAndLoaded()
+    {
+        var state = new WindowState { ShowLibraries = true, OrphanedGroupsCollapsed = true };
+
+        _store.Save(state);
+
+        var loaded = _store.Load();
+        Assert.True(loaded.ShowLibraries);
+        Assert.True(loaded.OrphanedGroupsCollapsed);
+    }
+
+    [Fact]
+    public void AFileWithoutTheScriptsSideTab_LoadsScriptsShownAndOrphanedGroupsExpanded()
+    {
+        _storage.WriteJson(FileName, """{ "Open": true }""");
+
+        var state = _store.Load();
+
+        Assert.False(state.ShowLibraries);
+        Assert.False(state.OrphanedGroupsCollapsed);
+    }
+
+    [Fact]
+    public void ACopy_NoticesTheScriptsSideTabChanging()
+    {
+        var state = new WindowState();
+        var copy = state.Copy();
+
+        state.ShowLibraries = true;
+
+        Assert.False(state.IsSameAs(copy));
+    }
+
+    [Fact]
+    public void ACopy_NoticesOrphanedGroupsCollapsing()
+    {
+        var state = new WindowState();
+        var copy = state.Copy();
+
+        state.OrphanedGroupsCollapsed = true;
+
+        Assert.False(state.IsSameAs(copy));
+    }
+
+    [Fact]
     public void NoFile_LoadsAClosedNeverPlacedWindow()
     {
         var state = _store.Load();
