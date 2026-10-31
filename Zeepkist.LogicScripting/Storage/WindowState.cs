@@ -37,6 +37,13 @@ internal sealed class WindowState
     /// </summary>
     public List<string> CollapsedReferenceCategories { get; set; } = [];
 
+    /// <summary>
+    /// Whether the Scripts side shows its Libraries tab rather than its Scripts tab.
+    /// </summary>
+    public bool ShowLibraries { get; set; }
+
+    public bool OrphanedGroupsCollapsed { get; set; }
+
     [JsonProperty("Level")]
     private PanelState LegacyLevel
     {
@@ -61,7 +68,9 @@ internal sealed class WindowState
             && Width == other.Width
             && Height == other.Height
             && _panels.All(panel => panel.Get(this).IsSameAs(panel.Get(other)))
-            && CollapsedReferenceCategories.SequenceEqual(other.CollapsedReferenceCategories);
+            && CollapsedReferenceCategories.SequenceEqual(other.CollapsedReferenceCategories)
+            && ShowLibraries == other.ShowLibraries
+            && OrphanedGroupsCollapsed == other.OrphanedGroupsCollapsed;
     }
 
     /// <summary>

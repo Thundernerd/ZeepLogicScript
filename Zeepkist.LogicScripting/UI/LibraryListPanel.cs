@@ -9,6 +9,8 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// </summary>
 internal sealed class LibraryListPanel
 {
+    public const string Help = "On this machine, for Scripts in every level. Right-click a Library to rename or delete it";
+
     private readonly LibraryList _libraries;
     private readonly NamePrompt _namePrompt = new("Library");
     private Library _renamed;
@@ -27,11 +29,6 @@ internal sealed class LibraryListPanel
         _namePrompt.Focused = false;
     }
 
-    public void CloseNamePrompt()
-    {
-        _namePrompt.Close();
-    }
-
     /// <summary>
     /// Returns the Library the player clicked or made, or null. <paramref name="deleted"/> is the Library Delete just
     /// dropped, or null.
@@ -39,8 +36,6 @@ internal sealed class LibraryListPanel
     public Library Draw(ImGui gui, Library current, bool readFailed, out Library deleted)
     {
         deleted = null;
-        gui.Text("Libraries", wrap: true);
-        gui.Text("On this machine, for Scripts in every level", WindowColors.Muted, wrap: true);
         if (readFailed)
             gui.Text("Couldn't read libraries.json, so changes to Libraries aren't saved. Fix or remove the file, then restart the game.", WindowColors.Error, wrap: true);
 
@@ -72,6 +67,9 @@ internal sealed class LibraryListPanel
             }
         }
 
+        if (_libraries.Entries.Count == 0)
+            gui.Text("None yet on this machine. A Library is for Scripts in every level. New Library makes one, and right-clicking a Library renames or deletes it.", WindowColors.Muted, wrap: true);
+
         if (gui.Button("New Library"))
         {
             _deleted = null;
@@ -79,8 +77,7 @@ internal sealed class LibraryListPanel
             _namePrompt.OpenNew();
         }
 
-        if (_libraries.Entries.Count > 0)
-            gui.Text("Right-click a Library to rename or delete it", WindowColors.Muted, wrap: true);
+        gui.TooltipAtLastControl(Help);
 
         var named = _namePrompt.Draw(gui, name => _libraries.GetNameError(name, _renamed?.Id));
         if (named != null)

@@ -12,7 +12,8 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// The window itself: three regions side by side, Scripts on the left, the current Script in the center and Blocks
 /// on the right (those in the level and those a Script can use), whose sides collapse to a strip. The sides and the
 /// error panel under the editor are resized by dragging their inner edge, and the error panel hides to its header.
-/// Open state, size, position, panel sizes, collapsed panels and collapsed Reference categories are kept in the <see cref="WindowState"/>.
+/// Open state, size, position, panel sizes, collapsed panels, collapsed Reference categories, the Scripts side's shown
+/// tab and whether Orphaned Groups is collapsed are kept in the <see cref="WindowState"/>.
 /// </summary>
 internal sealed partial class ScriptWindow
 {
@@ -25,6 +26,8 @@ internal sealed partial class ScriptWindow
     private const float MinBlocksWidth = 300;
     private const string PlacedBlocksTab = "Placed blocks";
     private const string ReferenceTab = "Reference";
+    private const string ScriptsTab = "Scripts";
+    private const string LibrariesTab = "Libraries";
 
     /// <summary>
     /// Narrower than this, the sides draw collapsed whatever the state says, so the editor stays usable.
@@ -128,11 +131,12 @@ internal sealed partial class ScriptWindow
     {
         var area = gui.Layout.AddRect(gui.GetLayoutWidth(), gui.GetLayoutHeight());
         var collapsedWidth = GetPanelHeaderHeight(gui);
+        var minScriptsWidth = GetMinScriptsWidth(gui);
         var minBlocksWidth = GetMinBlocksWidth(gui);
 
         // The Blocks side gives way first; the Scripts side only when the center still doesn't fit without both
-        var blocksFits = area.W - (_state.Scripts.Collapsed ? collapsedWidth : MinScriptsWidth) - minBlocksWidth >= MinCenterWidth;
-        var scriptsFits = area.W - MinScriptsWidth - collapsedWidth >= MinCenterWidth;
+        var blocksFits = area.W - (_state.Scripts.Collapsed ? collapsedWidth : minScriptsWidth) - minBlocksWidth >= MinCenterWidth;
+        var scriptsFits = area.W - minScriptsWidth - collapsedWidth >= MinCenterWidth;
         var scriptsCollapsed = _state.Scripts.Collapsed || !scriptsFits;
         var blocksCollapsed = _state.Blocks.Collapsed || !blocksFits;
 
@@ -141,7 +145,7 @@ internal sealed partial class ScriptWindow
         var maxScriptsWidth = area.W - MinCenterWidth - (blocksCollapsed ? collapsedWidth : minBlocksWidth);
         var scriptsWidth = scriptsCollapsed
             ? collapsedWidth
-            : GetPanelSize(_state.Scripts.Size, DefaultScriptsWidth, MinScriptsWidth, maxScriptsWidth);
+            : GetPanelSize(_state.Scripts.Size, DefaultScriptsWidth, minScriptsWidth, maxScriptsWidth);
         var maxBlocksWidth = area.W - MinCenterWidth - scriptsWidth;
         var blocksWidth = blocksCollapsed
             ? collapsedWidth
@@ -150,7 +154,7 @@ internal sealed partial class ScriptWindow
         var scriptsEdgeId = gui.GetControlId("scripts edge");
         var blocksEdgeId = gui.GetControlId("blocks edge");
         if (!scriptsCollapsed && _scriptsEdge.Drag(gui, scriptsEdgeId, scriptsWidth) is { } draggedScriptsWidth)
-            _state.Scripts.Size = ClampSize(draggedScriptsWidth, MinScriptsWidth, maxScriptsWidth);
+            _state.Scripts.Size = ClampSize(draggedScriptsWidth, minScriptsWidth, maxScriptsWidth);
 
         if (!blocksCollapsed && _blocksEdge.Drag(gui, blocksEdgeId, blocksWidth) is { } draggedBlocksWidth)
             _state.Blocks.Size = ClampSize(draggedBlocksWidth, minBlocksWidth, maxBlocksWidth);
@@ -169,11 +173,7 @@ internal sealed partial class ScriptWindow
             _state.Scripts.ToggleCollapsed();
 
         if (!scriptsCollapsed)
-        {
-            WindowRegion.Begin(gui, GetSideBody(gui, scripts));
-            DrawScriptList(gui);
-            WindowRegion.End(gui);
-        }
+            DrawScriptsTabs(gui, GetSideBody(gui, scripts));
 
         gui.PopId();
         gui.PushId("center");
@@ -223,6 +223,16 @@ internal sealed partial class ScriptWindow
         var widestLabel = Mathf.Max(gui.MeasureTextSize(PlacedBlocksTab, settings).x, gui.MeasureTextSize(ReferenceTab, settings).x);
         var tabWidth = widestLabel + (gui.Style.Layout.Indent * 2);
         return Mathf.Max(MinBlocksWidth, (tabWidth * 2) + (gui.Style.Layout.Spacing * 4));
+    }
+
+    /// <summary>
+    /// Like <see cref="GetMinBlocksWidth"/>, with room in each tab for both its marks.
+    /// </summary>
+    private static float GetMinScriptsWidth(ImGui gui)
+    {
+        var widestLabel = Mathf.Max(SideTab.GetLabelWidth(gui, ScriptsTab), SideTab.GetLabelWidth(gui, LibrariesTab));
+        var tabWidth = widestLabel + (gui.Style.Layout.Indent * 2);
+        return Mathf.Max(MinScriptsWidth, (tabWidth * 2) + (gui.Style.Layout.Spacing * 4));
     }
 
     private static void DrawDivider(ImGui gui, ImRect edge)
@@ -492,5 +502,44 @@ internal sealed partial class ScriptWindow
         WindowRegion.End(gui);
         gui.PopId();
         return hovered;
+    }
+
+    /// <summary>
+    /// Like the Blocks side's tabs. Switching tabs leaves the editor as it is, so a dot marks the tab that holds what
+    /// it shows, and a warning mark the Scripts tab while the level has Orphaned Groups.
+    /// </summary>
+    private void DrawScriptsTabs(ImGui gui, ImRect rect)
+    {
+        var bar = rect.WithPadding(gui.Style.Layout.Spacing).TakeTop(ImTabsPane.GetTabBarHeight(gui), out var content);
+        var scriptsRect = bar.TakeLeft(bar.W / 2, out var librariesRect);
+        var hasOrphans = _scripts.OrphanedGroups.Count > 0;
+        if (SideTab.Draw(gui, !_state.ShowLibraries, ScriptsTab, scriptsRect, _current != null, hasOrphans))
+            _state.ShowLibraries = false;
+
+        gui.TooltipAtLastControl(hasOrphans ? $"{ScriptListPanel.Help}. The level has Orphaned Groups, listed under its Scripts" : ScriptListPanel.Help);
+
+        if (SideTab.Draw(gui, _state.ShowLibraries, LibrariesTab, librariesRect, _currentLibrary != null, false))
+            _state.ShowLibraries = true;
+
+        gui.TooltipAtLastControl(LibraryListPanel.Help);
+
+        gui.Box(content, in gui.Style.Tabs.ContainerBox);
+
+        // The hidden tab's name field isn't drawn, so it can't update whether it has focus
+        if (_state.ShowLibraries)
+            _scriptListPanel.ReleaseFocus();
+        else
+            _libraryListPanel.ReleaseFocus();
+
+        // A scope per tab, so their scroll areas don't share one id, and with it one scroll position
+        gui.PushId(_state.ShowLibraries ? LibrariesTab : ScriptsTab);
+        WindowRegion.Begin(gui, content);
+        if (_state.ShowLibraries)
+            DrawLibrariesTab(gui);
+        else
+            DrawScriptsTab(gui);
+
+        WindowRegion.End(gui);
+        gui.PopId();
     }
 }

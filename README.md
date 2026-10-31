@@ -69,14 +69,20 @@ The new group replaces the old one, at the same spot.
 
 ## The window
 
-- **Scripts**: the Scripts in this level.
-  Right-click a Script to rename it, select its blocks, or delete it.
-- **Orphaned Groups**: compiled blocks whose Script text the level no longer holds,
-  for example because you deleted the block that holds the text.
-  You can delete them, untag them into plain blocks, or select them.
-- **Libraries**: your Libraries, kept on your own machine and shared by every level.
-  Click **New Library** to make one, and right-click a Library to rename or delete it.
-  See [Libraries](#libraries).
+- **Scripts**: two tabs. Switching between them leaves the editor as it is,
+  and a dot marks the tab that holds what the editor shows.
+  - **Scripts**: the Scripts in this level, and **New Script** under them.
+    Right-click a Script to rename it, select its blocks, or delete it.
+    Under the list, when the level has any, are its **Orphaned Groups**:
+    compiled blocks whose Script text the level no longer holds,
+    for example because you deleted the block that holds the text.
+    You can delete them, untag them into plain blocks, select them, or restore their Script from its Draft.
+    Click the heading to collapse them. While the level has any, the tab shows a `!`.
+  - **Libraries**: your Libraries, kept on your own machine and shared by every level.
+    Click **New Library** to make one, and right-click a Library to rename or delete it.
+    See [Libraries](#libraries).
+
+  Hover a tab for its help. The window remembers which tab is shown and whether Orphaned Groups is collapsed.
 - **Blocks**: two tabs.
   - **Placed blocks**: the blocks you placed by hand that the Script refers to.
     Select blocks in the level and click **Insert selected** to add them to the Script.

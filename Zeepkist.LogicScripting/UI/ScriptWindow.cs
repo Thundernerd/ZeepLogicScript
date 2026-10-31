@@ -267,34 +267,35 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
             Select(_scripts.Entries[0]);
     }
 
-    private void DrawScriptList(ImGui gui)
+    private void DrawScriptsTab(ImGui gui)
     {
-        var selected = _scriptListPanel.Draw(gui, _current);
-        if (selected != null)
-            Select(selected);
+        var selected = _scriptListPanel.DrawEntries(gui, _current);
 
         // Restored after drawing, which goes through the list that restoring changes
-        var orphan = _orphanedGroupsPanel.Draw(gui, _scripts.OrphanedGroups);
+        var collapsed = _state.OrphanedGroupsCollapsed;
+        var orphan = _orphanedGroupsPanel.Draw(gui, _scripts.OrphanedGroups, ref collapsed);
+        _state.OrphanedGroupsCollapsed = collapsed;
         if (orphan != null)
         {
             var restored = _scripts.Restore(orphan);
             _orphanedGroupsPanel.ShowRestored(restored);
-            Select(restored);
+            selected = restored;
             _draftSaver.Request();
         }
 
+        selected = _scriptListPanel.DrawActions(gui) ?? selected;
+        if (selected != null)
+            Select(selected);
+    }
+
+    private void DrawLibrariesTab(ImGui gui)
+    {
         var library = _libraryListPanel.Draw(gui, _currentLibrary, _libraryStore.ReadFailed, out var deleted);
         if (deleted != null)
             OnLibraryDeleted(deleted);
 
         if (library != null)
             SelectLibrary(library);
-
-        // One name field at a time on the Scripts side, so Enter can't confirm a prompt the player isn't looking at
-        if (_libraryListPanel.NameFocused)
-            _scriptListPanel.CloseNamePrompt();
-        else if (_scriptListPanel.NameFocused)
-            _libraryListPanel.CloseNamePrompt();
     }
 
     private void OnLibraryDeleted(Library library)
