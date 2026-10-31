@@ -16,7 +16,7 @@ public class HeldEscapeTests
     }
 
     [Fact]
-    public void AnEventInTheSameFrame_IsAnEarlierPresses()
+    public void AnEventInTheSameFrame_IsAnEarlierPress()
     {
         var escape = new HeldEscape();
         escape.Hold(10);

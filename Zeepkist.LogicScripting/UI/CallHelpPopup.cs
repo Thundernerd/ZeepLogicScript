@@ -88,7 +88,7 @@ internal sealed class CallHelpPopup
     }
 
     /// <summary>
-    /// Call after the completion list handled the keyboard: Escape that didn't close the list hides the help.
+    /// Call after the completion list handled the keyboard: Escape the list didn't take hides the help.
     /// </summary>
     public void HandleKeyboard(bool escapeUsed)
     {

@@ -9,8 +9,7 @@ internal sealed class HeldEscape
     private int? _frame;
 
     /// <summary>
-    /// Holds the Escape Unity reported in <paramref name="frame"/>, unless one is held already: the held one is for the
-    /// list, so this one goes on to the editor.
+    /// Holds the Escape Unity reported in <paramref name="frame"/>, unless one is held already.
     /// </summary>
     public bool Hold(int frame)
     {
@@ -22,11 +21,11 @@ internal sealed class HeldEscape
     }
 
     /// <summary>
-    /// Whether an Escape key event in <paramref name="frame"/> is the held one's; it's no longer held after.
+    /// Whether an Escape key event in <paramref name="frame"/> belongs to the held Escape, which it releases.
     /// </summary>
     public bool Release(int frame)
     {
-        // An event in the same frame is of an earlier press
+        // An event in the same frame comes from an earlier press
         if (_frame == null || frame <= _frame)
             return false;
 

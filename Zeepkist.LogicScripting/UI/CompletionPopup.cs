@@ -196,6 +196,7 @@ internal sealed class CompletionPopup
         if (_heldEscape.Expire(frame))
             Close();
 
+        // While one is held, a second Escape goes on to the editor: the list will close at the first
         if (_session.IsOpen && Input.GetKeyDown(KeyCode.Escape) && _heldEscape.Hold(frame))
             TookEscape = true;
     }
