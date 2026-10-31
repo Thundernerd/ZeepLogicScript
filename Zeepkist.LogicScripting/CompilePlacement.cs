@@ -56,7 +56,8 @@ internal abstract class CompilePlacement
     }
 
     /// <summary>
-    /// Why the level holds no text for the Script after placing no blocks: the text is stored on one of them.
+    /// Why the level holds no text for the Script after placing no blocks: the text is stored on one of them. It
+    /// starts a sentence, since it always follows <c>". "</c>.
     /// </summary>
     protected abstract string NotStoredNote { get; }
 

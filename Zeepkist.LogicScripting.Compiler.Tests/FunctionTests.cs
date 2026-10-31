@@ -265,7 +265,7 @@ public class FunctionTests
     [InlineData("function f(x) -> y\n    y = top\nend\ntop = 1\npower_display(f(1))", "2:9: 'top' isn't defined in 'f'. A function only sees its inputs and its own names")]
     [InlineData("function f(x) -> y\n    y = x\n    x = 1\nend\npower_display(f(1))", "3:5: 'x' is an input of 'f' and can't be defined again")]
     [InlineData("function f(x) -> y\n    default hide: true\n    y = x\nend\npower_display(f(1))", "2:5: A default line goes outside functions")]
-    [InlineData("function f(x) -> y\n    y = later\n    later = 1\nend\npower_display(f(1))", "2:9: 'later' is defined later, on line 3, so only delay(...) can refer to it")]
+    [InlineData("function f(x) -> y\n    y = later\n    later = 1\nend\npower_display(f(1))", "2:9: 'later' is defined later, on line 3, so only delay(...) can refer ahead")]
     [InlineData("function f(x) -> x\n    y = 1\nend", "1:18: 'x' is an input. Give the output a name of its own")]
     [InlineData("function f(x, x) -> y\n    y = 1\nend", "1:15: 'x' is already an input")]
     [InlineData("function f(x) -> y, y\n    y = 1\nend", "1:21: 'y' is already an output")]

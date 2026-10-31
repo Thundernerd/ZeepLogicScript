@@ -59,7 +59,7 @@ public class DefinitionTests
     }
 
     [Theory]
-    [InlineData("x = y & 1\ny = 1", 1, 5, "'y' is defined later, on line 2, so only delay(...) can refer to it")]
+    [InlineData("x = y & 1\ny = 1", 1, 5, "'y' is defined later, on line 2, so only delay(...) can refer ahead")]
     [InlineData("x = x & 1", 1, 5, "'x' can't refer to itself outside delay(...)")]
     [InlineData("x = delay(x, ticks: 1) & x", 1, 26, "'x' can't refer to itself outside delay(...)")]
     [InlineData("x = delay(y, ticks: 1)", 1, 11, "'y' isn't defined")]

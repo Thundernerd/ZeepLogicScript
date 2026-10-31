@@ -45,7 +45,7 @@ internal sealed partial class GraphBuilder
             return Fail(call, $"'{type.Describe(style)}' doesn't match this game version and is turned off");
 
         if (placed.IsInBlockGroup)
-            return Fail(uid, $"Block \"{uid.Value}\" is in a Block Group, which a recompile replaces. Refer to a hand-placed block, such as a Passthrough between two Scripts");
+            return Fail(uid, $"Block \"{uid.Value}\" is {MessageFragments.InBlockGroup}. Refer to a hand-placed block, such as a Passthrough between two Scripts");
 
         if (!_placedNodes.TryGetValue(uid.Value, out var block))
         {
@@ -139,7 +139,7 @@ internal sealed partial class GraphBuilder
             if (feed is OutputValue output)
                 WireIntoPlaced(call, wired.IsByPosition, i, output.Output, block);
             else
-                Error(GetInputOrigin(call, wired.IsByPosition, i, block.Type), "A name defined later can't be wired into a placed block, since only delay(...) can refer ahead");
+                Error(GetInputOrigin(call, wired.IsByPosition, i, block.Type), $"A name defined later can't be wired into a placed block, since {MessageFragments.OnlyDelayCanReferAhead}");
         }
     }
 
