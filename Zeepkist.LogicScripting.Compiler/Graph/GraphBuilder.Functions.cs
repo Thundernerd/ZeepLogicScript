@@ -51,7 +51,13 @@ internal sealed partial class GraphBuilder
         {
             var name = function.Name;
             if (CheckName(name) && !known.ContainsKey(name.Name))
+            {
                 known.Add(name.Name, function);
+
+                // Before the first lines are checked, since checking them follows calls within this Library
+                if (_scope.Library != null)
+                    _libraryFunctions.Add(function, _scope.Library);
+            }
             else if (known.TryGetValue(name.Name, out var first))
                 Error(name, $"Function '{name.Name}' is already defined on line {first.Position.Line}");
         }
@@ -137,7 +143,15 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private bool IsFunctionCall(CallExpression call)
     {
-        return call.Library != null || Functions.ContainsKey(call.Function);
+        return IsFunctionCall(call, Functions);
+    }
+
+    /// <summary>
+    /// <paramref name="functions"/> are the ones the caller calls without a prefix.
+    /// </summary>
+    private static bool IsFunctionCall(CallExpression call, Dictionary<string, FunctionDefinition> functions)
+    {
+        return call.Library != null || functions.ContainsKey(call.Function);
     }
 
     /// <summary>

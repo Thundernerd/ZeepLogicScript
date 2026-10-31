@@ -143,29 +143,47 @@ internal sealed partial class GraphBuilder
         if (!check.TryGive(argument))
             return;
 
-        var input = check.Type.IndexOfInput(argument.Name);
-        if (input >= 0)
+        var type = check.Type;
+        switch (GetNamedArgumentKind(type, argument.Name))
         {
-            check.WireByName(argument, input, EvaluateArgument(check, argument.Value));
-            return;
+            case NamedArgumentKind.Input:
+                check.WireByName(argument, type.IndexOfInput(argument.Name), EvaluateArgument(check, argument.Value));
+                break;
+            case NamedArgumentKind.Style:
+                check.ChooseStyle(WithSettingInput(argument, a => GetStyle(type, a)));
+                break;
+            case NamedArgumentKind.Setting:
+                var blockSetting = type.FindSetting(argument.Name);
+                check.GiveSettings(blockSetting, WithSettingInput(argument, a => GetSettingValues(blockSetting, a)));
+                break;
+            case NamedArgumentKind.Targets:
+                var targetsSetting = type.FindSetting(argument.Name);
+                check.GiveSettings(targetsSetting, GetTargets(targetsSetting, argument));
+                break;
+            default:
+                check.ReportUnknownName(argument);
+                break;
         }
+    }
 
-        if (argument.Name == BlockType.StyleName && check.Type.HasStyles)
+    /// <summary>
+    /// A Setting-input analysis and the visit both ask this, so a Function's input can't be a Setting in one and a
+    /// Wire in the other. An input wins over a Setting or style of the same name.
+    /// </summary>
+    private static NamedArgumentKind GetNamedArgumentKind(BlockType type, string name)
+    {
+        if (type.IndexOfInput(name) >= 0)
+            return NamedArgumentKind.Input;
+
+        if (name == BlockType.StyleName && type.HasStyles)
+            return NamedArgumentKind.Style;
+
+        return type.FindSetting(name)?.Type switch
         {
-            check.ChooseStyle(WithSettingInput(argument, a => GetStyle(check.Type, a)));
-            return;
-        }
-
-        var blockSetting = check.Type.FindSetting(argument.Name);
-        if (blockSetting == null)
-        {
-            check.ReportUnknownName(argument);
-            return;
-        }
-
-        check.GiveSettings(blockSetting, blockSetting.Type == SettingType.Targets
-            ? GetTargets(blockSetting, argument)
-            : WithSettingInput(argument, a => GetSettingValues(blockSetting, a)));
+            null => NamedArgumentKind.Unknown,
+            SettingType.Targets => NamedArgumentKind.Targets,
+            _ => NamedArgumentKind.Setting
+        };
     }
 
     /// <summary>
