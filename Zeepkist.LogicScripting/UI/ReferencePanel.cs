@@ -162,21 +162,11 @@ internal sealed class ReferencePanel
     private static void DrawNamedRows(ImGui gui, IReadOnlyList<ReferenceRow> rows, Color32 nameColor, Color32 valueColor)
     {
         gui.BeginIndent();
-        var indent = gui.Style.Layout.Indent;
-        var maxNameWidth = gui.GetLayoutWidth() * ReferenceEntryLayout.MaxNameColumn;
-        var widths = new float[rows.Count];
-        var nameWidth = 0f;
-        for (var i = 0; i < rows.Count; i++)
-        {
-            widths[i] = gui.MeasureTextSize(rows[i].Name).x + indent;
-            if (widths[i] <= maxNameWidth)
-                nameWidth = Mathf.Max(nameWidth, widths[i]);
-        }
-
+        var column = NameColumn.Fit(rows, name => gui.MeasureTextSize(name).x, gui.Style.Layout.Indent, gui.GetLayoutWidth());
         for (var i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
-            if (widths[i] > maxNameWidth)
+            if (!column.Fits(i))
             {
                 gui.Text(row.Name, nameColor);
                 gui.BeginIndent();
@@ -185,7 +175,7 @@ internal sealed class ReferencePanel
                 continue;
             }
 
-            DrawRow(gui, row.Name, nameColor, row.Value, valueColor, nameWidth);
+            DrawRow(gui, row.Name, nameColor, row.Value, valueColor, column.Width);
         }
 
         gui.EndIndent();
