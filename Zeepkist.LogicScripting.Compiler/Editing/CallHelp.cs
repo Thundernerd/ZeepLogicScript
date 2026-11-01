@@ -109,7 +109,7 @@ public sealed class CallHelp
 
         var placed = DefinedNames.Read(text, findPlacedBlock)
             .FirstOrDefault(n => n.Name == callee && n.Span.Start < openParen && n.IsInScopeAt(openParen, functions));
-        return placed is { IsPlaced: true, Type: not null } ? GetInputItems(placed.Type) : [];
+        return placed?.Value is { IsPlaced: true } value ? GetInputItems(value.Type) : [];
     }
 
     private static List<CallHelpItem> GetInputItems(BlockType type)

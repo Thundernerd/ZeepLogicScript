@@ -28,7 +28,7 @@ public static class DefinedNames
         {
             names.AddRange(inputs
                 .Where(i => !GraphBuilder.IsReserved(i.Text))
-                .Select(i => new DefinedName(i.Text, i.Span, null, null, function: function, isInput: true)));
+                .Select(i => new DefinedName(i.Text, i.Span, null, function, isInput: true)));
         }
 
         for (var i = 0; i + 1 < tokens.Count; i++)
@@ -41,10 +41,9 @@ public static class DefinedNames
             if (GraphBuilder.IsReserved(name))
                 continue;
 
-            var type = ReadType(tokens, i + 2, findPlacedBlock, out var mode, out var isPlaced);
+            var value = ReadBlockValue(tokens, i + 2, findPlacedBlock) ?? ReadFunctionCall(tokens, i + 2, functions.Select(f => f.Function));
             var function = functions.Select(f => f.Function).FirstOrDefault(f => f.Contains(tokens[i].Span.Start));
-            var callee = ReadCallee(tokens, i + 2, functions.Select(f => f.Function));
-            names.Add(new DefinedName(name, tokens[i].Span, type, mode, isPlaced, function, callee: callee));
+            names.Add(new DefinedName(name, tokens[i].Span, value, function));
         }
 
         return names.OrderBy(n => n.Span.Start).ToList();
@@ -150,17 +149,11 @@ public static class DefinedNames
     }
 
     /// <summary>
-    /// The type of the value starting at <paramref name="start"/> when the whole value is one call.
+    /// The block the value starting at <paramref name="start"/> stands for when the whole value is one Block Function
+    /// call, or a Placed Block Reference to a block in the level.
     /// </summary>
-    private static BlockType ReadType(
-        List<Token> tokens,
-        int start,
-        Func<string, PlacedBlock> findPlacedBlock,
-        out string mode,
-        out bool isPlaced)
+    private static DefinedValue ReadBlockValue(List<Token> tokens, int start, Func<string, PlacedBlock> findPlacedBlock)
     {
-        mode = null;
-        isPlaced = false;
         if (!IsCall(tokens, start))
             return null;
 
@@ -172,38 +165,36 @@ public static class DefinedNames
             var uid = tokens[start + 2];
             block = uid.Kind == TokenKind.String ? findPlacedBlock?.Invoke(uid.Text) : null;
             type = block == null ? null : BlockManifest.GetPlacedType(block.BlockId);
-            isPlaced = type != null;
+            if (type == null)
+                return null;
         }
         else if (!BlockManifest.TryGetFunction(function, out type))
         {
             return null;
         }
 
-        var end = FindCallEnd(tokens, start + 1, type, out mode);
+        var end = FindCallEnd(tokens, start + 1, type, out var mode);
         if (!IsValueEnd(tokens[end]))
-        {
-            mode = null;
-            isPlaced = false;
             return null;
-        }
 
-        if (isPlaced)
-            mode = GetPlacedMode(type, block);
-
-        return type;
+        return block == null
+            ? DefinedValue.BlockFunctionCall(type, mode)
+            : DefinedValue.PlacedBlockReference(type, GetPlacedMode(type, block));
     }
 
     /// <summary>
-    /// The Function the value starting at <paramref name="start"/> calls when the whole value is one call to it. A
-    /// reserved name is never a Function's, and of a Function defined twice, the first is the one the compiler keeps.
+    /// The call to the Script's own Function when the whole value starting at <paramref name="start"/> is one call to
+    /// it. A reserved name is never a Function's, and of a Function defined twice, the first is the one the compiler
+    /// keeps.
     /// </summary>
-    private static DefinedFunction ReadCallee(List<Token> tokens, int start, IEnumerable<DefinedFunction> functions)
+    private static DefinedValue ReadFunctionCall(List<Token> tokens, int start, IEnumerable<DefinedFunction> functions)
     {
         if (!IsCall(tokens, start) || GraphBuilder.IsReserved(tokens[start].Text))
             return null;
 
         var end = FindCallEnd(tokens, start + 1, null, out _);
-        return IsValueEnd(tokens[end]) ? functions.FirstOrDefault(f => f.Name == tokens[start].Text) : null;
+        var callee = IsValueEnd(tokens[end]) ? functions.FirstOrDefault(f => f.Name == tokens[start].Text) : null;
+        return callee == null ? null : DefinedValue.FunctionCall(callee);
     }
 
     private static bool IsCall(List<Token> tokens, int start)

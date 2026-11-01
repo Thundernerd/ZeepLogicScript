@@ -139,7 +139,7 @@ public static class Completion
             return GetInputItems(context, function.Inputs);
 
         var placed = definedNames.FirstOrDefault(n => n.Name == context.Callee && IsVisible(context, n));
-        return placed is { IsPlaced: true, Type: not null } ? GetInputItems(context, placed.Type.Inputs.Select(i => i.Name)) : [];
+        return placed?.Value is { IsPlaced: true } value ? GetInputItems(context, value.Type.Inputs.Select(i => i.Name)) : [];
 
         bool IsGiven(string name)
         {
@@ -171,10 +171,11 @@ public static class Completion
             return [];
 
         var name = definedNames.FirstOrDefault(n => n.Name == context.DottedName && IsVisible(context, n));
-        if (name?.Type != null)
-            return GetOutputNames(name.Type, name.Mode);
+        var value = name?.Value;
+        if (value?.Type != null)
+            return GetOutputNames(value.Type, value.Mode);
 
-        return name?.Callee?.Outputs ?? [];
+        return value?.Callee?.Outputs ?? [];
     }
 
     /// <summary>
@@ -245,7 +246,7 @@ public static class Completion
         foreach (var name in definedNames)
         {
             if (IsVisible(context, name) && offered.Add(name.Name))
-                yield return new CompletionItem(name.Name, CompletionKind.Name, name.IsInput ? InputDetail : name.Type?.Function ?? string.Empty);
+                yield return new CompletionItem(name.Name, CompletionKind.Name, name.IsInput ? InputDetail : name.Value?.Type?.Function ?? string.Empty);
         }
     }
 

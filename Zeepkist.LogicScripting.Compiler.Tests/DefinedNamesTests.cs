@@ -35,7 +35,7 @@ public class DefinedNamesTests
     [InlineData("x = placed(\"OTHER\")", "block")]
     public void Read_TheBlockType_OfACall(string text, string function)
     {
-        Assert.Equal(function, Read(text)[0].Type?.Function);
+        Assert.Equal(function, Read(text)[0].Value?.Type?.Function);
     }
 
     [Theory]
@@ -51,7 +51,7 @@ public class DefinedNamesTests
     [InlineData("x = ")]
     public void Read_NoType_WhenTheValueIsNoKnownCall(string text)
     {
-        Assert.Null(Read(text)[0].Type);
+        Assert.Null(Read(text)[0].Value?.Type);
     }
 
     [Theory]
@@ -62,7 +62,7 @@ public class DefinedNamesTests
     [InlineData("x = 1", false)]
     public void Read_WhetherTheValueIsAPlacedBlockReference(string text, bool isPlaced)
     {
-        Assert.Equal(isPlaced, Read(text)[0].IsPlaced);
+        Assert.Equal(isPlaced, Read(text)[0].Value?.IsPlaced ?? false);
     }
 
     [Theory]
@@ -76,7 +76,20 @@ public class DefinedNamesTests
     [InlineData("t = logic(mode: and)", null)]
     public void Read_TheWrittenMode(string text, string mode)
     {
-        Assert.Equal(mode, Read(text)[0].Mode);
+        Assert.Equal(mode, Read(text)[0].Value?.Mode);
+    }
+
+    [Theory]
+    [InlineData("x = f(1)", "f")]
+    [InlineData("x = f(1, ", "f")]
+    [InlineData("x = f(1) & 1", null)]
+    [InlineData("x = g(1)", null)]
+    [InlineData("x = logic(1)", null)]
+    public void Read_TheScriptsOwnFunction_TheValueCalls(string text, string callee)
+    {
+        var names = Read($"function f(a) -> b\nend\n{text}");
+
+        Assert.Equal(callee, names.Single(n => n.Name == "x").Value?.Callee?.Name);
     }
 
     [Fact]
