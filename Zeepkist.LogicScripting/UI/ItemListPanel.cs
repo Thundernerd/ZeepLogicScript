@@ -17,10 +17,11 @@ internal abstract class ItemListPanel<T>
     private readonly NamePrompt _namePrompt;
     private readonly DeletePrompt<T> _deletePrompt = new();
     private T _renamed;
-    private ImRect _footer;
+    private ImRect _prompts;
+    private ImRect _newRow;
 
-    // Measured as the footer is drawn, as Imui lays out top-down and the list above it needs to know the height first
-    private float _footerHeight;
+    // Measured as the prompts are drawn, as Imui lays out top-down and the list above them needs to know the height first
+    private float _promptsHeight;
 
     /// <summary>
     /// <paramref name="noun"/> is what's listed, such as "Script".
@@ -57,16 +58,15 @@ internal abstract class ItemListPanel<T>
     }
 
     /// <summary>
-    /// Begins the list's scroll region, for <see cref="DrawEntries"/> and what's listed with them. The footer takes the
-    /// height it took last frame, so while it grows it's cut short for one frame, and the list shrinks to make room for
-    /// it, but not below two rows.
+    /// Begins the list's scroll region, for <see cref="DrawEntries"/> and what's listed with them. The prompts and result
+    /// line take the height they took last frame, so while they grow they're cut short for one frame.
     /// </summary>
     public void BeginList(ImGui gui, ImRect rect)
     {
         var spacing = gui.Style.Layout.Spacing;
-        var wanted = _footerHeight > 0 ? _footerHeight : gui.GetRowHeight() + (spacing * 2);
         var minListHeight = gui.GetRowsHeightWithSpacing(MinListRows) + (spacing * 2);
-        _footer = rect.TakeBottom(FooterSplit.GetFooterHeight(rect.H, wanted, minListHeight), out var list);
+        _newRow = rect.TakeBottom(gui.GetRowHeight() + (spacing * 2), out var rest);
+        _prompts = rest.TakeBottom(FooterSplit.GetFooterHeight(rest.H, _promptsHeight, minListHeight), out var list);
 
         // A scope each, so an entry coming or going doesn't change the id, and with it the focus and text, of the name
         // field in the footer
@@ -82,14 +82,18 @@ internal abstract class ItemListPanel<T>
         WindowRegion.End(gui);
         gui.PopId();
 
-        gui.Canvas.Rect(new ImRect(_footer.X, _footer.Top - 1, _footer.W, 1), gui.Style.Window.Box.BorderColor);
+        var spacing = gui.Style.Layout.Spacing;
+        gui.Canvas.Rect(new ImRect(_prompts.X, _prompts.Top - 1, _prompts.W, 1), gui.Style.Window.Box.BorderColor);
         gui.PushId("footer");
-        WindowRegion.Begin(gui, _footer);
-        var made = DrawFooter(gui);
-        WindowRegion.End(gui, out var contentHeight);
-        gui.PopId();
 
-        _footerHeight = contentHeight + (gui.Style.Layout.Spacing * 2);
+        // Only the prompts scroll when there's no room for them, so New stays in view
+        WindowRegion.Begin(gui, _prompts);
+        var made = DrawPrompts(gui);
+        WindowRegion.End(gui, out var contentHeight);
+        _promptsHeight = contentHeight > 0 ? contentHeight + (spacing * 2) : 0;
+
+        DrawNew(gui, _newRow.WithPadding(spacing));
+        gui.PopId();
         return made;
     }
 
@@ -135,9 +139,9 @@ internal abstract class ItemListPanel<T>
     }
 
     /// <summary>
-    /// The name or delete prompt, the result line, then New. Returns the entry the player made, or null.
+    /// Returns the entry the player made, or null.
     /// </summary>
-    private T DrawFooter(ImGui gui)
+    private T DrawPrompts(ImGui gui)
     {
         T made = null;
         var named = _namePrompt.Draw(gui, name => GetNameError(name, _renamed));
@@ -165,7 +169,12 @@ internal abstract class ItemListPanel<T>
         if (Message.Length > 0)
             gui.Text(Message, wrap: true);
 
-        if (gui.Button($"New {_noun}"))
+        return made;
+    }
+
+    private void DrawNew(ImGui gui, ImRect rect)
+    {
+        if (gui.Button($"New {_noun}", rect))
         {
             _deletePrompt.Close();
             _renamed = null;
@@ -174,8 +183,6 @@ internal abstract class ItemListPanel<T>
 
         if (NewTooltip != null)
             gui.TooltipAtLastControl(NewTooltip);
-
-        return made;
     }
 
     /// <summary>
