@@ -187,8 +187,9 @@ quit_exceptions() {
     [[ -f "$run_dir/LogOutput.log" ]] || return 0
     local cut=0
     [[ -n "$(tail -c 1 "$run_dir/LogOutput.log")" ]] && cut=1
-    local run_done
-    run_done="$(jq -r '.Done' "$run_dir/results.json" 2>/dev/null)"
+    # A missing or unreadable results.json counts as a run that didn't finish
+    local run_done=0
+    jq -e '.Done == true' "$run_dir/results.json" >/dev/null 2>&1 && run_done=1
     awk -v finished="[ZLS-TEST] run $run_id " -v cut="$cut" -v done="$run_done" '
         function count(message, frame,    key) {
             key = message "\t" frame
@@ -220,7 +221,7 @@ quit_exceptions() {
             print ""
             if (!quitting) {
                 # The test plugin writes the log out as it finishes, so this is a log that lost its end some other way
-                if (done == "true") print "Not read: the log was cut off before the run\047s end."
+                if (done) print "Not read: the log was cut off before the run\047s end."
                 else print "Not read: the run didn\047t finish."
                 exit
             }

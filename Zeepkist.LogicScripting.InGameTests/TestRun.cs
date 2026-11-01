@@ -366,7 +366,7 @@ internal sealed class TestRun : IDisposable
     }
 
     /// <summary>
-    /// BepInEx writes its log file out every two seconds, and the game can quit before the next time, so the run script
+    /// BepInEx flushes its log file every couple of seconds, and the game can quit before the next time, so the run script
     /// would read a log that stops before the run's end.
     /// </summary>
     private static void FlushDiskLog()
