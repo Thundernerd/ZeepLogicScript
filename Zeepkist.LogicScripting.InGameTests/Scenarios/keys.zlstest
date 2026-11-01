@@ -5,9 +5,10 @@ open-window
 new-script Keys
 set-text
 zork = 1
-x = 
+x =
 end
 caret-at-end
+press space
 type zo
 press ctrl+space
 expect-completion zork
@@ -36,13 +37,14 @@ expect-no-call-help
 
 # Two Escapes in one press do both
 set-text
-v = logic(
+wide = logic(
 end
 caret-at-end
+expect-call-help logic(
 press ctrl+space
 expect-completion a: input
 press escape escape
 expect-no-completion
 expect-no-call-help
 type 1, 2)
-expect-text v = logic(1, 2)
+expect-text wide = logic(1, 2)
