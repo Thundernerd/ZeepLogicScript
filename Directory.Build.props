@@ -1,14 +1,14 @@
 <Project>
 
-  <!-- Settings every project shares. The net472 plugins get theirs from Directory.Build.targets, where the target framework is known -->
+  <!-- The .NET Framework plugins get their own settings from Directory.Build.targets, where the target framework is known -->
 
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <!-- The compiler only reports unused usings (IDE0005) when it generates docs; missing docs aren't an error -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- 1701;1702 is the SDK's default, which it only sets when nothing set NoWarn before it -->
-    <NoWarn>$(NoWarn);1701;1702;CS1591</NoWarn>
+    <!-- CS1701;CS1702 is the SDK's default, which it only sets when nothing set NoWarn before it -->
+    <NoWarn>$(NoWarn);CS1701;CS1702;CS1591</NoWarn>
     <!-- The plugins compile against ZeepSDK and the mod's tests run with it; both should see the same one -->
     <ZeepSdkVersion>2.7.5</ZeepSdkVersion>
     <RestoreAdditionalProjectSources>
@@ -28,6 +28,7 @@
     <ProjectReference Include="$(MSBuildThisFileDirectory)Zeepkist.LogicScripting.Analyzers\Zeepkist.LogicScripting.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
+  <!-- The xUnit projects; Zeepkist.LogicScripting.InGameTests is a plugin the game loads, so its name has no dot before Tests -->
   <PropertyGroup Condition=" $(MSBuildProjectName.EndsWith('.Tests')) ">
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
