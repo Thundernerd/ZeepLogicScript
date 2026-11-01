@@ -105,5 +105,5 @@ dotnet_naming_rule.types_and_members.severity = none
 dotnet_diagnostic.IDE1006.severity = none
 
 # Generated code
-[{**/obj/**.cs,**/MyPluginInfo.cs}]
+[**/obj/**.cs]
 generated_code = true
