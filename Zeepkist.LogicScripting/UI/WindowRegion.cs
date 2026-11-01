@@ -26,4 +26,13 @@ internal static class WindowRegion
         gui.Canvas.PopRectMask();
         gui.Layout.Pop();
     }
+
+    /// <summary>
+    /// Like <see cref="End(ImGui)"/>, with the height of everything the region drew, in view or scrolled out of it.
+    /// </summary>
+    public static void End(ImGui gui, out float contentHeight)
+    {
+        contentHeight = gui.Layout.GetFrame().Size.y;
+        End(gui);
+    }
 }

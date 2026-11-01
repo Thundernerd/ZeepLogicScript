@@ -5,16 +5,22 @@ using Imui.Core;
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// A list of Scripts or Libraries, New, and per entry Rename and Delete, with the name and delete prompts and a result
-/// line under them.
+/// A list of Scripts or Libraries in a scroll region, and per entry Rename and Delete. Under the list is a footer pinned
+/// to the bottom of the tab, which holds whichever prompt is open, the result line, and New as its bottom row.
 /// </summary>
 internal abstract class ItemListPanel<T>
     where T : class
 {
+    private const int MinListRows = 2;
+
     private readonly string _noun;
     private readonly NamePrompt _namePrompt;
     private readonly DeletePrompt<T> _deletePrompt = new();
     private T _renamed;
+    private ImRect _footer;
+
+    // Measured as the footer is drawn, as Imui lays out top-down and the list above it needs to know the height first
+    private float _footerHeight;
 
     /// <summary>
     /// <paramref name="noun"/> is what's listed, such as "Script".
@@ -48,6 +54,43 @@ internal abstract class ItemListPanel<T>
         _namePrompt.Close();
         _deletePrompt.Close();
         Message = string.Empty;
+    }
+
+    /// <summary>
+    /// Begins the list's scroll region, for <see cref="DrawEntries"/> and what's listed with them. The footer takes the
+    /// height it took last frame, so while it grows it's cut short for one frame, and the list shrinks to make room for
+    /// it, but not below two rows.
+    /// </summary>
+    public void BeginList(ImGui gui, ImRect rect)
+    {
+        var spacing = gui.Style.Layout.Spacing;
+        var wanted = _footerHeight > 0 ? _footerHeight : gui.GetRowHeight() + (spacing * 2);
+        var minListHeight = gui.GetRowsHeightWithSpacing(MinListRows) + (spacing * 2);
+        _footer = rect.TakeBottom(FooterSplit.GetFooterHeight(rect.H, wanted, minListHeight), out var list);
+
+        // A scope each, so an entry coming or going doesn't change the id, and with it the focus and text, of the name
+        // field in the footer
+        gui.PushId("list");
+        WindowRegion.Begin(gui, list);
+    }
+
+    /// <summary>
+    /// Ends the list's scroll region and draws the footer under it. Returns the entry the player made, or null.
+    /// </summary>
+    public T EndList(ImGui gui)
+    {
+        WindowRegion.End(gui);
+        gui.PopId();
+
+        gui.Canvas.Rect(new ImRect(_footer.X, _footer.Top - 1, _footer.W, 1), gui.Style.Window.Box.BorderColor);
+        gui.PushId("footer");
+        WindowRegion.Begin(gui, _footer);
+        var made = DrawFooter(gui);
+        WindowRegion.End(gui, out var contentHeight);
+        gui.PopId();
+
+        _footerHeight = contentHeight + (gui.Style.Layout.Spacing * 2);
+        return made;
     }
 
     /// <summary>
@@ -95,21 +138,11 @@ internal abstract class ItemListPanel<T>
     }
 
     /// <summary>
-    /// New, the name and delete prompts and the result line. Returns the entry the player made, or null.
+    /// The name or delete prompt, the result line, then New. Returns the entry the player made, or null.
     /// </summary>
-    public T DrawActions(ImGui gui)
+    private T DrawFooter(ImGui gui)
     {
         T made = null;
-        if (gui.Button($"New {_noun}"))
-        {
-            _deletePrompt.Close();
-            _renamed = null;
-            _namePrompt.OpenNew();
-        }
-
-        if (NewTooltip != null)
-            gui.TooltipAtLastControl(NewTooltip);
-
         var named = _namePrompt.Draw(gui, name => GetNameError(name, _renamed));
         if (named != null)
         {
@@ -134,6 +167,16 @@ internal abstract class ItemListPanel<T>
 
         if (Message.Length > 0)
             gui.Text(Message, wrap: true);
+
+        if (gui.Button($"New {_noun}"))
+        {
+            _deletePrompt.Close();
+            _renamed = null;
+            _namePrompt.OpenNew();
+        }
+
+        if (NewTooltip != null)
+            gui.TooltipAtLastControl(NewTooltip);
 
         return made;
     }
