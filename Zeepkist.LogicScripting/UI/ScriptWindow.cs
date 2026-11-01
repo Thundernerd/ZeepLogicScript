@@ -349,14 +349,26 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     {
         var editor = _edited.Editor;
         if (editor.Draw(gui, rect, out var compileRequested))
-        {
-            _placedBlocksPanel.ClearMessage();
-            OnEdited();
-        }
+            OnTyped();
 
         _fieldFocused = FieldFocus.Update(gui, editor.Id, editor.HoldsEscape);
 
         return compileRequested;
+    }
+
+    private void OnTyped()
+    {
+        _placedBlocksPanel.ClearMessage();
+        OnEdited();
+    }
+
+    /// <summary>
+    /// Null leaves the result line as it is: a check just found errors, which the error list shows.
+    /// </summary>
+    private void ShowResult(string result)
+    {
+        if (result != null)
+            _result = result;
     }
 
     /// <summary>

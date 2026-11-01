@@ -319,9 +319,7 @@ internal sealed partial class ScriptWindow
         var fieldHeight = Mathf.Max(minFieldHeight, available - errorsHeight);
         var compileRequested = DrawField(gui, gui.AddLayoutRectWithSpacing(gui.GetLayoutWidth(), fieldHeight));
 
-        var result = compileClicked ? _edited.Compile() : compileRequested ? _edited.CompileFromKeyboard() : null;
-        if (result != null)
-            _result = result;
+        ShowResult(compileClicked ? _edited.Compile() : compileRequested ? _edited.CompileFromKeyboard() : null);
 
         var errors = gui.AddLayoutRectWithSpacing(gui.GetLayoutWidth(), Mathf.Max(0, gui.Layout.GetAvailableHeight() - spacing));
         gui.Layout.Pop();

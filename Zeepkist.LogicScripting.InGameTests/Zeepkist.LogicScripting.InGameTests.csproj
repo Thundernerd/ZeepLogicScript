@@ -29,6 +29,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Zeepkist.LogicScripting.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The run script deploys the mod's own build next to this one, so it isn't copied here -->
     <ProjectReference Include="..\Zeepkist.LogicScripting\Zeepkist.LogicScripting.csproj" Private="false" />
   </ItemGroup>

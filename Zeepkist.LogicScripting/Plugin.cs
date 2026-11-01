@@ -23,6 +23,11 @@ public class Plugin : BaseUnityPlugin
     private bool _returningFromTestMode;
     private bool _hintLogged;
 
+    /// <summary>
+    /// For the in-game tests, which drive it through <see cref="ScriptWindow.Driver"/>.
+    /// </summary>
+    internal ScriptWindow ScriptWindow => _scriptWindow;
+
     private void Awake()
     {
         _harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);

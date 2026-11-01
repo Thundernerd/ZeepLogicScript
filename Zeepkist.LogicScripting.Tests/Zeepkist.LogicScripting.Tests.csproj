@@ -8,7 +8,7 @@
     <IsTestProject>true</IsTestProject>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- The mod and ZeepSDK target .NET Framework; the storage code under test runs on .NET too -->
+    <!-- The mod, its in-game tests and ZeepSDK target .NET Framework; the code under test runs on .NET too -->
     <NoWarn>$(NoWarn);CS1591;NU1701;NU1702</NoWarn>
     <RestoreAdditionalProjectSources>
       https://api.nuget.org/v3/index.json;
@@ -35,6 +35,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Zeepkist.LogicScripting\Zeepkist.LogicScripting.csproj" />
+    <!-- Only its scenario parser and step list run here, which don't touch the game -->
+    <ProjectReference Include="..\Zeepkist.LogicScripting.InGameTests\Zeepkist.LogicScripting.InGameTests.csproj" />
   </ItemGroup>
 
   <ItemGroup>
