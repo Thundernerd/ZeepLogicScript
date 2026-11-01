@@ -12,10 +12,10 @@ internal sealed class RunResults
 {
     private readonly string _folder;
 
-    public RunResults(string runId, string folder, ExceptionLog exceptions)
+    public RunResults(string runId, string folder, List<LoggedException> exceptions)
     {
         RunId = runId;
-        Exceptions = exceptions.Logged;
+        Exceptions = exceptions;
         _folder = folder;
         Directory.CreateDirectory(folder);
         Write();

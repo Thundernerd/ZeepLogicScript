@@ -21,6 +21,6 @@ internal sealed class ExpectNoExceptionsStep : ScenarioStep
 
         var count = logged.Sum(e => e.Count);
         var listed = string.Join("; ", logged.ConvertAll(e => e.ToString()));
-        context.Fail($"{count} exceptions logged", "0", $"{count}: {listed}");
+        context.Fail(count == 1 ? "1 exception logged" : $"{count} exceptions logged", "0", $"{count}: {listed}");
     }
 }

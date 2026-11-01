@@ -27,7 +27,7 @@ public class Plugin : BaseUnityPlugin
         _harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         _harmony.PatchAll();
         var exceptions = new ExceptionLog();
-        var results = new RunResults(request.RunId, Path.Combine(folder, "out"), exceptions);
+        var results = new RunResults(request.RunId, Path.Combine(folder, "out"), exceptions.Logged);
         _run = new TestRun(Logger, results, exceptions, request, folder);
         StartCoroutine(_run.Run());
     }
