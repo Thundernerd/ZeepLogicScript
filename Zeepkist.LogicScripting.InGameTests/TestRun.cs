@@ -26,6 +26,7 @@ internal sealed class TestRun : IDisposable
 
     private readonly ManualLogSource _logger;
     private readonly RunResults _results;
+    private readonly ExceptionLog _exceptions;
     private readonly RunRequest _request;
     private readonly string _folder;
     private readonly GameEvents _game = new();
@@ -36,16 +37,19 @@ internal sealed class TestRun : IDisposable
     // The scenario a walk to a new level is for, so the results list its steps under it
     private string _walkScenario = string.Empty;
 
-    public TestRun(ManualLogSource logger, RunResults results, RunRequest request, string folder)
+    public TestRun(ManualLogSource logger, RunResults results, ExceptionLog exceptions, RunRequest request, string folder)
     {
         _logger = logger;
         _results = results;
+        _exceptions = exceptions;
         _request = request;
         _folder = folder;
+        Application.logMessageReceived += OnLogMessage;
     }
 
     public void Dispose()
     {
+        Application.logMessageReceived -= OnLogMessage;
         _game.Dispose();
     }
 
@@ -111,6 +115,7 @@ internal sealed class TestRun : IDisposable
         {
             var scenario = scenarios[i];
             _logger.LogInfo($"{Marker} scenario {scenario.Name}");
+            _exceptions.StartScenario(scenario.Name);
             if (i > 0)
             {
                 yield return GuardedRoutine.Run(NewLevel(scenario.Name), WalkFailed);
@@ -119,7 +124,7 @@ internal sealed class TestRun : IDisposable
                     yield break;
             }
 
-            var context = new StepContext(scenario.Name, driver, _game, _logger, Screenshot);
+            var context = new StepContext(scenario.Name, driver, _game, _exceptions, _logger, Screenshot);
             foreach (var step in scenario.Steps)
             {
                 context.Reset();
@@ -340,8 +345,16 @@ internal sealed class TestRun : IDisposable
             _logger.LogError(line);
     }
 
+    private void OnLogMessage(string message, string stackTrace, LogType type)
+    {
+        if (type == LogType.Exception)
+            _exceptions.Record(message, stackTrace);
+    }
+
     private IEnumerator Finish()
     {
+        // What's logged from here on is the game quitting, which the run script reads from the log once it has quit
+        Application.logMessageReceived -= OnLogMessage;
         _results.Finish();
         _logger.LogInfo($"{Marker} run {_results.RunId} {(_results.Passed ? "passed" : "failed")}");
 

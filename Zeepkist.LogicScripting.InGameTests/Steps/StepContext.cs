@@ -18,12 +18,14 @@ internal sealed class StepContext
         string scenario,
         ScriptWindow.Driver window,
         GameEvents game,
+        ExceptionLog exceptions,
         ManualLogSource logger,
         Func<string, IEnumerator> screenshot)
     {
         Scenario = scenario;
         Window = window;
         Game = game;
+        Exceptions = exceptions;
         Logger = logger;
         _screenshot = screenshot;
     }
@@ -31,6 +33,7 @@ internal sealed class StepContext
     public string Scenario { get; }
     public ScriptWindow.Driver Window { get; }
     public GameEvents Game { get; }
+    public ExceptionLog Exceptions { get; }
     public ManualLogSource Logger { get; }
 
     public bool Failed { get; private set; }

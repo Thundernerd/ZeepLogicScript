@@ -37,6 +37,7 @@ public class StepListTests
     [InlineData("wait 1", typeof(WaitStep))]
     [InlineData("screenshot compiled", typeof(ScreenshotStep))]
     [InlineData("log hello", typeof(LogStep))]
+    [InlineData("expect-no-exceptions", typeof(ExpectNoExceptionsStep))]
     public void EachStep_ParsesToItsOwnClass(string line, Type type)
     {
         var scenario = ScenarioParser.Parse("steps", line, out var error);

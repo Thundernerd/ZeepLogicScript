@@ -12,9 +12,10 @@ internal sealed class RunResults
 {
     private readonly string _folder;
 
-    public RunResults(string runId, string folder)
+    public RunResults(string runId, string folder, ExceptionLog exceptions)
     {
         RunId = runId;
+        Exceptions = exceptions.Logged;
         _folder = folder;
         Directory.CreateDirectory(folder);
         Write();
@@ -25,6 +26,11 @@ internal sealed class RunResults
     public bool Passed { get; private set; }
     public List<RunStep> Steps { get; } = [];
     public List<string> Screenshots { get; } = [];
+
+    /// <summary>
+    /// Written with the next step, rather than each time the game logs one.
+    /// </summary>
+    public List<LoggedException> Exceptions { get; }
 
     [JsonIgnore]
     public bool AnyStepFailed => Steps.Exists(step => !step.Passed);

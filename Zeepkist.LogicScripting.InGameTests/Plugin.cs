@@ -26,8 +26,9 @@ public class Plugin : BaseUnityPlugin
         Logger.LogInfo($"{TestRun.Marker} run {request.RunId} starting");
         _harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         _harmony.PatchAll();
-        var results = new RunResults(request.RunId, Path.Combine(folder, "out"));
-        _run = new TestRun(Logger, results, request, folder);
+        var exceptions = new ExceptionLog();
+        var results = new RunResults(request.RunId, Path.Combine(folder, "out"), exceptions);
+        _run = new TestRun(Logger, results, exceptions, request, folder);
         StartCoroutine(_run.Run());
     }
 
