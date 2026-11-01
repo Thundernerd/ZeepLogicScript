@@ -1,22 +1,22 @@
 using Imui.Controls;
 using Imui.Core;
-using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// Asks what happens to a Script's blocks when the Script is deleted.
+/// Asks the player to confirm deleting a Script or Library, and for a Script with blocks, what happens to them.
 /// </summary>
-internal sealed class DeletePrompt
+internal sealed class DeletePrompt<T>
+    where T : class
 {
     /// <summary>
-    /// The Script being deleted, or null when the prompt is closed.
+    /// What's being deleted, or null when the prompt is closed.
     /// </summary>
-    public ScriptEntry Deleted { get; private set; }
+    public T Deleted { get; private set; }
 
-    public void Open(ScriptEntry entry)
+    public void Open(T deleted)
     {
-        Deleted = entry;
+        Deleted = deleted;
     }
 
     public void Close()
@@ -25,28 +25,25 @@ internal sealed class DeletePrompt
     }
 
     /// <summary>
-    /// Returns the player's choice once they make one; Cancel closes the prompt.
+    /// Call while <see cref="Deleted"/> is set. Returns the player's choice once they make one; Cancel closes the
+    /// prompt. <paramref name="question"/> asks about <see cref="Deleted"/>. With <paramref name="keepBlocks"/>, the
+    /// player picks whether its blocks go too.
     /// </summary>
-    public DeleteChoice Draw(ImGui gui)
+    public DeleteChoice Draw(ImGui gui, string question, bool keepBlocks)
     {
-        if (Deleted == null)
-            return DeleteChoice.None;
-
         var choice = DeleteChoice.None;
-        if (Deleted.HasGroup)
+        gui.Text(question, wrap: true);
+        if (keepBlocks)
         {
-            gui.Text($"Delete \"{Deleted.Name}\"? Its blocks can go too, or stay as plain Logic Blocks.", wrap: true);
             if (gui.Button("Delete blocks too"))
-                choice = DeleteChoice.DeleteBlocks;
+                choice = DeleteChoice.Delete;
 
             if (gui.Button("Keep blocks"))
                 choice = DeleteChoice.KeepBlocks;
         }
-        else
+        else if (gui.Button("Delete"))
         {
-            gui.Text($"Delete \"{Deleted.Name}\"? It has no blocks in the level.", wrap: true);
-            if (gui.Button("Delete"))
-                choice = DeleteChoice.DeleteBlocks;
+            choice = DeleteChoice.Delete;
         }
 
         // Stacked rather than side by side: the Scripts side is too narrow for the three in a row

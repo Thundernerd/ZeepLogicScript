@@ -80,7 +80,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         _libraryStore = libraries;
         _librarySaver = new LibrarySaver(libraries);
         _scriptListPanel = new ScriptListPanel(logger, _scripts, _draftSaver, OnScriptDeleted);
-        _libraryListPanel = new LibraryListPanel(libraries.Libraries);
+        _libraryListPanel = new LibraryListPanel(libraries.Libraries, OnLibraryDeleted);
         _referencePanel = new ReferencePanel(libraries.Libraries);
         _orphanedGroupsPanel = new OrphanedGroupsPanel(logger);
     }
@@ -280,10 +280,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
 
     private void DrawLibrariesTab(ImGui gui)
     {
-        var library = _libraryListPanel.Draw(gui, CurrentLibrary, _libraryStore.ReadFailed, out var deleted);
-        if (deleted != null)
-            OnLibraryDeleted(deleted);
-
+        var library = _libraryListPanel.Draw(gui, CurrentLibrary, _libraryStore.ReadFailed);
         if (library != null)
             SelectLibrary(library);
     }

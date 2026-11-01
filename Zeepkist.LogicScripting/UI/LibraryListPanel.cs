@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Imui.Controls;
 using Imui.Core;
 using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
@@ -7,108 +9,73 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// <summary>
 /// The Libraries on this machine, New, and per Library Rename and Delete.
 /// </summary>
-internal sealed class LibraryListPanel
+internal sealed class LibraryListPanel : ItemListPanel<Library>
 {
     public const string Help = "On this machine, for Scripts in every level. Right-click a Library to rename or delete it";
 
     private readonly LibraryList _libraries;
-    private readonly NamePrompt _namePrompt = new("Library");
-    private Library _renamed;
-    private Library _deleted;
-    private string _message = string.Empty;
-
-    public LibraryListPanel(LibraryList libraries)
-    {
-        _libraries = libraries;
-    }
-
-    public bool NameFocused => _namePrompt.Focused;
-
-    public void ReleaseFocus()
-    {
-        _namePrompt.Focused = false;
-    }
+    private readonly Action<Library> _deleted;
 
     /// <summary>
-    /// Returns the Library the player clicked or made, or null. <paramref name="deleted"/> is the Library Delete just
-    /// dropped, or null.
+    /// <paramref name="deleted"/> is called with a Library after Delete dropped it from <paramref name="libraries"/>.
     /// </summary>
-    public Library Draw(ImGui gui, Library current, bool readFailed, out Library deleted)
+    public LibraryListPanel(LibraryList libraries, Action<Library> deleted)
+        : base("Library")
     {
-        deleted = null;
+        _libraries = libraries;
+        _deleted = deleted;
+    }
+
+    protected override IReadOnlyList<Library> Entries => _libraries.Entries;
+    protected override string EmptyText => "None yet on this machine. A Library is for Scripts in every level. New Library makes one, and right-clicking a Library renames or deletes it.";
+    protected override string NewTooltip => Help;
+
+    /// <summary>
+    /// Returns the Library the player clicked or made, or null.
+    /// </summary>
+    public Library Draw(ImGui gui, Library current, bool readFailed)
+    {
         if (readFailed)
             gui.Text("Couldn't read libraries.json, so changes to Libraries aren't saved. Fix or remove the file, then restart the game.", WindowColors.Error, wrap: true);
 
-        Library selected = null;
-        foreach (var library in _libraries.Entries)
-        {
-            gui.AddSpacingIfLayoutFrameNotEmpty();
-            var rect = gui.AddSingleRowRect(default);
-            ref readonly var style = ref library == current ? ref gui.Style.List.ItemSelected : ref gui.Style.List.ItemNormal;
-            if (gui.Button(gui.GetNextControlId(), library.Name, rect, in style, out _) && library != current)
-                selected = library;
+        var selected = DrawEntries(gui, current);
+        return DrawActions(gui) ?? selected;
+    }
 
-            if (gui.BeginContextMenu(rect))
-            {
-                if (gui.Menu("Rename"))
-                {
-                    _deleted = null;
-                    _renamed = library;
-                    _namePrompt.OpenRename(library.Name);
-                }
+    protected override string GetName(Library entry)
+    {
+        return entry.Name;
+    }
 
-                if (gui.Menu("Delete"))
-                {
-                    _namePrompt.Close();
-                    _deleted = library;
-                }
+    protected override string GetLabel(Library entry)
+    {
+        return entry.Name;
+    }
 
-                gui.EndContextMenu();
-            }
-        }
+    protected override string GetNameError(string name, Library renamed)
+    {
+        return _libraries.GetNameError(name, renamed?.Id);
+    }
 
-        if (_libraries.Entries.Count == 0)
-            gui.Text("None yet on this machine. A Library is for Scripts in every level. New Library makes one, and right-clicking a Library renames or deletes it.", WindowColors.Muted, wrap: true);
+    protected override Library Add(string name)
+    {
+        return _libraries.Add(name);
+    }
 
-        if (gui.Button("New Library"))
-        {
-            _deleted = null;
-            _renamed = null;
-            _namePrompt.OpenNew();
-        }
+    protected override void Rename(Library entry, string name)
+    {
+        _libraries.Rename(entry, name);
+    }
 
-        gui.TooltipAtLastControl(Help);
+    protected override string GetDeleteQuestion(Library entry)
+    {
+        return $"Delete \"{entry.Name}\"? Scripts that call it can't be compiled on this machine any more, but their blocks in levels keep working.";
+    }
 
-        var named = _namePrompt.Draw(gui, name => _libraries.GetNameError(name, _renamed?.Id));
-        if (named != null)
-        {
-            _message = string.Empty;
-            if (_renamed == null)
-                selected = _libraries.Add(named);
-            else
-                _libraries.Rename(_renamed, named);
-
-            _namePrompt.Close();
-        }
-
-        if (_deleted != null)
-        {
-            gui.Text($"Delete \"{_deleted.Name}\"? Scripts that call it can't be compiled on this machine any more, but their blocks in levels keep working.", wrap: true);
-            if (gui.Button("Delete"))
-            {
-                _libraries.Remove(_deleted.Id);
-                _message = $"Deleted \"{_deleted.Name}\"";
-                deleted = _deleted;
-                _deleted = null;
-            }
-
-            if (gui.Button("Cancel"))
-                _deleted = null;
-        }
-
-        if (_message.Length > 0)
-            gui.Text(_message, wrap: true);
-
-        return selected;
+    protected override void Delete(Library entry, DeleteChoice choice)
+    {
+        _libraries.Remove(entry.Id);
+        Message = $"Deleted \"{entry.Name}\"";
+        _deleted(entry);
     }
 }
