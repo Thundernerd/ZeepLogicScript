@@ -180,13 +180,24 @@ remove_build() {
 
 # The exceptions the game logged after the test plugin finished the run, so as it quit, from its copied log. Each is
 # Unity's log line, then "Stack trace:" and the frames: they're grouped by the line and the first frame, with a count.
+# The game can quit before the log is all written, so a frame cut off at the end counts under the frame it starts.
 quit_exceptions() {
     [[ -f "$run_dir/LogOutput.log" ]] || return 0
-    awk -v finished="[ZLS-TEST] run $run_id " '
-        function record(frame) {
+    local cut=0
+    [[ -n "$(tail -c 1 "$run_dir/LogOutput.log")" ]] && cut=1
+    awk -v finished="[ZLS-TEST] run $run_id " -v cut="$cut" '
+        function count(message, frame,    key) {
             key = message "\t" frame
-            if (!(key in count)) order[++keys] = key
-            count[key]++
+            if (!(key in counts)) order[++keys] = key
+            counts[key]++
+        }
+        # Held back a line, so the last one can be told apart
+        function record(frame) {
+            if (pending) count(pending_message, pending_frame)
+            pending = 1
+            pending_message = message
+            pending_frame = frame
+            pending_line = NR
             state = 0
         }
         { sub(/\r$/, "") }
@@ -200,15 +211,29 @@ quit_exceptions() {
         /^\[/ { state = 0 }
         /^\[Error *: *Unity Log\] / { message = $0; sub(/^\[[^]]*\] /, "", message); state = 1 }
         END {
-            if (!quitting) exit
             print ""
             print "## Exceptions at quit"
             print ""
+            if (!quitting) {
+                print "Not read: the run didn\047t finish."
+                exit
+            }
             if (state == 2) record("")
+            if (pending && cut && pending_line == NR && pending_frame != "") {
+                for (i = 1; i <= keys; i++) {
+                    split(order[i], parts, "\t")
+                    if (parts[1] == pending_message && index(parts[2], pending_frame) == 1) {
+                        pending_frame = parts[2]
+                        break
+                    }
+                }
+                if (i > keys) pending_frame = pending_frame "…"
+            }
+            if (pending) count(pending_message, pending_frame)
             if (keys == 0) print "None."
             for (i = 1; i <= keys; i++) {
                 split(order[i], parts, "\t")
-                printf "- %s`%s`%s\n", (count[order[i]] > 1 ? count[order[i]] "× " : ""), parts[1], (parts[2] != "" ? " at `" parts[2] "`" : "")
+                printf "- %s`%s`%s\n", (counts[order[i]] > 1 ? counts[order[i]] "× " : ""), parts[1], (parts[2] != "" ? " at `" parts[2] "`" : "")
             }
         }
     ' "$run_dir/LogOutput.log"
@@ -414,7 +439,7 @@ stop_game
 
 restore
 echo
-grep -E '^- (PASS|FAIL)|^  - |^## |^\*\*|^No results|^Exceptions logged|^- ([0-9]+× )?`|^None\.$' "$run_dir/results.md" | sed 's/\*\*//g; s/`//g'
+grep -E '^- (PASS|FAIL)|^  - |^## |^\*\*|^No results|^Exceptions logged|^- ([0-9]+× )?`|^None\.$|^Not read' "$run_dir/results.md" | sed 's/\*\*//g; s/`//g'
 log "Results in $run_dir"
 if [[ "$passed" == true ]]; then
     log "Passed: $(jq -r '[.Steps[].Scenario | select(. != "")] | unique | join(", ")' "$run_dir/results.json")"
