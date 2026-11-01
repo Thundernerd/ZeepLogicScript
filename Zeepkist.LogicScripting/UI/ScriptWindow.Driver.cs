@@ -77,6 +77,20 @@ internal sealed partial class ScriptWindow
         }
 
         /// <summary>
+        /// Like Delete in the Script's context menu, which opens the delete prompt. Returns whether there's one by that
+        /// name.
+        /// </summary>
+        public bool StartDelete(string name)
+        {
+            var entry = _window._scripts.Entries.FirstOrDefault(e => e.Name == name);
+            if (entry == null)
+                return false;
+
+            _window._scriptListPanel.OpenDelete(entry);
+            return true;
+        }
+
+        /// <summary>
         /// Replaces the selected Script's text as one edit, as typing it would leave it.
         /// </summary>
         public void SetText(string text)

@@ -14,6 +14,7 @@ public class StepListTests
     [InlineData("close-window", typeof(CloseWindowStep))]
     [InlineData("new-script Lights", typeof(NewScriptStep))]
     [InlineData("select-script Lights", typeof(SelectScriptStep))]
+    [InlineData("start-delete Lights", typeof(StartDeleteStep))]
     [InlineData("set-text\na = 1\nend", typeof(SetTextStep))]
     [InlineData("compile", typeof(CompileStep))]
     [InlineData("expect-text a = 1", typeof(ExpectTextStep))]

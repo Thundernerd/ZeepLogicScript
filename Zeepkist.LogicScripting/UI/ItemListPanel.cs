@@ -122,10 +122,7 @@ internal abstract class ItemListPanel<T>
                 DrawMenuItems(gui, entry);
 
                 if (gui.Menu("Delete"))
-                {
-                    _namePrompt.Close();
-                    _deletePrompt.Open(entry);
-                }
+                    OpenDelete(entry);
 
                 gui.EndContextMenu();
             }
@@ -179,6 +176,15 @@ internal abstract class ItemListPanel<T>
             gui.TooltipAtLastControl(NewTooltip);
 
         return made;
+    }
+
+    /// <summary>
+    /// What Delete in an entry's context menu does.
+    /// </summary>
+    public void OpenDelete(T entry)
+    {
+        _namePrompt.Close();
+        _deletePrompt.Open(entry);
     }
 
     /// <summary>

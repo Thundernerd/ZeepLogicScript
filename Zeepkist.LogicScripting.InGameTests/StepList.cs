@@ -18,6 +18,7 @@ internal static class StepList
         ["close-window"] = (step, argument) => None(step, argument, new CloseWindowStep()),
         ["new-script"] = (step, argument) => new NewScriptStep(StepArgument.Text(step, argument, "a name")),
         ["select-script"] = (step, argument) => new SelectScriptStep(StepArgument.Text(step, argument, "a name")),
+        ["start-delete"] = (step, argument) => new StartDeleteStep(StepArgument.Text(step, argument, "a name")),
         ["compile"] = (step, argument) => None(step, argument, new CompileStep()),
         ["expect-text"] = (step, argument) => new ExpectTextStep(StepArgument.Text(step, argument, "the text to look for")),
         ["expect-result"] = (step, argument) => new ExpectResultStep(StepArgument.Text(step, argument, "the text to look for")),

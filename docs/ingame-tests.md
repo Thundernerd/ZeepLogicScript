@@ -72,6 +72,7 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `close-window` | Closes it. |
 | `new-script <name>` | Makes a new Script and selects it, as New Script does. Fails when the name is taken. |
 | `select-script <name>` | Selects a Script, as clicking it in the list does. Fails when there's none by that name. |
+| `start-delete <name>` | Opens the delete prompt for a Script, as Delete in its context menu does, leaving it open. Fails when there's none by that name. |
 | `set-text` | Replaces the selected Script's text with the lines up to `end`, as one edit. |
 | `compile` | Compiles the selected Script, as Ctrl+Enter does. It passes whatever the Compile did: check that with the steps below. |
 | `expect-text <text>` | The selected Script's text contains the text, matching case. |
