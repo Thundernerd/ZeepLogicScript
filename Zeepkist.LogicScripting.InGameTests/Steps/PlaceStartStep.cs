@@ -11,6 +11,8 @@ namespace TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
 internal sealed class PlaceStartStep : ScenarioStep
 {
     private const string UndoLabel = "In-game test: place start";
+    private const float GridSize = 16;
+    private const float QuarterTurn = 90;
 
     public override IEnumerator Run(StepContext context)
     {
@@ -27,8 +29,8 @@ internal sealed class PlaceStartStep : ScenarioStep
         }
 
         var camera = central.cam.cameraTransform;
-        var position = new Vector3(Mathf.Round(camera.position.x / 16) * 16, 0, Mathf.Round(camera.position.z / 16) * 16);
-        var yaw = Mathf.Round(camera.eulerAngles.y / 90) * 90;
+        var position = new Vector3(Mathf.Round(camera.position.x / GridSize) * GridSize, 0, Mathf.Round(camera.position.z / GridSize) * GridSize);
+        var yaw = Mathf.Round(camera.eulerAngles.y / QuarterTurn) * QuarterTurn;
         var json = new BlockPropertyJSON
         {
             i = startId,

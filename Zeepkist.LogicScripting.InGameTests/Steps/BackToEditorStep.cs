@@ -3,7 +3,7 @@ using System.Collections;
 namespace TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
 
 /// <summary>
-/// Waits until the editor has loaded the level again, blocks and all.
+/// Quits test mode and waits until the editor has loaded the level again, blocks and all.
 /// </summary>
 internal sealed class BackToEditorStep : ScenarioStep
 {

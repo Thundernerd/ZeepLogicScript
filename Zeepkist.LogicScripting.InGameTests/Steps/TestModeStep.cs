@@ -3,7 +3,7 @@ using System.Collections;
 namespace TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
 
 /// <summary>
-/// Waits until the round starts, when the player can drive.
+/// Starts test mode and waits until the round starts, when the player can drive.
 /// </summary>
 internal sealed class TestModeStep : ScenarioStep
 {

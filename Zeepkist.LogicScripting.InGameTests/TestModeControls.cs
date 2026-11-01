@@ -20,7 +20,7 @@ internal static class TestModeControls
     }
 
     /// <summary>
-    /// Calls <see cref="LEV_TestMap.TestMap"/>, as the Test key does. It does nothing in a level without a start block.
+    /// Does nothing in a level without a start block.
     /// </summary>
     public static void Enter(LEV_LevelEditorCentral central)
     {
