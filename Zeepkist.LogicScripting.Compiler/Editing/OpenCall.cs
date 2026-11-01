@@ -97,18 +97,12 @@ internal sealed class OpenCall
     private List<CallArgument> ReadArguments()
     {
         List<CallArgument> arguments = [];
-        var depth = 0;
-        var start = -1;
-        for (var i = _paren; _tokens[i].Kind != TokenKind.End; i++)
+        var start = _paren;
+        foreach (var i in BracketWalk.Inside(_tokens, _paren, i => _tokens[i].Kind == TokenKind.NewLine && Lexer.IsStatementStart(_tokens, i + 1)))
         {
             var token = _tokens[i];
-            if (token.Kind == TokenKind.NewLine)
-            {
-                if (Lexer.IsStatementStart(_tokens, i + 1))
-                    break;
-
+            if (token.Kind is TokenKind.NewLine or TokenKind.End)
                 continue;
-            }
 
             if (start >= 0)
             {
@@ -116,26 +110,11 @@ internal sealed class OpenCall
                 start = -1;
             }
 
-            switch (token.Kind)
-            {
-                case TokenKind.OpenParen or TokenKind.OpenBracket:
-                    depth++;
-                    if (depth == 1)
-                        start = i;
+            if (BracketWalk.IsClose(token.Kind))
+                return arguments;
 
-                    break;
-
-                case TokenKind.CloseParen or TokenKind.CloseBracket:
-                    depth--;
-                    if (depth == 0)
-                        return arguments;
-
-                    break;
-
-                case TokenKind.Comma when depth == 1:
-                    start = i;
-                    break;
-            }
+            if (token.Kind == TokenKind.Comma)
+                start = i;
         }
 
         if (start >= 0)

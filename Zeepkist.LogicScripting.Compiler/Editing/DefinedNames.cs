@@ -240,34 +240,21 @@ public static class DefinedNames
     {
         mode = null;
         var modeSetting = type?.Modes?.Setting.Name;
-        var depth = 0;
-        var i = openParen;
-        for (; tokens[i].Kind is not (TokenKind.NewLine or TokenKind.End); i++)
+        var end = openParen;
+        foreach (var i in BracketWalk.Inside(tokens, openParen, i => tokens[i].Kind == TokenKind.NewLine))
         {
-            switch (tokens[i].Kind)
+            end = i;
+            if (mode == null
+                && tokens[i].Kind == TokenKind.Name
+                && tokens[i].Text == modeSetting
+                && tokens[i - 1].Kind is TokenKind.OpenParen or TokenKind.Comma
+                && tokens[i + 1].Kind == TokenKind.Colon
+                && tokens[i + 2].Kind == TokenKind.Name)
             {
-                case TokenKind.OpenParen or TokenKind.OpenBracket:
-                    depth++;
-                    break;
-
-                case TokenKind.CloseParen or TokenKind.CloseBracket:
-                    depth--;
-                    if (depth == 0)
-                        return i + 1;
-
-                    break;
-
-                case TokenKind.Name when depth == 1
-                    && mode == null
-                    && tokens[i].Text == modeSetting
-                    && tokens[i - 1].Kind is TokenKind.OpenParen or TokenKind.Comma
-                    && tokens[i + 1].Kind == TokenKind.Colon
-                    && tokens[i + 2].Kind == TokenKind.Name:
-                    mode = tokens[i + 2].Text;
-                    break;
+                mode = tokens[i + 2].Text;
             }
         }
 
-        return i;
+        return BracketWalk.IsClose(tokens[end].Kind) ? end + 1 : end;
     }
 }
