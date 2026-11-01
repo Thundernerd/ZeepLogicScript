@@ -57,6 +57,9 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     // Set by the in-game tests, as Imui keeps the window's rect itself
     private float? _requestedHeight;
 
+    // Set by the in-game tests to show the libraries.json warning without a file that failed to read
+    private bool _showLibraryReadFailed;
+
     private bool AnyFieldFocused => _fieldFocused || _scriptListPanel.NameFocused || _libraryListPanel.NameFocused || _referencePanel.FilterFocused;
     private LibraryList Libraries => _libraryStore.Libraries;
     private ScriptEntry CurrentScript => (_edited as EditedScript)?.Entry;
@@ -287,7 +290,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
 
     private void DrawLibrariesTab(ImGui gui, ImRect rect)
     {
-        var library = _libraryListPanel.Draw(gui, rect, CurrentLibrary, _libraryStore.ReadFailed);
+        var library = _libraryListPanel.Draw(gui, rect, CurrentLibrary, _libraryStore.ReadFailed || _showLibraryReadFailed);
         if (library != null)
             SelectLibrary(library);
     }

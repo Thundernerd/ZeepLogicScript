@@ -28,6 +28,8 @@ public class StepListTests
     [InlineData("expect-prompt none", typeof(ExpectPromptStep))]
     [InlineData("expect-footer-in-view", typeof(ExpectFooterInViewStep))]
     [InlineData("set-window-height 300", typeof(SetWindowHeightStep))]
+    [InlineData("library-read-failed on", typeof(LibraryReadFailedStep))]
+    [InlineData("library-read-failed off", typeof(LibraryReadFailedStep))]
     [InlineData("set-text\na = 1\nend", typeof(SetTextStep))]
     [InlineData("compile", typeof(CompileStep))]
     [InlineData("expect-text a = 1", typeof(ExpectTextStep))]
@@ -187,6 +189,26 @@ public class StepListTests
         var step = Assert.IsType<ShowTabStep>(Assert.Single(ScenarioParser.Parse("steps", line, out _).Steps));
 
         Assert.Equal(libraries, step.Libraries);
+    }
+
+    [Theory]
+    [InlineData("library-read-failed on", true)]
+    [InlineData("library-read-failed off", false)]
+    public void LibraryReadFailed_ReadsOnOrOff(string line, bool failed)
+    {
+        var step = Assert.IsType<LibraryReadFailedStep>(Assert.Single(ScenarioParser.Parse("steps", line, out _).Steps));
+
+        Assert.Equal(failed, step.Failed);
+    }
+
+    [Theory]
+    [InlineData("library-read-failed", "library-read-failed takes on or off")]
+    [InlineData("library-read-failed yes", "library-read-failed takes on or off, not 'yes'")]
+    public void LibraryReadFailed_WithoutOnOrOff_Fails(string line, string error)
+    {
+        ScenarioParser.Parse("steps", line, out var actual);
+
+        Assert.Equal($"line 1: {error}", actual);
     }
 
     [Theory]
