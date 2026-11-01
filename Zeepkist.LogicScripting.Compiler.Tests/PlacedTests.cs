@@ -151,7 +151,7 @@ public class PlacedTests
             "function f(lamp, x) -> y\n    lamp(x)\n    y = x\nend\nl = placed(\"L\")\npower_display(delay(f(l, later), ticks: 1))\nlater = 1");
 
         Assert.Equal(
-            ["2:10 A Wire into a placed block doesn't pass through the Delay, so it can't take a name defined later"],
+            ["2:10 A Wire into a placed block doesn't pass through the Delay, so it can't take a name defined later, even inside delay(...)"],
             Errors(result));
     }
 

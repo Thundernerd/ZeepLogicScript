@@ -140,7 +140,7 @@ internal sealed partial class GraphBuilder
             if (feed is OutputValue output)
                 WireIntoPlaced(call, wired.IsByPosition, i, output.Output, block);
             else
-                Error(GetInputOrigin(call, wired.IsByPosition, i, block.Type), "A Wire into a placed block doesn't pass through the Delay, so it can't take a name defined later");
+                Error(GetInputOrigin(call, wired.IsByPosition, i, block.Type), "A Wire into a placed block doesn't pass through the Delay, so it can't take a name defined later, even inside delay(...)");
         }
     }
 
