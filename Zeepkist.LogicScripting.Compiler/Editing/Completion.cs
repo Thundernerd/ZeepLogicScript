@@ -172,7 +172,7 @@ public static class Completion
 
         var name = definedNames.FirstOrDefault(n => n.Name == context.DottedName && IsVisible(context, n));
         if (name?.Type != null)
-            return name.Type.GetOutputs(name.Mode).Select(o => o.Name).ToList();
+            return GetOutputNames(name.Type, name.Mode);
 
         return name?.Callee?.Outputs ?? [];
     }
@@ -183,9 +183,14 @@ public static class Completion
     private static IReadOnlyList<string> GetCallOutputs(CaretContext context)
     {
         if (BlockManifest.TryGetFunction(context.DottedCallee, out var type))
-            return type.GetOutputs(context.DottedMode).Select(o => o.Name).ToList();
+            return GetOutputNames(type, context.DottedMode);
 
         return context.Functions.FirstOrDefault(f => f.Name == context.DottedCallee)?.Outputs ?? [];
+    }
+
+    private static IReadOnlyList<string> GetOutputNames(BlockType type, string mode)
+    {
+        return type.GetOutputs(mode).Select(o => o.Name).ToList();
     }
 
     private static IEnumerable<CompletionItem> GetInputItems(CaretContext context, IEnumerable<string> inputs)

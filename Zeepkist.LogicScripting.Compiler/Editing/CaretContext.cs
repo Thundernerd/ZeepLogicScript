@@ -147,7 +147,7 @@ public sealed class CaretContext
         var tokens = Lexer.Tokenize(text, [], comments);
         var call = OpenCall.FindStartedAt(tokens, word.Start);
         var settingValues = FindSettingValues(tokens, word, out var settingCallee, out var settingName);
-        var dotted = FindDotted(tokens, word);
+        var dotted = FindDotted(tokens, word, out var isDottedCall);
         CaretContextKind kind;
         if (IsInCommentOrString(tokens, comments, caret))
             kind = CaretContextKind.None;
@@ -166,19 +166,12 @@ public sealed class CaretContext
         var inCall = kind is CaretContextKind.Argument or CaretContextKind.ArgumentName;
         var callee = inCall ? call.Callee : null;
         var positionalArguments = 0;
-        string dottedName = null;
-        string dottedCallee = null;
-        string dottedMode = null;
-        if (kind == CaretContextKind.Output && tokens[dotted + 1].Kind == TokenKind.OpenParen)
-        {
-            dottedCallee = tokens[dotted].Text;
-            if (BlockManifest.TryGetFunction(dottedCallee, out var type))
-                DefinedNames.FindCallEnd(tokens, dotted + 1, type, out dottedMode);
-        }
-        else if (kind == CaretContextKind.Output)
-        {
-            dottedName = tokens[dotted].Text;
-        }
+        var isOutput = kind == CaretContextKind.Output;
+        var dottedName = isOutput && !isDottedCall ? tokens[dotted].Text : null;
+        var dottedCallee = isOutput && isDottedCall ? tokens[dotted].Text : null;
+        var dottedMode = dottedCallee != null && BlockManifest.TryGetFunction(dottedCallee, out var type)
+            ? DefinedNames.FindWrittenMode(tokens, dotted + 1, type)
+            : null;
 
         IReadOnlyCollection<string> givenArguments = inCall ? FindGivenArguments(call, word, out positionalArguments) : [];
         if (kind == CaretContextKind.SettingValue)
@@ -247,14 +240,16 @@ public sealed class CaretContext
     /// that's right before the word, and not itself after a dot, since only a name or a call has outputs. -1 when
     /// there's none.
     /// </summary>
-    private static int FindDotted(List<Token> tokens, TextSpan word)
+    private static int FindDotted(List<Token> tokens, TextSpan word, out bool isCall)
     {
+        isCall = false;
         var dot = tokens.FindLastIndex(t => t.Span.Start < word.Start);
         if (dot < 1 || tokens[dot].Kind != TokenKind.Dot || tokens[dot].Span.End != word.Start
             || tokens[dot - 1].Span.End != tokens[dot].Span.Start)
             return -1;
 
-        var name = tokens[dot - 1].Kind == TokenKind.CloseParen ? FindOpenParen(tokens, dot - 1) - 1 : dot - 1;
+        isCall = tokens[dot - 1].Kind == TokenKind.CloseParen;
+        var name = isCall ? FindOpenParen(tokens, dot - 1) - 1 : dot - 1;
         if (name < 0 || tokens[name].Kind != TokenKind.Name)
             return -1;
 
@@ -262,7 +257,8 @@ public sealed class CaretContext
     }
 
     /// <summary>
-    /// The opening parenthesis the one at <paramref name="closeParen"/> closes; -1 when there's none.
+    /// The opening parenthesis the one at <paramref name="closeParen"/> closes, past the brackets in between; -1 when
+    /// nothing opens it, or a bracket does.
     /// </summary>
     private static int FindOpenParen(List<Token> tokens, int closeParen)
     {
