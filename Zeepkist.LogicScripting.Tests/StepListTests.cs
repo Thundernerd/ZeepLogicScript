@@ -16,6 +16,7 @@ public class StepListTests
     [InlineData("select-script Lights", typeof(SelectScriptStep))]
     [InlineData("set-text\na = 1\nend", typeof(SetTextStep))]
     [InlineData("compile", typeof(CompileStep))]
+    [InlineData("expect-text a = 1", typeof(ExpectTextStep))]
     [InlineData("expect-result Placed", typeof(ExpectResultStep))]
     [InlineData("expect-no-errors", typeof(ExpectNoErrorsStep))]
     [InlineData("expect-errors 2", typeof(ExpectErrorsStep))]

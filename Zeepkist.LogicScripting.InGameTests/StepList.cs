@@ -19,6 +19,7 @@ internal static class StepList
         ["new-script"] = (step, argument) => new NewScriptStep(StepArgument.Text(step, argument, "a name")),
         ["select-script"] = (step, argument) => new SelectScriptStep(StepArgument.Text(step, argument, "a name")),
         ["compile"] = (step, argument) => None(step, argument, new CompileStep()),
+        ["expect-text"] = (step, argument) => new ExpectTextStep(StepArgument.Text(step, argument, "the text to look for")),
         ["expect-result"] = (step, argument) => new ExpectResultStep(StepArgument.Text(step, argument, "the text to look for")),
         ["expect-no-errors"] = (step, argument) => None(step, argument, new ExpectNoErrorsStep()),
         ["expect-errors"] = (step, argument) => new ExpectErrorsStep(StepArgument.Count(step, argument)),

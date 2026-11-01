@@ -30,6 +30,11 @@ internal sealed partial class ScriptWindow
         public string Result => _window._result;
 
         /// <summary>
+        /// The selected Script's text in the editor, or null with none selected.
+        /// </summary>
+        public string Text => _window._edited?.Editor.Text;
+
+        /// <summary>
         /// Whether the window has checked the current text. It only checks while it's open, a moment after the last edit.
         /// </summary>
         public bool IsChecked => _window._edited?.IsChecked ?? false;

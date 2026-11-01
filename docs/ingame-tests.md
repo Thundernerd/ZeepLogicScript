@@ -11,7 +11,7 @@ tools/ingame-test.sh                     # the smoke Scenario
 tools/ingame-test.sh my.zlstest other.zlstest
 ```
 
-Steam has to be running and Zeepkist closed. A run takes over the game for a minute or two: don't touch it meanwhile.
+Steam has to be running and Zeepkist closed. A run takes over the game for a minute or two, plus about half a minute for each Scenario after the first: don't touch it meanwhile, and raise `--timeout` for a long list.
 
 Scenarios run in the order given, each on a new, empty level in the editor: the first on the one the walk from the start screen opens, every later one on a new level started from the main menu, the way a player starts one. A failing step stops its own Scenario, with a screenshot, and the run goes on with the next. If the game can't get to a new level, the run stops there.
 
@@ -19,7 +19,7 @@ The script prints a summary and exits 0 only when every step of every Scenario p
 
 - `results.md`: each Scenario's steps, with what a failing check expected and found
 - `results.json`: the same, for tools
-- the screenshots, named `<scenario>-<name>.png`
+- the screenshots: `editor.png` once the walk reaches the editor, and `<scenario>-<name>.png` for a Scenario's own, including `<scenario>-failure.png` where one failed
 - `LogOutput.log`: the game's BepInEx log, where the test plugin's lines start with `[ZLS-TEST]`
 
 Only one run can use the game at a time. A second run, say from another worktree, waits until the first is done.
@@ -51,11 +51,13 @@ expect-result Placed 3 blocks
 expect-blocks 3
 place-start
 test-mode
+wait 2
 screenshot running
 back-to-editor
 expect-blocks 3
 open-window
 select-script Lights
+expect-text power_display(1 & 1)
 ```
 
 A Scenario that can't be read fails before the game starts it, with the line that's wrong.
@@ -72,6 +74,7 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `select-script <name>` | Selects a Script, as clicking it in the list does. Fails when there's none by that name. |
 | `set-text` | Replaces the selected Script's text with the lines up to `end`, as one edit. |
 | `compile` | Compiles the selected Script, as Ctrl+Enter does. It passes whatever the Compile did: check that with the steps below. |
+| `expect-text <text>` | The selected Script's text contains the text, matching case. |
 | `expect-result <text>` | The result line contains the text, matching case. |
 | `expect-no-errors` | The window's check finds no errors in the text. |
 | `expect-errors <count>` | The check finds this many errors. |

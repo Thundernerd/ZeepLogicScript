@@ -15,5 +15,6 @@ back-to-editor
 expect-blocks 3
 open-window
 select-script Lights
+expect-text power_display(1 & 1)
 expect-no-errors
 screenshot back-in-editor
