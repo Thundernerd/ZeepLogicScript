@@ -42,8 +42,8 @@ public static class DefinedNames
             if (GraphBuilder.IsReserved(name))
                 continue;
 
-            var value = ReadBlockValue(tokens, i + 2, findPlacedBlock) ?? ReadFunctionCall(tokens, i + 2, definedFunctions);
             var function = definedFunctions.FirstOrDefault(f => f.Contains(tokens[i].Span.Start));
+            var value = ReadValue(tokens, i + 2, findPlacedBlock, definedFunctions, names.Where(n => n.Function == function));
             names.Add(new DefinedName(name, tokens[i].Span, value, function));
         }
 
@@ -150,13 +150,57 @@ public static class DefinedNames
     }
 
     /// <summary>
-    /// The block the value starting at <paramref name="start"/> stands for when the whole value is one Block Function
-    /// call, or a Placed Block Reference to a block in the level.
+    /// What the value starting at <paramref name="start"/> stands for when the whole value is one call the editor
+    /// knows, or a name defined as one, in parentheses or not, since the compiler drops them. A name is its first
+    /// definition in the same scope before the value, of the <paramref name="earlier"/> ones; a Function's name is
+    /// the Function, which has no value.
     /// </summary>
-    private static DefinedValue ReadBlockValue(List<Token> tokens, int start, Func<string, PlacedBlock> findPlacedBlock)
+    private static DefinedValue ReadValue(
+        List<Token> tokens,
+        int start,
+        Func<string, PlacedBlock> findPlacedBlock,
+        IReadOnlyList<DefinedFunction> functions,
+        IEnumerable<DefinedName> earlier)
     {
-        if (!IsCall(tokens, start))
+        var depth = 0;
+        while (tokens[start + depth].Kind == TokenKind.OpenParen)
+        {
+            depth++;
+        }
+
+        var inner = start + depth;
+        DefinedValue value;
+        int end;
+        if (IsCall(tokens, inner))
+        {
+            value = ReadBlockValue(tokens, inner, findPlacedBlock, out end) ?? ReadFunctionCall(tokens, inner, functions, out end);
+        }
+        else if (tokens[inner].Kind == TokenKind.Name && !functions.Any(f => f.Name == tokens[inner].Text))
+        {
+            value = earlier.FirstOrDefault(n => n.Name == tokens[inner].Text)?.Value;
+            end = inner + 1;
+        }
+        else
+        {
             return null;
+        }
+
+        for (var i = 0; i < depth; i++, end++)
+        {
+            if (tokens[end].Kind != TokenKind.CloseParen)
+                return null;
+        }
+
+        return IsValueEnd(tokens[end]) ? value : null;
+    }
+
+    /// <summary>
+    /// The block the call starting at <paramref name="start"/> stands for when it's a Block Function call, or a Placed
+    /// Block Reference to a block in the level. <paramref name="end"/> is the token after it.
+    /// </summary>
+    private static DefinedValue ReadBlockValue(List<Token> tokens, int start, Func<string, PlacedBlock> findPlacedBlock, out int end)
+    {
+        end = start;
 
         var function = tokens[start].Text;
         BlockType type;
@@ -174,27 +218,25 @@ public static class DefinedNames
             return null;
         }
 
-        var end = FindCallEnd(tokens, start + 1, type, out var mode);
-        if (!IsValueEnd(tokens[end]))
-            return null;
-
+        end = FindCallEnd(tokens, start + 1, type, out var mode);
         return block == null
             ? DefinedValue.BlockFunctionCall(type, mode)
             : DefinedValue.PlacedBlockReference(type, GetPlacedMode(type, block));
     }
 
     /// <summary>
-    /// The call to the Script's own Function when the whole value starting at <paramref name="start"/> is one call to
-    /// it. A reserved name is never a Function's, and of a Function defined twice, the first is the one the compiler
-    /// keeps.
+    /// The call starting at <paramref name="start"/> when it's to the Script's own Function. A reserved name is never
+    /// a Function's, and of a Function defined twice, the first is the one the compiler keeps. <paramref name="end"/>
+    /// is the token after it.
     /// </summary>
-    private static DefinedValue ReadFunctionCall(List<Token> tokens, int start, IEnumerable<DefinedFunction> functions)
+    private static DefinedValue ReadFunctionCall(List<Token> tokens, int start, IEnumerable<DefinedFunction> functions, out int end)
     {
-        if (!IsCall(tokens, start) || GraphBuilder.IsReserved(tokens[start].Text))
+        end = start;
+        if (GraphBuilder.IsReserved(tokens[start].Text))
             return null;
 
-        var end = FindCallEnd(tokens, start + 1, null, out _);
-        var callee = IsValueEnd(tokens[end]) ? functions.FirstOrDefault(f => f.Name == tokens[start].Text) : null;
+        end = FindCallEnd(tokens, start + 1, null, out _);
+        var callee = functions.FirstOrDefault(f => f.Name == tokens[start].Text);
         return callee == null ? null : DefinedValue.FunctionCall(callee);
     }
 

@@ -654,6 +654,34 @@ public class CompletionTests
     }
 
     [Theory]
+    [InlineData("t = (simple_telemetry())\nx = t.|")]
+    [InlineData("t = simple_telemetry()\nu = t\nx = u.|")]
+    [InlineData("t = (simple_telemetry())\nu = (t)\nv = u\nx = v.|")]
+    public void Items_AfterADot_TheOutputsOfTheBlockAParenthesizedValueOrAnAliasStandsFor(string text)
+    {
+        Assert.Equal(["speed", "yaw", "up", "state"], NameLabels(text));
+    }
+
+    [Theory]
+    [InlineData("function f(a) -> hi, lo\nend\nr = (f(1))\nx = r.|")]
+    [InlineData("function f(a) -> hi, lo\nend\nr = f(1)\ns = r\nx = s.|")]
+    [InlineData("function f(a) -> hi, lo\nend\nfunction g()\n  r = (f(1))\n  s = r\n  x = s.|\nend")]
+    public void Items_AfterADot_TheOutputsOfTheFunctionAParenthesizedValueOrAnAliasCalls(string text)
+    {
+        Assert.Equal(["hi", "lo"], NameLabels(text));
+    }
+
+    [Theory]
+    [InlineData("t = simple_telemetry()\nu = t & 1\nx = u.|")]
+    [InlineData("u = t\nt = simple_telemetry()\nx = u.|")]
+    [InlineData("t = simple_telemetry()\nfunction f()\n  u = t\n  x = u.|\nend")]
+    [InlineData("function f(a) -> hi\nend\nr = (f(1))\nx = r.|")]
+    public void Items_AfterADot_NothingForAnAliasOrParenthesizedValueThatIsntABlockOrFunctionCallWithSeveralOutputs(string text)
+    {
+        Assert.Empty(Names(text));
+    }
+
+    [Theory]
     [InlineData("x = simple_telemetry().|", new[] { "speed", "yaw", "up", "state" })]
     [InlineData("x = simple_telemetry(mode: global_velocity).|", new[] { "x", "y", "z", "heading" })]
     [InlineData("x = simple_telemetry(hide: true, mode: local_velocity).|", new[] { "yaw", "x", "y", "z" })]
