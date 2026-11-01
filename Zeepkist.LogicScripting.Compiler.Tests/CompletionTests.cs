@@ -662,6 +662,14 @@ public class CompletionTests
     }
 
     [Theory]
+    [InlineData("x = simple_telemetry(mode: global_velocity, mode: local_velocity).|")]
+    [InlineData("t = simple_telemetry(mode: global_velocity, mode: local_velocity)\nx = t.|")]
+    public void Items_AfterADot_TheFirstModeOfACallThatWritesItTwice(string text)
+    {
+        Assert.Equal(["x", "y", "z", "heading"], NameLabels(text));
+    }
+
+    [Theory]
     [InlineData("function f(a) -> lo, hi\nend\nx = f(1).|")]
     [InlineData("x = f(1).|\nfunction f(a) -> lo, hi\nend")]
     [InlineData("function f(a) -> lo, hi\nend\nfunction f(a) -> x, y, z\nend\nx = f(1).|")]
