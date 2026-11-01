@@ -522,6 +522,7 @@ public class CompletionTests
     [InlineData("x = f().|", "f", null)]
     [InlineData("x = f().ho|", "f", null)]
     [InlineData("x = f(g(1), [a]).|", "f", null)]
+    [InlineData("x = f([a, (b)], g([c])).|", "f", null)]
     [InlineData("x = logic(simple_telemetry(mode: local_velocity).|", "simple_telemetry", "local_velocity")]
     [InlineData("x = simple_telemetry(a: logic(mode: b), mode: local_velocity).|", "simple_telemetry", "local_velocity")]
     public void Output_AfterACallAndADot(string text, string callee, string mode)
