@@ -14,6 +14,8 @@ public class StepListTests
     [InlineData("close-window", typeof(CloseWindowStep))]
     [InlineData("new-script Lights", typeof(NewScriptStep))]
     [InlineData("select-script Lights", typeof(SelectScriptStep))]
+    [InlineData("new-library timing", typeof(NewLibraryStep))]
+    [InlineData("select-library timing", typeof(SelectLibraryStep))]
     [InlineData("open-delete Lights", typeof(OpenDeleteStep))]
     [InlineData("set-text\na = 1\nend", typeof(SetTextStep))]
     [InlineData("compile", typeof(CompileStep))]
@@ -21,6 +23,7 @@ public class StepListTests
     [InlineData("expect-result Placed", typeof(ExpectResultStep))]
     [InlineData("expect-no-errors", typeof(ExpectNoErrorsStep))]
     [InlineData("expect-errors 2", typeof(ExpectErrorsStep))]
+    [InlineData("expect-error 1:5 isn't defined", typeof(ExpectErrorStep))]
     [InlineData("expect-blocks 3", typeof(ExpectBlocksStep))]
     [InlineData("caret-at-start", typeof(PlaceCaretStep))]
     [InlineData("caret-at-end", typeof(PlaceCaretStep))]
@@ -32,6 +35,7 @@ public class StepListTests
     [InlineData("press ctrl+space", typeof(PressStep))]
     [InlineData("type b = a", typeof(TypeStep))]
     [InlineData("place-block lamp", typeof(PlaceBlockStep))]
+    [InlineData("place-block lamp as lamp", typeof(PlaceBlockStep))]
     [InlineData("insert-selected", typeof(InsertSelectedStep))]
     [InlineData("undo", typeof(UndoStep))]
     [InlineData("redo", typeof(RedoStep))]
@@ -129,6 +133,54 @@ public class StepListTests
     }
 
     [Fact]
+    public void ExpectError_APosition_ThenTheText()
+    {
+        var step = Assert.IsType<ExpectErrorStep>(Assert.Single(ScenarioParser.Parse("steps", "expect-error 12:3 'nope' isn't defined", out _).Steps));
+
+        Assert.Equal((12, 3), (step.Position.Line, step.Position.Column));
+        Assert.Equal("'nope' isn't defined", step.Text);
+    }
+
+    [Theory]
+    [InlineData("expect-error 1:5")]
+    [InlineData("expect-error nope")]
+    [InlineData("expect-error 1 text")]
+    [InlineData("expect-error 0:1 text")]
+    [InlineData("expect-error 1:x text")]
+    [InlineData("expect-error 1:2:3 text")]
+    public void ExpectError_NeedsAOneBasedPosition_AndText(string line)
+    {
+        var scenario = ScenarioParser.Parse("steps", line, out var error);
+
+        Assert.Null(scenario);
+        Assert.Contains("takes a line and column", error);
+    }
+
+    [Theory]
+    [InlineData("place-block lamp", "lamp", null)]
+    [InlineData("place-block lamp as lamp_1", "lamp", "lamp_1")]
+    [InlineData("place-block simple_telemetry as speed-gauge", "simple_telemetry", "speed-gauge")]
+    public void PlaceBlock_AFunction_ThenOptionallyAName(string line, string function, string name)
+    {
+        var step = Assert.IsType<PlaceBlockStep>(Assert.Single(ScenarioParser.Parse("steps", line, out _).Steps));
+
+        Assert.Equal(function, step.Function);
+        Assert.Equal(name, step.Name);
+    }
+
+    [Theory]
+    [InlineData("place-block lamp as")]
+    [InlineData("place-block lamp as a}b")]
+    [InlineData("place-block lamp as two words")]
+    public void PlaceBlock_TakesANameOfLettersDigitsDashesAndUnderscores(string line)
+    {
+        var scenario = ScenarioParser.Parse("steps", line, out var error);
+
+        Assert.Null(scenario);
+        Assert.Contains("takes a name of letters", error);
+    }
+
+    [Fact]
     public void TheStepList_HoldsExactlyTheStepsTheDocsList()
     {
         var documented = DocsTable("### Steps").Select(step => step.Split(' ')[0]);
@@ -151,6 +203,7 @@ public class StepListTests
     [InlineData("smoke.zlstest")]
     [InlineData("test-mode.zlstest")]
     [InlineData("keys.zlstest")]
+    [InlineData("libraries.zlstest")]
     public void TheShippedScenarios_CanBeRead(string file)
     {
         var text = RepoFiles.Read($"Zeepkist.LogicScripting.InGameTests/Scenarios/{file}");

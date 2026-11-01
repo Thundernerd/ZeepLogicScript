@@ -12,7 +12,7 @@ internal sealed class ExpectNoCompletionStep : ScenarioStep
 
     public override IEnumerator Run(StepContext context)
     {
-        if (!context.RequireScript())
+        if (!context.RequireText())
             yield break;
 
         yield return context.WaitUntil(() => context.Window.CompletionItems.Count == 0, WaitSeconds);

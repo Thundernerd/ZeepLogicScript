@@ -33,6 +33,14 @@ internal static class StepArgument
             : throw new ScenarioFormatException($"{what}, not '{argument}'");
     }
 
+    /// <summary>
+    /// A whole number of 1 or more, such as a one-based line.
+    /// </summary>
+    public static bool TryPositive(string text, out int number)
+    {
+        return int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out number) && number > 0;
+    }
+
     public static float Seconds(string step, string argument)
     {
         var what = $"{step} takes a number of seconds above 0";

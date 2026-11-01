@@ -78,15 +78,18 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `close-window` | Closes it. |
 | `new-script <name>` | Makes a new Script and selects it, as New Script does. Fails when the name is taken. |
 | `select-script <name>` | Selects a Script, as clicking it in the list does. Fails when there's none by that name. |
+| `new-library <name>` | Makes a new Library and selects it, as New Library on the Libraries tab does. Fails when the name is taken. |
+| `select-library <name>` | Selects a Library, as clicking it in the Libraries tab's list does. Fails when there's none by that name. |
 | `open-delete <name>` | Opens the delete prompt for a Script, as Delete in its context menu does, leaving it open. Fails when there's none by that name. |
-| `set-text` | Replaces the selected Script's text with the lines up to `end`, as one edit. |
+| `set-text` | Replaces the selected Script's or Library's text with the lines up to `end`, as one edit. `{uid:<name>}` in them is written as the UID of the block `place-block ... as <name>` placed, so a Script can write `placed("{uid:lamp}")`. Fails for a name no block was placed as. |
 | `compile` | Compiles the selected Script, as Ctrl+Enter does. It passes whatever the Compile did: check that with the steps below. |
-| `expect-text <text>` | The selected Script's text contains the text, matching case. |
+| `expect-text <text>` | The selected Script's or Library's text contains the text, matching case. |
 | `expect-result <text>` | The result line contains the text, matching case. |
 | `expect-no-errors` | The window's check finds no errors in the text. |
 | `expect-errors <count>` | The check finds this many errors. |
+| `expect-error <line>:<column> <text>` | The check finds an error at that one-based line and column whose message contains the text, matching case, such as `expect-error 2:15 'nope' isn't defined`. |
 | `expect-blocks <count>` | The level has this many Logic Blocks, placed by a Script or not. Other blocks, such as a start block, don't count. |
-| `caret-at-start` | Puts the caret before the selected Script's first character and focuses the field, as clicking there does. |
+| `caret-at-start` | Puts the caret before the selected Script's or Library's first character and focuses the field, as clicking there does. |
 | `caret-at-end` | Puts the caret after its last character, the same way. The call help shows for the call the caret is then in. |
 | `complete` | Opens the completion list at the caret, as Ctrl+Space does. |
 | `expect-completion <label> [<detail>]` | The open completion list has a row with the label, matching case, and with exactly the detail when one is given, such as `t logic` or `a input`. |
@@ -95,7 +98,7 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `expect-no-call-help` | The call help doesn't show. |
 | `press <keys>` | Presses the keys, separated by spaces, in the same frame, such as `press ctrl+space`, `press enter` or `press escape escape`, up to 8. A key is a character, such as `a` or `/`, or one of `space`, `enter`, `tab`, `escape`, `backspace`, `delete`, `up`, `down`, `left`, `right`, `home`, `end`, `pageup` and `pagedown`, with any of `shift+`, `ctrl+`, `alt+` and `cmd+` before it. `shift+` makes a letter upper case and leaves other characters as they are. The keys go to the focused field the way a player's do; see [Keys](#keys). |
 | `type <text>` | Types the text into the focused field, one key a frame. Spaces at either end are taken off with the line's: press them with `press space`. |
-| `place-block <function>` | Places a block of the Block Function's type in its first style, beside where `place-start` puts the start block, and selects it. A placed-only type such as `lamp` works too. |
+| `place-block <function> [as <name>]` | Places a block of the Block Function's type in its first style, beside where `place-start` puts the start block, and selects it. A placed-only type such as `lamp` works too. With `as <name>`, the Scenario's later `set-text` steps can write its UID as `{uid:<name>}`. The name takes letters, digits, `-` and `_`, and fails when a block was already placed as it. |
 | `insert-selected` | Writes a Placed Block Reference for each selected block at the caret, as Insert selected does. Fails when it writes none. |
 | `undo` | Presses the editor's undo key. Fails when there was nothing to undo. |
 | `redo` | Presses the editor's redo key. Fails when there was nothing to redo. |
@@ -107,7 +110,9 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `expect-no-exceptions` | The game logged no exception since the Scenario started, or since the last `expect-no-exceptions`. It fails with the ones it logged. |
 | `log <text>` | Writes the text to the game's log. |
 
-The window steps need the window open, and the steps for a Script need one selected: they fail and say which step to add first. `press` and `type` need a field focused, such as by `caret-at-end`.
+A Library lives on this machine rather than in the level, so one a Scenario makes is still there for the rest of the run: give each Scenario's Libraries their own names.
+
+The window steps need the window open, and the steps for the editor's text need a Script or a Library selected: they fail and say which step to add first. `compile` and `insert-selected` need a Script. `press` and `type` need a field focused, such as by `caret-at-end`.
 
 ### Keys
 

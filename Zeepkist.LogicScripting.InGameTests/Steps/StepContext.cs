@@ -36,6 +36,11 @@ internal sealed class StepContext
     public ExceptionLog Exceptions { get; }
     public ManualLogSource Logger { get; }
 
+    /// <summary>
+    /// They last the scenario.
+    /// </summary>
+    public PlacedBlockNames PlacedBlocks { get; } = new();
+
     public bool Failed { get; private set; }
 
     /// <summary>
@@ -143,5 +148,19 @@ internal sealed class StepContext
             Fail("no Script selected: add new-script or select-script first");
 
         return Window.HasScript;
+    }
+
+    /// <summary>
+    /// Like <see cref="RequireOpenWindow"/>, with a Script or a Library selected too, for a step on the editor's text.
+    /// </summary>
+    public bool RequireText()
+    {
+        if (!RequireOpenWindow())
+            return false;
+
+        if (!Window.HasText)
+            Fail("no Script or Library selected: add new-script, select-script, new-library or select-library first");
+
+        return Window.HasText;
     }
 }

@@ -22,7 +22,7 @@ internal sealed class ExpectCallHelpStep : ScenarioStep
 
     public override IEnumerator Run(StepContext context)
     {
-        if (!context.RequireScript())
+        if (!context.RequireText())
             yield break;
 
         yield return context.WaitUntil(() => Contains(context.Window.CallHelp), WaitSeconds);

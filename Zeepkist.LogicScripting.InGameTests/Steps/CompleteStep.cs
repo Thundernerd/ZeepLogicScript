@@ -9,7 +9,7 @@ internal sealed class CompleteStep : ScenarioStep
 {
     public override IEnumerator Run(StepContext context)
     {
-        if (context.RequireScript())
+        if (context.RequireText())
             context.Window.RequestCompletion();
 
         yield return null;
