@@ -17,7 +17,7 @@ public sealed class DefinedValue
     }
 
     /// <summary>
-    /// The type of block the value stands for; null for a call to the Script's own Function.
+    /// Null for a call to the Script's own Function.
     /// </summary>
     public BlockType Type { get; }
 

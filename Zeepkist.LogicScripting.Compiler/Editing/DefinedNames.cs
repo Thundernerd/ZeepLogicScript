@@ -23,6 +23,7 @@ public static class DefinedNames
     {
         var tokens = Lexer.Tokenize(text ?? string.Empty, []);
         var functions = ReadFunctions(tokens);
+        var definedFunctions = functions.Select(f => f.Function).ToList();
         List<DefinedName> names = [];
         foreach (var (function, inputs) in functions)
         {
@@ -41,8 +42,8 @@ public static class DefinedNames
             if (GraphBuilder.IsReserved(name))
                 continue;
 
-            var value = ReadBlockValue(tokens, i + 2, findPlacedBlock) ?? ReadFunctionCall(tokens, i + 2, functions.Select(f => f.Function));
-            var function = functions.Select(f => f.Function).FirstOrDefault(f => f.Contains(tokens[i].Span.Start));
+            var value = ReadBlockValue(tokens, i + 2, findPlacedBlock) ?? ReadFunctionCall(tokens, i + 2, definedFunctions);
+            var function = definedFunctions.FirstOrDefault(f => f.Contains(tokens[i].Span.Start));
             names.Add(new DefinedName(name, tokens[i].Span, value, function));
         }
 

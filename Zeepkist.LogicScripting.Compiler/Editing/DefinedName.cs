@@ -30,7 +30,7 @@ public sealed class DefinedName
     public TextSpan Span { get; }
 
     /// <summary>
-    /// What the value is when the whole value is one call the editor knows; null otherwise, and for an input.
+    /// Null when the value is no call the editor knows, and for an input.
     /// </summary>
     public DefinedValue Value { get; }
 
