@@ -72,26 +72,13 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private FunctionDefinition FindFunction(CallExpression call)
     {
-        return FindFunction(call, Functions, message => Error(call, message));
-    }
-
-    /// <summary>
-    /// The Function a call names, or null when its Library has none to expand, telling <paramref name="report"/> why.
-    /// <paramref name="functions"/> are the ones the caller calls without a prefix, and must hold an unprefixed call's,
-    /// as <see cref="IsFunctionCall(CallExpression, Dictionary{string, FunctionDefinition})"/> checks.
-    /// </summary>
-    private FunctionDefinition FindFunction(
-        CallExpression call,
-        Dictionary<string, FunctionDefinition> functions,
-        Action<string> report)
-    {
         if (call.Library == null)
-            return functions[call.Function];
+            return Functions[call.Function];
 
         var library = LoadLibrary(call.Library);
         if (library == null)
         {
-            report($"No Library '{call.Library}' on this machine");
+            Error(call, $"No Library '{call.Library}' on this machine");
             return null;
         }
 
@@ -99,7 +86,7 @@ internal sealed partial class GraphBuilder
         {
             foreach (var error in library.Errors)
             {
-                report($"Library '{library.Name}' has an error on line {error.Position.Line}: {error.Message}");
+                Error(call, $"Library '{library.Name}' has an error on line {error.Position.Line}: {error.Message}");
             }
 
             return null;
@@ -108,7 +95,7 @@ internal sealed partial class GraphBuilder
         if (library.Functions.TryGetValue(call.Function, out var function))
             return function;
 
-        report($"'{call.Library}' has no function '{call.Function}'");
+        Error(call, $"'{call.Library}' has no function '{call.Function}'");
         return null;
     }
 
@@ -136,7 +123,7 @@ internal sealed partial class GraphBuilder
         ReportStatementsOutsideFunctions(statements);
         (_diagnostics, _reported, _scope) = (diagnostics, reported, scope);
 
-        library.Errors.Sort((a, b) => a.Position.CompareTo(b.Position));
+        CheckSettingInputUses(library);
         return library;
     }
 

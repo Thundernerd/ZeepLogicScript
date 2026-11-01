@@ -67,6 +67,15 @@ internal sealed partial class GraphBuilder
             if (known.TryGetValue(function.Name.Name, out var registered) && registered == function && !CheckHeader(function))
                 _brokenFunctions.Add(function);
         }
+
+        // A Library's are checked once it's loaded, which may be while its Setting inputs are still being found
+        if (_scope.Library != null)
+            return;
+
+        foreach (var function in known.Values)
+        {
+            CheckSettingInputUses(function);
+        }
     }
 
     /// <summary>
@@ -113,7 +122,6 @@ internal sealed partial class GraphBuilder
             }
         }
 
-        CheckSettingInputUses(function);
         return isValid;
     }
 
