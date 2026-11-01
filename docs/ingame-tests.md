@@ -39,7 +39,7 @@ Only one run can use the game at a time. A second run, say from another worktree
 
 The test plugin records every exception the game logs while the run is going, mod or not, with the first line of its stack trace. `results.md` lists each Scenario's under it, and those logged on the way to the editor at the top, counted where the same one comes from the same place. They don't fail a step: end a Scenario with `expect-no-exceptions` to check that it logged none.
 
-Once the game has quit, the script reads what it logged after the run finished from `LogOutput.log` into an **Exceptions at quit** section, grouped by the exception and its first stack line, with a count. These are reported, but don't fail the run. When the run didn't finish, or the log stops before the run's end, the section says so instead.
+Once the game has quit, the script reads what it logged after the run finished from `LogOutput.log` into an **Exceptions at quit** section, grouped by the exception and its first stack line, with a count. These are reported, but don't fail the run. When the run didn't finish, or the log stops before the run's end, the section says so instead, and when the log stops partway through a line it says some may be missing.
 
 ## Scenarios
 

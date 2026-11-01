@@ -242,6 +242,10 @@ quit_exceptions() {
                 split(order[i], parts, "\t")
                 printf "- %s`%s`%s\n", (counts[order[i]] > 1 ? counts[order[i]] "× " : ""), parts[1], (parts[2] != "" ? " at `" parts[2] "`" : "")
             }
+            if (cut) {
+                print ""
+                print "The log was cut off as the game quit, so this may not be all of them."
+            }
         }
     ' "$run_dir/LogOutput.log"
 }
