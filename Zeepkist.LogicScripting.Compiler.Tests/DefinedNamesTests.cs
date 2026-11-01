@@ -96,6 +96,59 @@ public class DefinedNamesTests
         Assert.Equal(callee, names.Single(n => n.Name == "x").Value?.Callee?.Name);
     }
 
+    [Theory]
+    [InlineData("x = (logic(1, 2))", "logic")]
+    [InlineData("x = ((logic(1, 2)))", "logic")]
+    [InlineData("x = (placed(\"L\"))", "lamp")]
+    [InlineData("a = logic(1, 2)\nx = a", "logic")]
+    [InlineData("a = logic(1, 2)\nx = (a)", "logic")]
+    [InlineData("a = (logic(1, 2))\nb = a\nx = b", "logic")]
+    [InlineData("a = simple_telemetry()\na = logic(1, 2)\nx = a", "simple_telemetry")]
+    public void Read_TheBlockType_OfAParenthesizedValueOrANameDefinedAsAnother(string text, string function)
+    {
+        Assert.Equal(function, Read(text).Last().Value?.Type?.Function);
+    }
+
+    [Theory]
+    [InlineData("x = (logic(1, 2)")]
+    [InlineData("x = (logic(1, 2)))")]
+    [InlineData("x = (logic(1, 2)) & 1")]
+    [InlineData("x = (logic(1, 2) & 1)")]
+    [InlineData("x = a\na = logic(1, 2)")]
+    [InlineData("x = x")]
+    [InlineData("a = 1\nx = a")]
+    [InlineData("a = logic(1, 2)\nx = a & 1")]
+    [InlineData("a = logic(1, 2)\nfunction f()\n  x = a\nend")]
+    [InlineData("function f(a)\n  x = a\nend")]
+    public void Read_NoType_ForAParenthesizedValueOrANameDefinedAsAnotherThatIsntOneKnownCall(string text)
+    {
+        Assert.Null(Read(text).Single(n => n.Name == "x").Value?.Type);
+    }
+
+    [Fact]
+    public void Read_ANameDefinedAsAPlacedBlockReferencesName_IsOne()
+    {
+        Assert.True(Read("p = placed(\"L\")\nx = p").Last().Value?.IsPlaced);
+    }
+
+    [Theory]
+    [InlineData("x = (f(1))")]
+    [InlineData("r = f(1)\nx = r")]
+    [InlineData("r = (f(1))\ns = (r)\nx = s")]
+    [InlineData("function g()\n  r = f(1)\n  x = r\nend")]
+    public void Read_TheScriptsOwnFunction_AParenthesizedValueOrANameDefinedAsAnotherCalls(string text)
+    {
+        var names = Read($"function f(a) -> b, c\nend\n{text}");
+
+        Assert.Equal("f", names.Single(n => n.Name == "x").Value?.Callee?.Name);
+    }
+
+    [Fact]
+    public void Read_NoCallee_ForANameDefinedAsAFunctionsName()
+    {
+        Assert.Null(Read("function f(a) -> b, c\nend\nf = f(1)\nx = f").Single(n => n.Name == "x").Value);
+    }
+
     [Fact]
     public void Read_DefinitionsAroundAHalfTypedLine()
     {
