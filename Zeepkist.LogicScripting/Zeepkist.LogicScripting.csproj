@@ -39,6 +39,7 @@
   
   <ItemGroup>
     <InternalsVisibleTo Include="Zeepkist.LogicScripting.Tests" />
+    <InternalsVisibleTo Include="Zeepkist.LogicScripting.InGameTests" />
   </ItemGroup>
 
   <ItemGroup>

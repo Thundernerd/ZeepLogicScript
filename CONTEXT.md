@@ -87,3 +87,7 @@ _Avoid_: unsaved text, buffer, autosave
 **Placed Block Reference**:
 A Script's pointer to a block the player already placed in the level, written `name = placed("UID")`. It's the only way a Script reaches blocks whose position matters (triggers, sensors, lamps, movers) and Toggler targets; a Script reads their outputs and wires into their inputs by calling the name (`lamp_1(intensity: x)`), but never changes their Settings. Each input still takes one Wire, counting the ones already in the level.
 _Avoid_: external block, UID literal
+
+**In-Game Test Run**:
+One go of `tools/ingame-test.sh`: it installs the branch's build, starts the game, lets a test plugin drive it, records each Run Step's result and screenshots, then puts the install and the mod's data back. A Run Step is one check or action in it, not a Tick, and the run itself has nothing to do with a Compile.
+_Avoid_: playtest, test session

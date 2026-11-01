@@ -26,6 +26,8 @@ jobs:
       run: dotnet restore Zeepkist.LogicScripting/Zeepkist.LogicScripting.csproj
     - name: Build
       run: dotnet build Zeepkist.LogicScripting/Zeepkist.LogicScripting.csproj --no-restore --configuration Release
+    - name: Build in-game tests
+      run: dotnet build Zeepkist.LogicScripting.InGameTests/Zeepkist.LogicScripting.InGameTests.csproj --configuration Release
     - name: Test
       run: dotnet test Zeepkist.LogicScripting.Compiler.Tests/Zeepkist.LogicScripting.Compiler.Tests.csproj --configuration Release
     - name: Test mod
