@@ -24,7 +24,7 @@ internal sealed partial class GraphBuilder
     private readonly HashSet<Dictionary<string, FunctionDefinition>> _settingInputTables = [];
 
     /// <summary>
-    /// The tables being found together, or null when there's no search going on.
+    /// The tables whose Setting inputs are being found together, or null when there's no search going on.
     /// </summary>
     private List<Dictionary<string, FunctionDefinition>> _settingInputSearch;
 
@@ -39,9 +39,9 @@ internal sealed partial class GraphBuilder
     {
         if (_settingInputTables.Add(functions))
         {
-            foreach (var each in functions.Values)
+            foreach (var tableFunction in functions.Values)
             {
-                _settingInputs[each] = [];
+                _settingInputs[tableFunction] = [];
             }
 
             // Libraries that call each other need each other's answers, so a table reached mid-search joins it
@@ -110,14 +110,14 @@ internal sealed partial class GraphBuilder
             return;
         }
 
-        var (diagnostics, reported, scope) = (_diagnostics, _reported, _scope);
-        (_diagnostics, _reported, _scope) = (library.Errors, [], new Scope(null, library, null));
-        foreach (var function in library.Functions.Values)
+        InLibrary(library, () =>
         {
-            CheckSettingInputUses(function);
-        }
+            foreach (var function in library.Functions.Values)
+            {
+                CheckSettingInputUses(function);
+            }
+        });
 
-        (_diagnostics, _reported, _scope) = (diagnostics, reported, scope);
         library.Errors.Sort((a, b) => a.Position.CompareTo(b.Position));
     }
 
@@ -190,7 +190,7 @@ internal sealed partial class GraphBuilder
 
             if (IsFunctionCall(call, functions))
             {
-                var callee = FindFunctionInText(call, functions);
+                var callee = FindFunctionIgnoringErrors(call, functions);
                 var calleeSettings = callee == null ? null : GetSettingInputs(callee, FunctionsOf(callee));
                 for (var i = 0; i < call.Arguments.Count; i++)
                 {
@@ -227,7 +227,7 @@ internal sealed partial class GraphBuilder
     /// The Function a call names, or null when there's none, even in a Library with an error. Setting inputs come from
     /// the text alone, so they don't depend on which Library was checked first.
     /// </summary>
-    private FunctionDefinition FindFunctionInText(CallExpression call, Dictionary<string, FunctionDefinition> functions)
+    private FunctionDefinition FindFunctionIgnoringErrors(CallExpression call, Dictionary<string, FunctionDefinition> functions)
     {
         if (call.Library == null)
             return functions[call.Function];

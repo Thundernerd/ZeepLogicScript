@@ -45,6 +45,17 @@ public class LibraryReferenceTests
     }
 
     [Fact]
+    public void AnInputPassedOnToTheSettingInputOfALibraryWithErrors_IsMarked()
+    {
+        var list = WithLibrary("timing", PulseAfter + "x = 1\n");
+        list.SetText(list.Add("wrap"), "function later(x, n) -> y\n    y = timing.pulse_after(x, ticks: n)\nend\n");
+
+        var entry = LibraryReference.Describe(list).Single(e => e.Function == "wrap.later");
+
+        Assert.Equal("x, n (setting)", entry.Inputs);
+    }
+
+    [Fact]
     public void LibrariesThatCallEachOther_MarkTheSameSettingInputs()
     {
         var list = WithLibrary("a", "function forward(x, n) -> y\n    y = b.forward(x, n)\nend\n" + PulseAfter);

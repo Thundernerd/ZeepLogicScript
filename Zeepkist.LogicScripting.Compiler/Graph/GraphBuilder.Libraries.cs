@@ -116,15 +116,26 @@ internal sealed partial class GraphBuilder
         var tokens = Lexer.Tokenize(text, library.Errors);
         var statements = Parser.Parse(tokens, library.Errors);
 
-        // Its own errors are kept at its own lines, to report at every call into it
-        var (diagnostics, reported, scope) = (_diagnostics, _reported, _scope);
-        (_diagnostics, _reported, _scope) = (library.Errors, [], new Scope(null, library, null));
-        CollectFunctions(statements);
-        ReportStatementsOutsideFunctions(statements);
-        (_diagnostics, _reported, _scope) = (diagnostics, reported, scope);
+        InLibrary(library, () =>
+        {
+            CollectFunctions(statements);
+            ReportStatementsOutsideFunctions(statements);
+        });
 
         CheckSettingInputUses(library);
         return library;
+    }
+
+    /// <summary>
+    /// Runs <paramref name="check"/> on a Library's own text: its errors are kept at its own lines, to report at every
+    /// call into it.
+    /// </summary>
+    private void InLibrary(LoadedLibrary library, Action check)
+    {
+        var (diagnostics, reported, scope) = (_diagnostics, _reported, _scope);
+        (_diagnostics, _reported, _scope) = (library.Errors, [], new Scope(null, library, null));
+        check();
+        (_diagnostics, _reported, _scope) = (diagnostics, reported, scope);
     }
 
     private void ReportStatementsOutsideFunctions(List<Statement> statements)
