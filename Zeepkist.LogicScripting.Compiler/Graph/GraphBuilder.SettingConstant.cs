@@ -24,5 +24,16 @@ internal sealed partial class GraphBuilder
         /// Where the constant was written, to report a wrong value there rather than at the body's Setting.
         /// </summary>
         public Scope Scope { get; }
+
+        // A Setting input is never a value: looking it up gives a FailedValue, as its Function reports it
+        public override InputFeed ToFeed(GraphBuilder builder, Expression origin)
+        {
+            return FailedValue.Instance;
+        }
+
+        public override Resolved SelectMember(GraphBuilder builder, MemberExpression member)
+        {
+            return FailedValue.Instance;
+        }
     }
 }

@@ -106,12 +106,11 @@ internal sealed partial class GraphBuilder
         foreach (var item in items)
         {
             var value = Evaluate(item);
-            var block = GetPlacedBlock(value);
             if (value is FailedValue)
             {
                 failed = true;
             }
-            else if (block == null)
+            else if (value.PlacedBlock is not { } block)
             {
                 Error(item, $"'{Describe(item)}' isn't a placed block, and {setting.Name} takes only names defined with {PlacedFunction}(...)");
                 failed = true;

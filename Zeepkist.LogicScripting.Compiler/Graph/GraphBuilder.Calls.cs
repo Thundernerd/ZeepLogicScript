@@ -51,8 +51,7 @@ internal sealed partial class GraphBuilder
         var block = AddBlock(call, type, check.Style, type.OrderSettings(check.Settings));
         for (var i = 0; i < check.Inputs.Length; i++)
         {
-            if (check.Inputs[i]?.Feed is { } feed)
-                Connect(feed, block, type.Inputs[i].Index);
+            check.Inputs[i]?.Feed.Connect(this, block, type.Inputs[i].Index);
         }
 
         return block;

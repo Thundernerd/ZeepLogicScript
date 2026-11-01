@@ -1,3 +1,5 @@
+using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
+
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 
 internal sealed partial class GraphBuilder
@@ -8,5 +10,11 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private abstract class InputFeed : Resolved
     {
+        public sealed override InputFeed ToFeed(GraphBuilder builder, Expression origin)
+        {
+            return this;
+        }
+
+        public abstract void Connect(GraphBuilder builder, BlockNode to, int toConnector);
     }
 }

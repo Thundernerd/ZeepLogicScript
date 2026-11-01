@@ -43,7 +43,7 @@ internal sealed partial class GraphBuilder
         var block = AddBlock(origin, type, type.DefaultStyle, operatorBlock.Setting);
         for (var i = 0; i < inputs.Count; i++)
         {
-            Connect(inputs[i](), block, type.Inputs[i].Index);
+            inputs[i]().Connect(this, block, type.Inputs[i].Index);
         }
 
         return new OutputValue(block, block.Outputs[0].Index);

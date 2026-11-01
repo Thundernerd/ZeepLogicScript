@@ -1,3 +1,5 @@
+using TNRD.Zeepkist.LogicScripting.Compiler.Syntax;
+
 namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 
 internal sealed partial class GraphBuilder
@@ -11,6 +13,15 @@ internal sealed partial class GraphBuilder
         public static readonly FailedValue Instance = new();
 
         private FailedValue()
+        {
+        }
+
+        public override Resolved SelectMember(GraphBuilder builder, MemberExpression member)
+        {
+            return this;
+        }
+
+        public override void Connect(GraphBuilder builder, BlockNode to, int toConnector)
         {
         }
     }
