@@ -24,4 +24,28 @@ public class FooterSplitTests
     {
         Assert.Equal(0, FooterSplit.GetFooterHeight(40, 100, MinListHeight));
     }
+
+    [Fact]
+    public void TheWarningFits_GetsAllItWants()
+    {
+        Assert.Equal(100, FooterSplit.GetWarningHeight(400, 100, MinListHeight, 30));
+    }
+
+    [Fact]
+    public void TheWarningDoesntFit_LeavesTheRestItsMinimum()
+    {
+        Assert.Equal(90, FooterSplit.GetWarningHeight(150, 200, MinListHeight, 30));
+    }
+
+    [Fact]
+    public void TheWarningsMinimumDoesntFit_StillGetsItsMinimum()
+    {
+        Assert.Equal(30, FooterSplit.GetWarningHeight(70, 200, MinListHeight, 30));
+    }
+
+    [Fact]
+    public void AShortWarning_TakesNoMoreThanItWants()
+    {
+        Assert.Equal(20, FooterSplit.GetWarningHeight(70, 20, MinListHeight, 30));
+    }
 }

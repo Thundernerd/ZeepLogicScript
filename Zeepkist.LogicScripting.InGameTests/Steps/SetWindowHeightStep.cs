@@ -31,7 +31,7 @@ internal sealed class SetWindowHeightStep : ScenarioStep
         yield return null;
         yield return null;
 
-        // A window can't be shorter than Imui's minimum
+        // The window can't be shorter than its minimum, which a small enough height asks for
         var actual = context.Window.WindowRect.H.ToString("0", CultureInfo.InvariantCulture);
         context.Pass($"{actual} px tall", Height.ToString(CultureInfo.InvariantCulture), actual);
     }

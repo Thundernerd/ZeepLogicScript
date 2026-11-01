@@ -90,7 +90,7 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `expect-list-result <text>` | The shown tab's result line, in its footer, contains the text, matching case. |
 | `expect-prompt none\|new\|rename\|delete` | Which prompt the shown tab's footer has open. |
 | `expect-footer-in-view` | The open prompt, the result line and New all lie inside the shown tab, and the tab inside the window, with the list at least two rows tall. The prompts may scroll when there isn't room for all of them, but get at least a row. |
-| `set-window-height <px>` | Sets the window's height, as dragging its edge does, keeping its top edge. |
+| `set-window-height <px>` | Sets the window's height, as dragging its edge does, keeping its top edge. The window stays no shorter than its minimum, so a small enough height gives the smallest window. |
 | `set-text` | Replaces the selected Script's or Library's text with the lines up to `end`, as one edit. `{uid:<name>}` in them is written as the UID of the block `place-block ... as <name>` placed, so a Script can write `placed("{uid:lamp}")`. Fails for a name no block was placed as. |
 | `compile` | Compiles the selected Script, as Ctrl+Enter does. It passes whatever the Compile did: check that with the steps below. |
 | `expect-text <text>` | The selected Script's or Library's text contains the text, matching case. |
