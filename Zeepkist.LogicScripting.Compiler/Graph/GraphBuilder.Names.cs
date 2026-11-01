@@ -94,9 +94,7 @@ internal sealed partial class GraphBuilder
 
         return name != null
             && _scope.Definitions.ContainsKey(name.Name)
-            && !_scope.Names.ContainsKey(name.Name)
-            && !_scope.SettingConstants.ContainsKey(name.Name)
-            && !_scope.FailedNames.Contains(name.Name);
+            && !_scope.IsBound(name.Name);
     }
 
     private Resolved LookUp(NameExpression name)

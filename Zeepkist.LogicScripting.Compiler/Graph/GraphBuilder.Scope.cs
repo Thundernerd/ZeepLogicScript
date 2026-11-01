@@ -51,6 +51,14 @@ internal sealed partial class GraphBuilder
         public Definition Current { get; set; }
 
         /// <summary>
+        /// Whether the name stands for something here already, even if only for nothing after it failed.
+        /// </summary>
+        public bool IsBound(string name)
+        {
+            return Names.ContainsKey(name) || SettingConstants.ContainsKey(name) || FailedNames.Contains(name);
+        }
+
+        /// <summary>
         /// How many <c>delay(...)</c> calls the expression being visited is inside.
         /// </summary>
         public int DelayDepth { get; set; }
