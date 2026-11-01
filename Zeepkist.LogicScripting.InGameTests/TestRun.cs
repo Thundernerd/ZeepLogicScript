@@ -358,9 +358,23 @@ internal sealed class TestRun : IDisposable
         Application.logMessageReceived -= OnLogMessage;
         _results.Finish();
         _logger.LogInfo($"{Marker} run {_results.RunId} {(_results.Passed ? "passed" : "failed")}");
+        FlushDiskLog();
 
         // Quitting this way skips the editor's unsaved-level prompt
         yield return null;
         Application.Quit();
+    }
+
+    /// <summary>
+    /// BepInEx writes its log file out every two seconds, and the game can quit before the next time, so the run script
+    /// would read a log that stops before the run's end.
+    /// </summary>
+    private static void FlushDiskLog()
+    {
+        foreach (var listener in BepInEx.Logging.Logger.Listeners)
+        {
+            if (listener is DiskLogListener disk)
+                disk.LogWriter?.Flush();
+        }
     }
 }
