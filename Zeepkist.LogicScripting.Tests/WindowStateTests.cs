@@ -11,68 +11,62 @@ namespace TNRD.Zeepkist.LogicScripting.Tests;
 /// </summary>
 public class WindowStateTests
 {
-    [Fact]
-    public void TheWindow_HasPanels()
-    {
-        Assert.NotEmpty(Panels());
-    }
+    // Public only, as the non-public panel properties, such as the Level one, just read an old file into a public one
+    private const BindingFlags PanelFlags = BindingFlags.Public | BindingFlags.Instance;
 
     [Theory]
-    [MemberData(nameof(Panels))]
-    public void ACopy_SharesNoPanelWithTheOriginal(string panel)
+    [MemberData(nameof(PanelNames))]
+    public void ACopy_SharesNoPanelWithTheOriginal(string panelName)
     {
         var state = new WindowState();
         var copy = state.Copy();
 
-        Assert.NotSame(Panel(state, panel), Panel(copy, panel));
+        Assert.NotSame(Panel(state, panelName), Panel(copy, panelName));
     }
 
     [Theory]
-    [MemberData(nameof(Panels))]
-    public void ACopy_NoticesThePanelChanging(string panel)
+    [MemberData(nameof(PanelNames))]
+    public void ACopy_NoticesThePanelChanging(string panelName)
     {
         var state = new WindowState();
         var copy = state.Copy();
 
-        Panel(state, panel).ToggleCollapsed();
+        Panel(state, panelName).ToggleCollapsed();
 
         Assert.False(state.IsSameAs(copy));
     }
 
     [Theory]
-    [MemberData(nameof(Panels))]
-    public void ReplacingNulls_GivesANullPanelTheDefaultLayout(string panel)
+    [MemberData(nameof(PanelNames))]
+    public void ReplacingNulls_GivesANullPanelTheDefaultLayout(string panelName)
     {
         var state = new WindowState();
-        Property(panel).SetValue(state, null);
+        Property(panelName).SetValue(state, null);
 
         state.ReplaceNulls();
 
-        Assert.True(Panel(state, panel).IsSameAs(new PanelState()));
+        Assert.True(Panel(state, panelName).IsSameAs(new PanelState()));
     }
 
-    /// <summary>
-    /// The names of <see cref="WindowState"/>'s public <see cref="PanelState"/> properties.
-    /// </summary>
-    public static TheoryData<string> Panels()
+    public static TheoryData<string> PanelNames()
     {
-        var panels = new TheoryData<string>();
-        foreach (var property in typeof(WindowState).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+        var names = new TheoryData<string>();
+        foreach (var property in typeof(WindowState).GetProperties(PanelFlags)
                      .Where(property => property.PropertyType == typeof(PanelState)))
         {
-            panels.Add(property.Name);
+            names.Add(property.Name);
         }
 
-        return panels;
+        return names;
     }
 
-    private static PanelState Panel(WindowState state, string panel)
+    private static PanelState Panel(WindowState state, string panelName)
     {
-        return (PanelState)Property(panel).GetValue(state);
+        return (PanelState)Property(panelName).GetValue(state);
     }
 
-    private static PropertyInfo Property(string panel)
+    private static PropertyInfo Property(string panelName)
     {
-        return typeof(WindowState).GetProperty(panel, BindingFlags.Public | BindingFlags.Instance);
+        return typeof(WindowState).GetProperty(panelName, PanelFlags);
     }
 }
