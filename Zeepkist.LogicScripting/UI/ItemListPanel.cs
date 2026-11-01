@@ -138,6 +138,24 @@ internal abstract class ItemListPanel<T>
         return made;
     }
 
+    /// <summary>
+    /// What naming an entry in New's prompt does. Returns null, with why in <paramref name="error"/>, for a name the
+    /// prompt doesn't take.
+    /// </summary>
+    public T New(string name, out string error)
+    {
+        name = name.Trim();
+        error = GetNameError(name, null);
+        if (error != null)
+            return null;
+
+        _renamed = null;
+        _namePrompt.Close();
+        _deletePrompt.Close();
+        Message = string.Empty;
+        return Add(name);
+    }
+
     protected abstract string GetName(T entry);
 
     protected virtual string GetLabel(T entry)
