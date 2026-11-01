@@ -89,17 +89,12 @@ internal abstract class ItemListPanel<T> : IListPanel
     /// </summary>
     public static float GetMinHeight(ImGui gui)
     {
-        return GetMinListHeight(gui) + (GetPaddedRowHeight(gui) * 2);
+        return GetMinListHeight(gui) + (WindowRegion.GetRowHeight(gui) * 2);
     }
 
     private static float GetMinListHeight(ImGui gui)
     {
         return gui.GetRowsHeightWithSpacing(MinListRows) + (gui.Style.Layout.Spacing * 2);
-    }
-
-    private static float GetPaddedRowHeight(ImGui gui)
-    {
-        return gui.GetRowHeight() + (gui.Style.Layout.Spacing * 2);
     }
 
     /// <summary>
@@ -111,7 +106,7 @@ internal abstract class ItemListPanel<T> : IListPanel
         _tab = rect;
         _rowHeight = gui.GetRowHeight();
         _minListHeight = GetMinListHeight(gui);
-        _newRow = rect.TakeBottom(GetPaddedRowHeight(gui), out var rest);
+        _newRow = rect.TakeBottom(WindowRegion.GetRowHeight(gui), out var rest);
         _prompts = rest.TakeBottom(FooterSplit.GetFooterHeight(rest.H, _promptsHeight, _minListHeight), out _list);
 
         // A scope each, so an entry coming or going doesn't change the id, and with it the focus and text, of the name

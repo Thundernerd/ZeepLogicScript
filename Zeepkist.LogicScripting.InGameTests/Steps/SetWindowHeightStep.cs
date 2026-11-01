@@ -31,7 +31,7 @@ internal sealed class SetWindowHeightStep : ScenarioStep
         yield return null;
         yield return null;
 
-        // The window can't be shorter than its minimum, which a small enough height asks for
+        // A height below the window's minimum gives the smallest window
         var actual = context.Window.WindowRect.H.ToString("0", CultureInfo.InvariantCulture);
         context.Pass($"{actual} px tall", Height.ToString(CultureInfo.InvariantCulture), actual);
     }

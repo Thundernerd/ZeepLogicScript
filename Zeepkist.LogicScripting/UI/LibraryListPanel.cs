@@ -47,17 +47,11 @@ internal sealed class LibraryListPanel : ItemListPanel<Library>
     }
 
     /// <summary>
-    /// The height the tab needs for <see cref="ItemListPanel{T}.GetMinHeight"/>, and a row of the warning with
-    /// <paramref name="readFailed"/>.
+    /// Like <see cref="ItemListPanel{T}.GetMinHeight"/>, with room for a row of the warning, the rest of which scrolls.
     /// </summary>
-    public static float GetMinHeight(ImGui gui, bool readFailed)
+    public static float GetMinHeightWithWarning(ImGui gui, bool readFailed)
     {
-        return GetMinHeight(gui) + (readFailed ? GetMinWarningHeight(gui) : 0);
-    }
-
-    private static float GetMinWarningHeight(ImGui gui)
-    {
-        return gui.GetRowHeight() + (gui.Style.Layout.Spacing * 2);
+        return GetMinHeight(gui) + (readFailed ? WindowRegion.GetRowHeight(gui) : 0);
     }
 
     /// <summary>
@@ -69,7 +63,7 @@ internal sealed class LibraryListPanel : ItemListPanel<Library>
         var spacing = gui.Style.Layout.Spacing;
         var settings = WrappedText.GetSettings(gui);
         var wanted = WrappedText.GetHeight(gui, ReadFailedText, in settings, rect.W - (spacing * 2), minHeight: 0) + (spacing * 2);
-        var height = FooterSplit.GetWarningHeight(rect.H, wanted, GetMinHeight(gui), GetMinWarningHeight(gui));
+        var height = FooterSplit.GetWarningHeight(rect.H, wanted, GetMinHeight(gui), WindowRegion.GetRowHeight(gui));
         var warning = rect.TakeTop(height, out var rest);
 
         // A scope of its own, so the warning's scroll area doesn't share an id with the list's

@@ -149,10 +149,10 @@ internal sealed partial class ScriptWindow
     private float GetMinHeight(ImGui gui)
     {
         var spacing = gui.Style.Layout.Spacing;
-        var minTabHeight = Mathf.Max(ScriptListPanel.GetMinHeight(gui), LibraryListPanel.GetMinHeight(gui, _libraryStore.ReadFailed));
+        var minTabHeight = Mathf.Max(ScriptListPanel.GetMinHeight(gui), LibraryListPanel.GetMinHeightWithWarning(gui, _libraryStore.ReadFailed));
         var minScriptsHeight = GetPanelHeaderHeight(gui) + ImTabsPane.GetTabBarHeight(gui) + (spacing * 2) + minTabHeight;
 
-        // The name row, then the editor and the error panel's header, each with spacing above it
+        // The center's padding, and the spacing above the editor and above the error panel
         var minCenterHeight = gui.GetRowHeight() + gui.GetRowsHeightWithSpacing(MinFieldRows) + GetPanelHeaderHeight(gui) + (spacing * 4);
         return ImWindow.GetTitleBarHeight(gui) + gui.Style.Window.ContentPadding.Vertical + Mathf.Max(minScriptsHeight, minCenterHeight);
     }
