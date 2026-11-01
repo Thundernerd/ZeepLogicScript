@@ -11,6 +11,11 @@ namespace TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
 /// </summary>
 internal sealed class ExpectCallHelpStep : ScenarioStep
 {
+    /// <summary>
+    /// What a call help step reports as found when the call help doesn't show.
+    /// </summary>
+    public const string NoCallHelp = "(no call help)";
+
     private const float WaitSeconds = 1;
 
     public ExpectCallHelpStep(string text)
@@ -28,7 +33,7 @@ internal sealed class ExpectCallHelpStep : ScenarioStep
         yield return context.WaitUntil(() => Contains(context.Window.CallHelp), WaitSeconds);
 
         var help = context.Window.CallHelp;
-        var actual = help == null ? "(no call help)" : Describe(help);
+        var actual = help == null ? NoCallHelp : Describe(help);
         if (Contains(help))
             context.Pass(actual, Text, actual);
         else
