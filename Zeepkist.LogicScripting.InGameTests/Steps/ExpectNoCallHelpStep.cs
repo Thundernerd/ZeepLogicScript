@@ -18,8 +18,8 @@ internal sealed class ExpectNoCallHelpStep : ScenarioStep
 
         var help = context.Window.CallHelp;
         if (help == null)
-            context.Pass("no call help", "(no call help)", "(no call help)");
+            context.Pass("no call help", ExpectCallHelpStep.NoCallHelp, ExpectCallHelpStep.NoCallHelp);
         else
-            context.Fail("the call help shows", "(no call help)", ExpectCallHelpStep.Describe(help));
+            context.Fail("the call help shows", ExpectCallHelpStep.NoCallHelp, ExpectCallHelpStep.Describe(help));
     }
 }

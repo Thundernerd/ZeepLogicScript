@@ -10,7 +10,6 @@ namespace TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
 internal sealed class ExpectCallHelpActiveStep : ScenarioStep
 {
     private const float WaitSeconds = 1;
-    private const string NoCallHelp = "(no call help)";
     private const string NoneActive = "(none)";
 
     /// <param name="label">Null to expect none highlighted.</param>
@@ -31,7 +30,7 @@ internal sealed class ExpectCallHelpActiveStep : ScenarioStep
 
         var help = context.Window.CallHelp;
         var actual = DescribeActive(help);
-        var call = help == null ? NoCallHelp : ExpectCallHelpStep.Describe(help);
+        var call = help == null ? ExpectCallHelpStep.NoCallHelp : ExpectCallHelpStep.Describe(help);
         if (actual == expected)
             context.Pass($"{actual} in {call}", expected, actual);
         else if (help == null)
@@ -40,13 +39,10 @@ internal sealed class ExpectCallHelpActiveStep : ScenarioStep
             context.Fail($"{call} highlights {actual}", expected, actual);
     }
 
-    /// <summary>
-    /// The highlighted item's label, or what stands in for it when there's none or no call help.
-    /// </summary>
     private static string DescribeActive(CallHelp help)
     {
         if (help == null)
-            return NoCallHelp;
+            return ExpectCallHelpStep.NoCallHelp;
 
         return help.Active >= 0 ? help.Items[help.Active].Label : NoneActive;
     }
