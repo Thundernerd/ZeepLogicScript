@@ -13,3 +13,4 @@ undo
 expect-blocks 0
 redo
 expect-blocks 3
+expect-no-exceptions

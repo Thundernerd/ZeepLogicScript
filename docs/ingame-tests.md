@@ -17,8 +17,8 @@ Scenarios run in the order given, each on a new, empty level in the editor: the 
 
 The script prints a summary and exits 0 only when every step of every Scenario passed. Everything the run found is in `.ingame-test/<run id>/`:
 
-- `results.md`: each Scenario's steps, with what a failing check expected and found
-- `results.json`: the same, for tools
+- `results.md`: each Scenario's steps, with what a failing check expected and found, the exceptions the game logged meanwhile, and the exceptions it logged as it quit
+- `results.json`: the same, for tools, without the exceptions at quit
 - the screenshots: `editor.png` once the walk reaches the editor, and `<scenario>-<name>.png` for a Scenario's own, including `<scenario>-failure.png` where one failed
 - `LogOutput.log`: the game's BepInEx log, where the test plugin's lines start with `[ZLS-TEST]`
 
@@ -34,6 +34,12 @@ Only one run can use the game at a time. A second run, say from another worktree
 | `-h`, `--help` | Prints the usage. |
 
 `ZEEPKIST_DIR` sets the game's install folder, when it isn't found in Steam's libraries.
+
+### Exceptions
+
+The test plugin records every exception the game logs while the run is going, mod or not, with the first line of its stack trace. `results.md` lists each Scenario's under it, and those logged on the way to the editor at the top, counted where the same one comes from the same place. They don't fail a step: end a Scenario with `expect-no-exceptions` to check that it logged none.
+
+Once the game has quit, the script reads what it logged after the run finished from `LogOutput.log` into an **Exceptions at quit** section, grouped by the exception and its first stack line, with a count. These are reported, but don't fail the run. When the run didn't finish, the section says so instead.
 
 ## Scenarios
 
@@ -98,6 +104,7 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `back-to-editor` | Quits test mode from the pause menu, and waits until the editor has loaded the level again. |
 | `wait <seconds>` | Waits, such as for the level to run a little before a screenshot. |
 | `screenshot <name>` | Saves a screenshot as `<scenario>-<name>.png`. The name takes letters, digits, `-` and `_`. |
+| `expect-no-exceptions` | The game logged no exception since the Scenario started, or since the last `expect-no-exceptions`. It fails with the ones it logged. |
 | `log <text>` | Writes the text to the game's log. |
 
 The window steps need the window open, and the steps for a Script need one selected: they fail and say which step to add first. `press` and `type` need a field focused, such as by `caret-at-end`.
