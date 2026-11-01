@@ -114,6 +114,21 @@ internal sealed class StepContext
     }
 
     /// <summary>
+    /// Fails the step when no field in the window has focus, as keys typed then go to the level editor. Returns whether
+    /// one has.
+    /// </summary>
+    public bool RequireFocusedField()
+    {
+        if (!RequireOpenWindow())
+            return false;
+
+        if (!Window.IsFieldFocused)
+            Fail("no field is focused: add caret-at-start or caret-at-end first");
+
+        return Window.IsFieldFocused;
+    }
+
+    /// <summary>
     /// Like <see cref="RequireOpenWindow"/>, with a Script selected too.
     /// </summary>
     public bool RequireScript()
