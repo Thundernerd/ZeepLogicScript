@@ -160,18 +160,22 @@ internal sealed partial class ScriptEditor
     }
 
     /// <summary>
-    /// Call once a frame, before the keyboard is handled. Every Escape is held here, by the same check as the one that
+    /// Call once a frame, before the keyboard is handled: an Escape whose key event never came is handled now.
+    /// </summary>
+    private void ExpireEscape(ImGui gui)
+    {
+        if (_heldEscape.Expire(Time.frameCount))
+            RunEscape(gui);
+    }
+
+    /// <summary>
+    /// Call once a frame, after the keyboard is handled. Every Escape is held here, by the same check as the one that
     /// unfocuses other fields, and handled at its key event, which comes a frame later, so the keys pressed before it
-    /// are handled first.
+    /// are handled first. The Escape held last frame was released by then, so one pressed right after it is held too.
     /// </summary>
     private void HoldEscape(ImGui gui)
     {
-        var frame = Time.frameCount;
-        if (_heldEscape.Expire(frame))
-            RunEscape(gui);
-
-        // While one is held, a second Escape goes on to FieldFocus, which handles it after the first
-        TookEscape = gui.IsControlActive(Id) && Input.GetKeyDown(KeyCode.Escape) && _heldEscape.Hold(frame);
+        TookEscape = gui.IsControlActive(Id) && Input.GetKeyDown(KeyCode.Escape) && _heldEscape.Hold(Time.frameCount);
     }
 
     /// <summary>

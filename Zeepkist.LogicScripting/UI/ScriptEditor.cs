@@ -169,7 +169,7 @@ internal sealed partial class ScriptEditor
         {
             ImTextEdit.DrawCaret(gui, _state.Caret, _state.BlinkTime, textRect, in _layout, in stateStyle, in buffer);
             if (completing)
-                HoldEscape(gui);
+                ExpireEscape(gui);
 
             if (completed is { } accepted)
             {
@@ -178,6 +178,8 @@ internal sealed partial class ScriptEditor
             }
 
             changed |= HandleKeyboard(gui, ref buffer, textRect, !gui.IsReadOnly, completing, out compileRequested, out typedName, out typedSeparator);
+            if (completing)
+                HoldEscape(gui);
         }
 
         var focused = completing && gui.IsControlActive(Id);
