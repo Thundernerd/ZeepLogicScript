@@ -21,6 +21,7 @@ internal sealed partial class ScriptEditor
     private readonly CompletionPopup _completion;
     private readonly CallHelpPopup _callHelp;
     private readonly HoverPopup _hover;
+    private readonly HeldEscape _heldEscape = new();
     private ImTextEditState _state;
     private ImTextLayout _layout = new() { Lines = new ImTextLine[64] };
     private IReadOnlyList<ErrorUnderline> _errors = [];
@@ -49,9 +50,9 @@ internal sealed partial class ScriptEditor
     public uint Id { get; private set; }
 
     /// <summary>
-    /// Whether Escape went to the completion list or hid the call's help this frame, which leaves the field focused.
+    /// Whether the field holds this frame's Escape to handle at its key event, which leaves it focused until then.
     /// </summary>
-    public bool TookEscape => _completion.TookEscape || _callHelp.TookEscape;
+    public bool HoldsEscape { get; private set; }
 
     /// <summary>
     /// Spans are character indices into <see cref="Text"/>.
@@ -99,6 +100,7 @@ internal sealed partial class ScriptEditor
     public bool Draw(ImGui gui, ImRect rect, out bool compileRequested)
     {
         compileRequested = false;
+        HoldsEscape = false;
         Id = gui.GetNextControlId();
         if (_focusRequested)
         {
@@ -167,10 +169,7 @@ internal sealed partial class ScriptEditor
         {
             ImTextEdit.DrawCaret(gui, _state.Caret, _state.BlinkTime, textRect, in _layout, in stateStyle, in buffer);
             if (completing)
-            {
-                _completion.HandleEscape();
-                _callHelp.HandleKeyboard(_completion.TookEscape);
-            }
+                ExpireEscape(gui);
 
             if (completed is { } accepted)
             {
@@ -179,9 +178,14 @@ internal sealed partial class ScriptEditor
             }
 
             changed |= HandleKeyboard(gui, ref buffer, textRect, !gui.IsReadOnly, completing, out compileRequested, out typedName, out typedSeparator);
+            if (completing)
+                HoldEscape(gui);
         }
 
         var focused = completing && gui.IsControlActive(Id);
+        if (!focused)
+            _heldEscape.Drop();
+
         _completion.Update(GetSnapshot(), typedName, typedSeparator, focused);
         _callHelp.Update(GetSnapshot(), focused);
 

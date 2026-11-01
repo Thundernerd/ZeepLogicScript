@@ -10,7 +10,7 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
 /// The box that shows the inputs and Settings of the call the caret is in, with the one being written highlighted. It
-/// takes no clicks or keys apart from Escape, which hides it until the caret leaves the call.
+/// takes no clicks or keys; the editor's Escape hides it until the caret leaves the call.
 /// </summary>
 internal sealed class CallHelpPopup
 {
@@ -28,10 +28,7 @@ internal sealed class CallHelpPopup
         _session = new CallHelpSession(assist.FindPlacedBlock);
     }
 
-    /// <summary>
-    /// Whether Escape hid the help this frame, so it doesn't also take the editor's focus.
-    /// </summary>
-    public bool TookEscape { get; private set; }
+    public bool IsShown => _session.Help != null;
 
     /// <summary>
     /// Above the caret's line, whose top left is <paramref name="linePosition"/>, or under it when there's no room
@@ -87,23 +84,15 @@ internal sealed class CallHelpPopup
         gui.EndPopup();
     }
 
-    /// <summary>
-    /// Call after the completion list handled the keyboard: Escape the list didn't take hides the help.
-    /// </summary>
-    public void HandleKeyboard(bool escapeUsed)
+    /// <inheritdoc cref="CallHelpSession.Dismiss"/>
+    public void Dismiss()
     {
-        TookEscape = false;
-        if (escapeUsed || _session.Help == null || !Input.GetKeyDown(KeyCode.Escape))
-            return;
-
         _session.Dismiss();
-        TookEscape = true;
     }
 
     /// <inheritdoc cref="CallHelpSession.Update"/>
     public void Update(TextSnapshot snapshot, bool focused)
     {
-        TookEscape &= focused;
         _session.Update(snapshot, focused);
     }
 

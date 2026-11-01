@@ -354,7 +354,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
             OnEdited();
         }
 
-        _fieldFocused = FieldFocus.Update(gui, editor.Id, editor.TookEscape);
+        _fieldFocused = FieldFocus.Update(gui, editor.Id, editor.HoldsEscape);
 
         return compileRequested;
     }
