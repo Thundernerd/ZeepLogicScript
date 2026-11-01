@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 
@@ -13,6 +14,11 @@ internal sealed class RunRequest
     public const string Flag = "-zls-ingame-test";
 
     public string RunId { get; set; }
+
+    /// <summary>
+    /// File names in the scenarios folder next to run.json, in the order to run them.
+    /// </summary>
+    public List<string> Scenarios { get; set; } = [];
 
     public static bool TryRead(string folder, string[] args, out RunRequest request)
     {

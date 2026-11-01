@@ -2,8 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using BepInEx.Bootstrap;
 using BepInEx.Logging;
 using TNRD.Zeepkist.LogicScripting.Blocks;
+using TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
+using TNRD.Zeepkist.LogicScripting.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using ZeepSDK.LevelEditor;
@@ -12,8 +15,8 @@ using Object = UnityEngine.Object;
 namespace TNRD.Zeepkist.LogicScripting.InGameTests;
 
 /// <summary>
-/// Walks from the start screen to a new level in the level editor the way a player does, takes a screenshot of it and
-/// quits. Each wait gives up after <see cref="WaitSeconds"/>, so a changed menu fails the run instead of hanging it.
+/// Walks from the start screen to a new level in the level editor the way a player does, takes a screenshot of it, runs
+/// the scenarios and quits. Each wait gives up after <see cref="WaitSeconds"/>, so a changed menu fails the run instead of hanging it.
 /// </summary>
 internal sealed class TestRun : IDisposable
 {
@@ -23,14 +26,16 @@ internal sealed class TestRun : IDisposable
 
     private readonly ManualLogSource _logger;
     private readonly RunResults _results;
+    private readonly RunRequest _request;
     private readonly string _folder;
     private int _scenesLoaded;
     private bool _enteredEditor;
 
-    public TestRun(ManualLogSource logger, RunResults results, string folder)
+    public TestRun(ManualLogSource logger, RunResults results, RunRequest request, string folder)
     {
         _logger = logger;
         _results = results;
+        _request = request;
         _folder = folder;
         SceneManager.sceneLoaded += OnSceneLoaded;
         LevelEditorApi.EnteredLevelEditor += OnEnteredLevelEditor;
@@ -43,47 +48,87 @@ internal sealed class TestRun : IDisposable
     }
 
     /// <summary>
-    /// Drives <see cref="Walk"/> and the waits it yields itself, so an exception anywhere in them fails the run and
-    /// still quits the game, instead of leaving the run script to time out.
+    /// Reads every scenario first, so one that can't be read fails without the game starting it. An exception anywhere
+    /// in the walk fails the run, and still quits the game, instead of leaving the run script to time out.
     /// </summary>
     public IEnumerator Run()
     {
-        var running = new Stack<IEnumerator>();
-        running.Push(Walk());
-        Exception error = null;
-        while (running.Count > 0)
+        var scenarios = ReadScenarios();
+        if (scenarios.Count > 0)
         {
-            object current;
-            try
+            Exception error = null;
+            yield return GuardedRoutine.Run(Walk(), exception => error = exception);
+            if (error != null)
             {
-                if (!running.Peek().MoveNext())
-                {
-                    running.Pop();
-                    continue;
-                }
-
-                current = running.Peek().Current;
+                _logger.LogError(error);
+                Step(RunStep.Fail("no errors", $"{error.GetType().Name}: {error.Message}"));
+                yield return Screenshot("failure");
             }
-            catch (Exception exception)
+            else if (!_results.AnyStepFailed)
             {
-                error = exception;
-                break;
+                yield return RunScenarios(scenarios);
             }
-
-            if (current is IEnumerator nested)
-                running.Push(nested);
-            else
-                yield return current;
-        }
-
-        if (error != null)
-        {
-            _logger.LogError(error);
-            Step(RunStep.Fail("no errors", $"{error.GetType().Name}: {error.Message}"));
-            yield return Screenshot("failure");
         }
 
         yield return Finish();
+    }
+
+    private List<Scenario> ReadScenarios()
+    {
+        List<Scenario> scenarios = [];
+        foreach (var file in _request.Scenarios)
+        {
+            var name = Path.GetFileNameWithoutExtension(file);
+            var scenario = ScenarioParser.Parse(name, File.ReadAllText(Path.Combine(_folder, "scenarios", file)), out var error);
+            if (scenario == null)
+                Step(new RunStep { Scenario = name, Name = "read scenario", Detail = error });
+            else
+                scenarios.Add(scenario);
+        }
+
+        return scenarios;
+    }
+
+    /// <summary>
+    /// A failed step stops its scenario with a screenshot, and the run goes on with the next.
+    /// </summary>
+    private IEnumerator RunScenarios(List<Scenario> scenarios)
+    {
+        var window = ((LogicScripting.Plugin)Chainloader.PluginInfos[LogicScripting.MyPluginInfo.PLUGIN_GUID].Instance).ScriptWindow;
+        var driver = new ScriptWindow.Driver(window);
+        foreach (var scenario in scenarios)
+        {
+            _logger.LogInfo($"{Marker} scenario {scenario.Name}");
+            var context = new StepContext(scenario.Name, driver, _logger, Screenshot);
+            foreach (var step in scenario.Steps)
+            {
+                context.Reset();
+                var startedAt = Time.realtimeSinceStartup;
+                yield return GuardedRoutine.Run(step.Run(context), exception =>
+                {
+                    _logger.LogError(exception);
+                    context.Fail($"{exception.GetType().Name}: {exception.Message}");
+                });
+
+                Step(new RunStep
+                {
+                    Scenario = scenario.Name,
+                    Line = step.Line,
+                    Name = step.Source,
+                    Passed = !context.Failed,
+                    Detail = context.Detail,
+                    Expected = context.Expected,
+                    Actual = context.Actual,
+                    Seconds = Math.Round(Time.realtimeSinceStartup - startedAt, 2),
+                });
+
+                if (context.Failed)
+                {
+                    yield return context.Screenshot("failure");
+                    break;
+                }
+            }
+        }
     }
 
     private IEnumerator Walk()
@@ -204,7 +249,9 @@ internal sealed class TestRun : IDisposable
     private void Step(RunStep step)
     {
         _results.Add(step);
-        var line = $"{Marker} {step.Name} {(step.Passed ? "PASS" : "FAIL")} {step.Detail}".TrimEnd();
+        var scenario = step.Scenario.Length > 0 ? $"{step.Scenario}:{step.Line} " : string.Empty;
+        var expected = step.Expected == null ? string.Empty : $" (expected: {step.Expected}, actual: {step.Actual})";
+        var line = $"{Marker} {scenario}{step.Name} {(step.Passed ? "PASS" : "FAIL")} {step.Detail}{expected}".TrimEnd();
         if (step.Passed)
             _logger.LogInfo(line);
         else

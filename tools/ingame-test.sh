@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Builds this branch, installs exactly that build into Zeepkist, starts the game through Steam, lets the in-game test
-# plugin walk it into the level editor, collects the results and puts the install and the mod's data back as they were.
+# plugin walk it into the level editor and run the scenarios there, collects the results and puts the install and the
+# mod's data back as they were.
 #
-# Usage: tools/ingame-test.sh [--no-build] [--keep] [--timeout <seconds>]
+# Usage: tools/ingame-test.sh [--no-build] [--keep] [--timeout <seconds>] [<scenario.zlstest>...]
 #   --no-build   use the existing Release build
 #   --keep       leave the build installed for manual play (other copies of the mod stay set aside)
 #   --timeout    give up and kill the game after this many seconds (default 300)
+#   scenarios    run in the order given (default: the test plugin's Scenarios/smoke.zlstest)
 #
 # ZEEPKIST_DIR overrides where the game is installed. Results go to .ingame-test/<run id>/.
 set -euo pipefail
@@ -16,6 +18,7 @@ test_guid=Zeepkist.LogicScripting.InGameTests
 build=1
 keep=0
 timeout=300
+scenarios=()
 
 while (($#)); do
     case "$1" in
@@ -26,24 +29,36 @@ while (($#)); do
             shift
             ;;
         -h | --help)
-            sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
+            sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
             exit 0
             ;;
-        *)
+        -*)
             echo "Unknown argument: $1" >&2
             exit 2
             ;;
+        *) scenarios+=("$1") ;;
     esac
     shift
 done
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+((${#scenarios[@]})) || scenarios=("$repo/$test_guid/Scenarios/smoke.zlstest")
 
 log() { printf '[ingame-test] %s\n' "$*"; }
 fail() {
     printf '[ingame-test] %s\n' "$*" >&2
     exit 1
 }
+
+# The test plugin finds each scenario by its file name, which also names it in the results
+declare -A scenario_names=()
+for scenario in "${scenarios[@]}"; do
+    [[ -f "$scenario" ]] || fail "No scenario at $scenario"
+    [[ "$scenario" == *.zlstest ]] || fail "$scenario isn't a .zlstest file"
+    name="$(basename "$scenario")"
+    [[ -z "${scenario_names[$name]:-}" ]] || fail "Two scenarios are called $name. Rename one."
+    scenario_names[$name]=1
+done
 
 # The game itself, or Steam's launcher for it while it starts up or shuts down. Matching on names rather than any
 # command line that mentions the game keeps other shells out of it.
@@ -189,7 +204,16 @@ collect() {
         fi
         echo
         if [[ -f "$run_dir/results.json" ]]; then
-            jq -r '.Steps[] | "- \(if .Passed then "PASS" else "FAIL" end) \(.Name)\(if .Detail != "" then ": \(.Detail)" else "" end)"' "$run_dir/results.json"
+            # The walk to the editor first, then each scenario with its steps, which stop at the first that failed
+            jq -r '
+                def line: "- \(if .Passed then "PASS" else "FAIL" end) \(if .Line > 0 then "line \(.Line): " else "" end)\(.Name)"
+                    + (if .Detail != "" then ": \(.Detail)" else "" end)
+                    + (if .Expected != null then "\n  - expected: `\(.Expected)`\n  - actual: `\(.Actual)`" else "" end);
+                (.Steps | map(select(.Scenario == "")) | map(line) | .[]),
+                (.Steps | map(select(.Scenario != "")) | group_by(.Scenario) | sort_by(.[0].Index)[]
+                    | "", "## \(.[0].Scenario): \(if all(.Passed) then "passed" else map(select(.Passed | not))[0] | "failed\(if .Line > 0 then " at line \(.Line)" else "" end)" end)", "",
+                      (.[] | line))
+            ' <(jq '.Steps |= to_entries | .Steps |= map(.value + {Index: .key})' "$run_dir/results.json")
             echo
             jq -r '.Screenshots[] | "- ![\(.)](\(.))"' "$run_dir/results.json"
         else
@@ -283,7 +307,13 @@ for file in "${build_files[@]}"; do
     fi
 done
 cp "$test_build/$test_guid.dll" "$test_build/$test_guid.pdb" "$test_deploy/"
-jq -n --arg runId "$run_id" '{runId: $runId}' >"$test_deploy/run.json"
+mkdir -p "$test_deploy/scenarios"
+scenario_files=()
+for scenario in "${scenarios[@]}"; do
+    cp "$scenario" "$test_deploy/scenarios/"
+    scenario_files+=("$(basename "$scenario")")
+done
+jq -n --arg runId "$run_id" '{runId: $runId, scenarios: $ARGS.positional}' --args "${scenario_files[@]}" >"$test_deploy/run.json"
 
 log "Starting the game"
 launched=1
@@ -323,10 +353,10 @@ stop_game
 
 restore
 echo
-grep -E '^- (PASS|FAIL)|^\*\*|^No results' "$run_dir/results.md" | sed 's/\*\*//g'
+grep -E '^- (PASS|FAIL)|^  - |^## |^\*\*|^No results' "$run_dir/results.md" | sed 's/\*\*//g; s/`//g'
 log "Results in $run_dir"
 if [[ "$passed" == true ]]; then
-    log "Passed: $(jq -r '.Steps[-1].Name' "$run_dir/results.json")"
+    log "Passed: $(jq -r '[.Steps[].Scenario | select(. != "")] | unique | join(", ")' "$run_dir/results.json")"
     exit 0
 fi
 exit 1
