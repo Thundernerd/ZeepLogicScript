@@ -82,9 +82,10 @@ internal static class StepList
         if (text.Length == 0)
             throw new ScenarioFormatException(what);
 
-        var position = argument.Substring(0, space).Split(':');
+        var written = argument.Substring(0, space);
+        var position = written.Split(':');
         if (position.Length != 2 || !StepArgument.TryPositive(position[0], out var line) || !StepArgument.TryPositive(position[1], out var column))
-            throw new ScenarioFormatException($"{what}, not '{argument.Substring(0, space)}'");
+            throw new ScenarioFormatException($"{what}, not '{written}'");
 
         return new ExpectErrorStep(new Position(line, column), text);
     }

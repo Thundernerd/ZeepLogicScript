@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using BepInEx.Logging;
 using TNRD.Zeepkist.LogicScripting.UI;
 using UnityEngine;
@@ -35,10 +34,9 @@ internal sealed class StepContext
     public ManualLogSource Logger { get; }
 
     /// <summary>
-    /// The UIDs of the blocks <c>place-block ... as &lt;name&gt;</c> placed, by that name, for <c>{uid:&lt;name&gt;}</c> in
-    /// a step's text. They last the scenario.
+    /// They last the scenario.
     /// </summary>
-    public Dictionary<string, string> PlacedUids { get; } = [];
+    public PlacedBlockNames PlacedBlocks { get; } = new();
 
     public bool Failed { get; private set; }
 

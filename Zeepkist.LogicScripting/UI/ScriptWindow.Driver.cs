@@ -70,7 +70,7 @@ internal sealed partial class ScriptWindow
         /// </summary>
         public string NewScript(string name)
         {
-            _window._state.ShowLibraries = false;
+            ShowTab(libraries: false);
             var entry = _window._scriptListPanel.New(name, out var error);
             if (entry != null)
                 _window.Select(entry);
@@ -87,7 +87,7 @@ internal sealed partial class ScriptWindow
             if (entry == null)
                 return false;
 
-            _window._state.ShowLibraries = false;
+            ShowTab(libraries: false);
             if (entry != _window.CurrentScript)
                 _window.Select(entry);
 
@@ -114,7 +114,7 @@ internal sealed partial class ScriptWindow
         /// </summary>
         public string NewLibrary(string name)
         {
-            _window._state.ShowLibraries = true;
+            ShowTab(libraries: true);
             var library = _window._libraryListPanel.New(name, out var error);
             if (library != null)
                 _window.SelectLibrary(library);
@@ -131,11 +131,19 @@ internal sealed partial class ScriptWindow
             if (library == null)
                 return false;
 
-            _window._state.ShowLibraries = true;
+            ShowTab(libraries: true);
             if (library != _window.CurrentLibrary)
                 _window.SelectLibrary(library);
 
             return true;
+        }
+
+        /// <summary>
+        /// Like clicking the Scripts or the Libraries tab, whose list the buttons for one are in.
+        /// </summary>
+        private void ShowTab(bool libraries)
+        {
+            _window._state.ShowLibraries = libraries;
         }
 
         /// <summary>

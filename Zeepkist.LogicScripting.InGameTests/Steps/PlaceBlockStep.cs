@@ -57,11 +57,14 @@ internal sealed class PlaceBlockStep : ScenarioStep
             d = new PropertyDictionariesJSON(),
         };
 
+        if (Name != null && !context.PlacedBlocks.Remember(Name, json.u))
+        {
+            context.Fail($"a block was already placed as \"{Name}\"", "a new name", context.PlacedBlocks.Listed);
+            yield break;
+        }
+
         var placed = BlockBatch.Apply(central, [json], [], [], UndoLabel);
         BlockGroups.Select(central, placed);
-        if (Name != null)
-            context.PlacedUids[Name] = json.u;
-
         context.Detail = $"{Function}, block {blockId}, UID \"{json.u}\" at {position}";
         yield return null;
     }
