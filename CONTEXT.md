@@ -91,3 +91,7 @@ _Avoid_: external block, UID literal
 **In-Game Test Run**:
 One go of `tools/ingame-test.sh`: it installs the branch's build, starts the game, lets a test plugin drive it, records each Run Step's result and screenshots, then puts the install and the mod's data back. A Run Step is one check or action in it, not a Tick, and the run itself has nothing to do with a Compile.
 _Avoid_: playtest, test session
+
+**Scenario**:
+A `.zlstest` file of Run Steps, one per line, that an In-Game Test Run takes in order, such as a ticket's "try in game" steps written down. The first step that fails stops its Scenario.
+_Avoid_: test case, test script (a Script is what a player writes)
