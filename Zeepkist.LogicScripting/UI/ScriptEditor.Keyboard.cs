@@ -10,7 +10,8 @@ internal sealed partial class ScriptEditor
 {
     /// <summary>
     /// Every edit is recorded in the history; a caret move without an edit ends the current typing step. When
-    /// <paramref name="completing"/>, the completion list sees the text before each key and takes its own keys.
+    /// <paramref name="completing"/>, the completion list sees the text before each key and takes its own keys, and a
+    /// held Escape is handled at its key event.
     /// <paramref name="typedName"/> is set when a character that can start a name was typed after the list last saw
     /// the text, and <paramref name="typedSeparator"/> when one that can come before an argument was.
     /// </summary>
@@ -50,7 +51,7 @@ internal sealed partial class ScriptEditor
                     _callHelp.Update(current, gui.IsControlActive(Id));
 
                     // The keys after it were pressed after leaving the field
-                    if (RunEscape(gui))
+                    if (HandleEscape(gui))
                         break;
 
                     continue;
@@ -165,7 +166,7 @@ internal sealed partial class ScriptEditor
     private void ExpireEscape(ImGui gui)
     {
         if (_heldEscape.Expire(Time.frameCount))
-            RunEscape(gui);
+            HandleEscape(gui);
     }
 
     /// <summary>
@@ -175,13 +176,13 @@ internal sealed partial class ScriptEditor
     /// </summary>
     private void HoldEscape(ImGui gui)
     {
-        TookEscape = gui.IsControlActive(Id) && Input.GetKeyDown(KeyCode.Escape) && _heldEscape.Hold(Time.frameCount);
+        HoldsEscape = gui.IsControlActive(Id) && Input.GetKeyDown(KeyCode.Escape) && _heldEscape.Hold(Time.frameCount);
     }
 
     /// <summary>
     /// Closes the completion list, else hides the call's help, else leaves the field; returns whether it left.
     /// </summary>
-    private bool RunEscape(ImGui gui)
+    private bool HandleEscape(ImGui gui)
     {
         if (_completion.IsOpen)
         {

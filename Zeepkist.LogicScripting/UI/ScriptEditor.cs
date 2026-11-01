@@ -52,7 +52,7 @@ internal sealed partial class ScriptEditor
     /// <summary>
     /// Whether the field holds this frame's Escape to handle at its key event, which leaves it focused until then.
     /// </summary>
-    public bool TookEscape { get; private set; }
+    public bool HoldsEscape { get; private set; }
 
     /// <summary>
     /// Spans are character indices into <see cref="Text"/>.
@@ -100,7 +100,7 @@ internal sealed partial class ScriptEditor
     public bool Draw(ImGui gui, ImRect rect, out bool compileRequested)
     {
         compileRequested = false;
-        TookEscape = false;
+        HoldsEscape = false;
         Id = gui.GetNextControlId();
         if (_focusRequested)
         {

@@ -35,7 +35,7 @@ internal sealed class HeldEscape
 
     /// <summary>
     /// Whether the held Escape's event should have come before <paramref name="frame"/>, as when something else used
-    /// it; it's no longer held after.
+    /// it, so it's handled now; it's no longer held after.
     /// </summary>
     public bool Expire(int frame)
     {

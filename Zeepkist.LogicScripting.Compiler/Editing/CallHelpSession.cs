@@ -35,8 +35,8 @@ public sealed class CallHelpSession
     }
 
     /// <summary>
-    /// Call after the editor handled its input, with the text and caret it ended with, and before an Escape it
-    /// handles, with them as they are then. Shows nothing while the editor isn't focused.
+    /// Call after the editor handled its input, with the text and caret it ended with. Also call before handling an
+    /// Escape, with the text and caret at that key. Shows nothing while the editor isn't focused.
     /// </summary>
     public void Update(TextSnapshot snapshot, bool focused)
     {
