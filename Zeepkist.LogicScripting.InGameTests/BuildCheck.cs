@@ -41,6 +41,9 @@ internal static class BuildCheck
     private static string SkippedCopy()
     {
         var path = Path.Combine(Paths.BepInExRootPath, "LogOutput.log");
+        if (!File.Exists(path))
+            return null;
+
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using var reader = new StreamReader(stream);
         string line;

@@ -27,7 +27,7 @@ internal sealed class RunResults
     public List<string> Screenshots { get; } = [];
 
     [JsonIgnore]
-    public bool Failed => Steps.Exists(step => !step.Passed);
+    public bool AnyStepFailed => Steps.Exists(step => !step.Passed);
 
     public string ScreenshotPath(string name)
     {
@@ -44,7 +44,7 @@ internal sealed class RunResults
     public void Finish()
     {
         Done = true;
-        Passed = Steps.Count > 0 && !Failed;
+        Passed = Steps.Count > 0 && !AnyStepFailed;
         Write();
     }
 
