@@ -10,7 +10,9 @@ public sealed class CallHelpSession
 {
     private readonly Func<string, PlacedBlock> _findPlacedBlock;
     private TextSnapshot? _snapshot;
-    private int? _dismissedCall;
+    // The text up to and including the dismissed call's open paren. A paren index alone would also match a different
+    // call whose paren lands at the same place after an edit.
+    private string _dismissedCall;
 
     /// <param name="findPlacedBlock">
     /// The block in the level with a UID, or null when there's none; it gives a Placed Block Reference its type.
@@ -26,11 +28,11 @@ public sealed class CallHelpSession
     public CallHelp Help { get; private set; }
 
     /// <summary>
-    /// Hides the help until the caret leaves its call: what Escape does.
+    /// Hides the help until the caret leaves its call or the text before its open paren changes: what Escape does.
     /// </summary>
     public void Dismiss()
     {
-        _dismissedCall = Help?.OpenParen;
+        _dismissedCall = Help == null ? null : _snapshot.Value.Text.Substring(0, Help.OpenParen + 1);
         Help = null;
     }
 
@@ -54,9 +56,17 @@ public sealed class CallHelpSession
         _snapshot = snapshot;
         var help = CallHelp.At(snapshot.Text, snapshot.Caret, _findPlacedBlock);
 
-        if (_dismissedCall is { } dismissed && (help == null || !help.EnclosingCalls.Contains(dismissed)))
+        if (_dismissedCall != null && !StillInDismissedCall(snapshot.Text, help))
             _dismissedCall = null;
 
         Help = _dismissedCall == null ? help : null;
+    }
+
+    private bool StillInDismissedCall(string text, CallHelp help)
+    {
+        var openParen = _dismissedCall.Length - 1;
+        return help != null
+            && help.EnclosingCalls.Contains(openParen)
+            && string.CompareOrdinal(text, 0, _dismissedCall, 0, _dismissedCall.Length) == 0;
     }
 }
