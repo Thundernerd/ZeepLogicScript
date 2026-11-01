@@ -54,7 +54,7 @@ internal sealed partial class GraphBuilder
             {
                 known.Add(name.Name, function);
 
-                // Before the first lines are checked, since checking them follows calls within this Library
+                // Before any Setting inputs are found, since finding them follows calls within this Library
                 if (_scope.Library != null)
                     _libraryFunctions.Add(function, _scope.Library);
             }
@@ -66,6 +66,16 @@ internal sealed partial class GraphBuilder
         {
             if (known.TryGetValue(function.Name.Name, out var registered) && registered == function && !CheckHeader(function))
                 _brokenFunctions.Add(function);
+        }
+
+        // A Library's Functions are checked for Setting input uses once it's loaded, which may be during a search for
+        // its Setting inputs
+        if (_scope.Library != null)
+            return;
+
+        foreach (var function in known.Values)
+        {
+            CheckSettingInputUses(function);
         }
     }
 
@@ -113,7 +123,6 @@ internal sealed partial class GraphBuilder
             }
         }
 
-        CheckSettingInputUses(function);
         return isValid;
     }
 

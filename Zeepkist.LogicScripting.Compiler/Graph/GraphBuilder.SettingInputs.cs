@@ -23,54 +23,102 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private readonly HashSet<Dictionary<string, FunctionDefinition>> _settingInputTables = [];
 
+    /// <summary>
+    /// The tables whose Setting inputs are being found together, or null when there's no search going on.
+    /// </summary>
+    private List<Dictionary<string, FunctionDefinition>> _settingInputSearch;
+
+    /// <summary>
+    /// Libraries loaded during the search, whose Setting inputs it's still finding.
+    /// </summary>
+    private readonly Queue<LoadedLibrary> _uncheckedLibraries = [];
+
     /// <param name="function">One of <paramref name="functions"/>.</param>
     /// <param name="functions">The Functions the body calls without a prefix.</param>
     private Dictionary<string, SyntaxNode> GetSettingInputs(FunctionDefinition function, Dictionary<string, FunctionDefinition> functions)
     {
-        FindSettingInputs(functions);
+        if (_settingInputTables.Add(functions))
+        {
+            foreach (var tableFunction in functions.Values)
+            {
+                _settingInputs[tableFunction] = [];
+            }
+
+            // Libraries that call each other need each other's answers, so a table reached mid-search joins it
+            if (_settingInputSearch != null)
+                _settingInputSearch.Add(functions);
+            else
+                FindSettingInputs(functions);
+        }
+
         return _settingInputs.TryGetValue(function, out var settingInputs) ? settingInputs : [];
     }
 
     /// <summary>
-    /// Finds the Setting inputs of every Function in a table together, going over them until none gains one: passing
-    /// an input on to another Function's Setting input makes it a Setting input too. Following each call into the
-    /// Function it names instead would recurse once per Function in a chain of calls.
+    /// Finds the Setting inputs of every Function in a table, and in the tables its calls reach, together, going over
+    /// them until none gains one: passing an input on to another Function's Setting input makes it a Setting input too.
+    /// Following each call into the Function it names instead would recurse once per Function in a chain of calls.
     /// </summary>
     private void FindSettingInputs(Dictionary<string, FunctionDefinition> functions)
     {
-        if (!_settingInputTables.Add(functions))
-            return;
-
-        foreach (var function in functions.Values)
-        {
-            _settingInputs[function] = [];
-        }
-
+        _settingInputSearch = [functions];
         bool isGrowing;
         do
         {
             isGrowing = false;
-            foreach (var function in functions.Values)
+            for (var i = 0; i < _settingInputSearch.Count; i++)
             {
-                var settingInputs = _settingInputs[function];
-                VisitInputUses(function, functions, (name, node, isSetting) =>
+                var table = _settingInputSearch[i];
+                foreach (var function in table.Values)
                 {
-                    if (!isSetting)
-                        return;
+                    var settingInputs = _settingInputs[function];
+                    VisitInputUses(function, table, (name, node, isSetting) =>
+                    {
+                        if (!isSetting)
+                            return;
 
-                    if (!settingInputs.TryGetValue(name, out var first))
-                    {
-                        settingInputs.Add(name, node);
-                        isGrowing = true;
-                    }
-                    else if (node.Position.CompareTo(first.Position) < 0)
-                    {
-                        settingInputs[name] = node;
-                    }
-                });
+                        if (!settingInputs.TryGetValue(name, out var first))
+                        {
+                            settingInputs.Add(name, node);
+                            isGrowing = true;
+                        }
+                        else if (node.Position.CompareTo(first.Position) < 0)
+                        {
+                            settingInputs[name] = node;
+                        }
+                    });
+                }
             }
         }
         while (isGrowing);
+
+        _settingInputSearch = null;
+        while (_uncheckedLibraries.Count > 0)
+        {
+            CheckSettingInputUses(_uncheckedLibraries.Dequeue());
+        }
+    }
+
+    /// <summary>
+    /// Checks a loaded Library's Setting inputs once they're all found, keeping what's wrong at its own lines.
+    /// </summary>
+    private void CheckSettingInputUses(LoadedLibrary library)
+    {
+        if (_settingInputSearch != null)
+        {
+            _uncheckedLibraries.Enqueue(library);
+            return;
+        }
+
+        InLibrary(library, () =>
+        {
+            foreach (var function in library.Functions.Values)
+            {
+                CheckSettingInputUses(function);
+            }
+        });
+
+        library.Errors.Sort((a, b) => a.Position.CompareTo(b.Position));
     }
 
     /// <summary>
@@ -142,7 +190,7 @@ internal sealed partial class GraphBuilder
 
             if (IsFunctionCall(call, functions))
             {
-                var callee = FindFunction(call, functions, _ => { });
+                var callee = FindFunctionIgnoringErrors(call, functions);
                 var calleeSettings = callee == null ? null : GetSettingInputs(callee, FunctionsOf(callee));
                 for (var i = 0; i < call.Arguments.Count; i++)
                 {
@@ -173,6 +221,20 @@ internal sealed partial class GraphBuilder
             else if (value is NameExpression name && inputs.Contains(name.Name))
                 use(name.Name, name, true);
         }
+    }
+
+    /// <summary>
+    /// The Function a call names, or null when there's none, even in a Library with an error. Setting inputs come from
+    /// the text alone, so they don't depend on which Library was checked first.
+    /// </summary>
+    private FunctionDefinition FindFunctionIgnoringErrors(CallExpression call, Dictionary<string, FunctionDefinition> functions)
+    {
+        if (call.Library == null)
+            return functions[call.Function];
+
+        FunctionDefinition function = null;
+        LoadLibrary(call.Library)?.Functions.TryGetValue(call.Function, out function);
+        return function;
     }
 
     /// <summary>

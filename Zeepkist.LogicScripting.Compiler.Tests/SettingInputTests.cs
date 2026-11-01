@@ -78,6 +78,25 @@ public class SettingInputTests
         Assert.Equal(Describe(Compile("power_display(pulser(delay(1, ticks: 4)))")), Describe(result));
     }
 
+    [Theory]
+    [InlineData("power_display(a.forward(1, 3))", "power_display(delay(1, ticks: 3))")]
+    [InlineData("power_display(b.forward(1, 3))", "power_display(delay(1, ticks: 3))")]
+    [InlineData("power_display(a.forward(1, 3) & b.forward(1, 4))", "power_display(delay(1, ticks: 3) & delay(1, ticks: 4))")]
+    [InlineData("power_display(b.forward(1, 3) & a.forward(1, 4))", "power_display(delay(1, ticks: 3) & delay(1, ticks: 4))")]
+    public void Constant_IsForwardedBetweenLibrariesThatCallEachOther(string call, string handWritten)
+    {
+        var libraries = new Dictionary<string, string>
+        {
+            ["a"] = "function forward(x, n) -> y\n    y = b.forward(x, n)\nend\nfunction wait(x, n) -> y\n    y = delay(x, ticks: n)\nend",
+            ["b"] = "function forward(x, n) -> y\n    y = a.wait(x, n)\nend"
+        };
+
+        var result = Compile(call, libraries);
+
+        Assert.True(result.Succeeded, string.Join("\n", result.Errors));
+        Assert.Equal(Describe(Compile(handWritten)), Describe(result));
+    }
+
     [Fact]
     public void UncalledFunction_WithASettingInput_HasNoErrors()
     {
@@ -198,6 +217,22 @@ public class SettingInputTests
         Assert.Equal(
             ["1:15: Library 'timing' has an error on line 2: 'n' is used as a Setting on line 2, so it can't also be used as a Signal"],
             result.Errors.Select(e => e.ToString()));
+    }
+
+    [Theory]
+    [InlineData("power_display(b.forward(1, 3))", "1:15: Library 'b' has an error on line 2: 'n' is used as a Setting on line 2, so it can't also be used as a Signal")]
+    [InlineData("power_display(a.forward(1, 3))", "1:15: In a.forward, line 2: Library 'b' has an error on line 2: 'n' is used as a Setting on line 2, so it can't also be used as a Signal")]
+    public void InputUsedAsSignalAndSetting_InALibraryCalledBackInto_IsALibraryError(string call, string error)
+    {
+        var libraries = new Dictionary<string, string>
+        {
+            ["a"] = "function forward(x, n) -> y\n    y = b.forward(x, n)\nend\nfunction wait(x, n) -> y\n    y = delay(x, ticks: n)\nend",
+            ["b"] = "function forward(x, n) -> y\n    y = a.wait(n, n)\nend"
+        };
+
+        var result = Compile(call, libraries);
+
+        Assert.Equal([error], result.Errors.Select(e => e.ToString()));
     }
 
     [Fact]
