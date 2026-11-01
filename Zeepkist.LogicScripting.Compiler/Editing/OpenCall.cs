@@ -98,7 +98,7 @@ internal sealed class OpenCall
     {
         List<CallArgument> arguments = [];
         var start = _paren;
-        foreach (var i in BracketWalk.Inside(_tokens, _paren, i => _tokens[i].Kind == TokenKind.NewLine && Lexer.IsStatementStart(_tokens, i + 1)))
+        foreach (var i in BracketWalk.ToClose(_tokens, _paren, at => _tokens[at].Kind == TokenKind.NewLine && Lexer.IsStatementStart(_tokens, at + 1)))
         {
             var token = _tokens[i];
             if (token.Kind is TokenKind.NewLine or TokenKind.End)

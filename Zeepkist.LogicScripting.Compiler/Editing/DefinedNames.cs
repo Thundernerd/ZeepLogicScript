@@ -241,7 +241,7 @@ public static class DefinedNames
         mode = null;
         var modeSetting = type?.Modes?.Setting.Name;
         var end = openParen;
-        foreach (var i in BracketWalk.Inside(tokens, openParen, i => tokens[i].Kind == TokenKind.NewLine))
+        foreach (var i in BracketWalk.ToClose(tokens, openParen, at => tokens[at].Kind == TokenKind.NewLine))
         {
             end = i;
             if (mode == null

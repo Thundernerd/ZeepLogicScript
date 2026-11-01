@@ -15,7 +15,7 @@ internal static class BracketWalk
     /// as its opening token only. The last is the token the walk ends at: the one that closes it, or before that, the
     /// first token at any depth that <paramref name="stopsAt"/> holds for, or the end of the text.
     /// </summary>
-    public static IEnumerable<int> Inside(List<Token> tokens, int open, Func<int, bool> stopsAt)
+    public static IEnumerable<int> ToClose(List<Token> tokens, int open, Func<int, bool> stopsAt)
     {
         var depth = 0;
         for (var i = open + 1; ; i++)
@@ -62,7 +62,7 @@ internal static class BracketWalk
         return -1;
     }
 
-    public static bool IsOpen(TokenKind kind)
+    private static bool IsOpen(TokenKind kind)
     {
         return kind is TokenKind.OpenParen or TokenKind.OpenBracket;
     }
