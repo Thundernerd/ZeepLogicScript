@@ -54,6 +54,8 @@ internal static class StepList
         ["complete"] = (step, argument) => None(step, argument, new CompleteStep()),
         ["expect-completion"] = (step, argument) => ExpectCompletion(StepArgument.Text(step, argument, "a row's label, and optionally its detail")),
         ["expect-call-help"] = (step, argument) => new ExpectCallHelpStep(StepArgument.Text(step, argument, "the text to look for")),
+        ["expect-call-help-active"] = (step, argument) => new ExpectCallHelpActiveStep(StepArgument.Text(step, argument, "the highlighted input's or Setting's label")),
+        ["expect-call-help-no-active"] = (step, argument) => None(step, argument, new ExpectCallHelpActiveStep(null)),
         ["expect-no-completion"] = (step, argument) => None(step, argument, new ExpectNoCompletionStep()),
         ["expect-no-call-help"] = (step, argument) => None(step, argument, new ExpectNoCallHelpStep()),
         ["press"] = (step, argument) => new PressStep(StepArgument.Keys(step, argument, KeysStep.MaxKeysPerFrame)),

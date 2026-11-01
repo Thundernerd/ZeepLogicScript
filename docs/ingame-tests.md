@@ -104,6 +104,8 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `complete` | Opens the completion list at the caret, as Ctrl+Space does. |
 | `expect-completion <label> [<detail>]` | The open completion list has a row with the label, matching case, and with exactly the detail when one is given, such as `t logic` or `a input`. |
 | `expect-call-help <text>` | The call help shows, and its call, written as `logic(a, b, op_in, op:, hide:)`, contains the text, matching case. |
+| `expect-call-help-active <label>` | The call help shows, and the input or Setting it highlights has the label, written as the call help writes it, such as `b`, `op_in` or `op:`. It fails with the one it highlights when that's another or none. |
+| `expect-call-help-no-active` | The call help shows, and highlights none of its inputs and Settings, such as for an argument past the last input, or after a named argument the call doesn't have. |
 | `expect-no-completion` | The completion list is closed. |
 | `expect-no-call-help` | The call help doesn't show. |
 | `press <keys>` | Presses the keys, separated by spaces, in the same frame, such as `press ctrl+space`, `press enter` or `press escape escape`, up to 8. A key is a character, such as `a` or `/`, or one of `space`, `enter`, `tab`, `escape`, `backspace`, `delete`, `up`, `down`, `left`, `right`, `home`, `end`, `pageup` and `pagedown`, with any of `shift+`, `ctrl+`, `alt+` and `cmd+` before it. `shift+` makes a letter upper case and leaves other characters as they are. The keys go to the focused field the way a player's do; see [Keys](#keys). |

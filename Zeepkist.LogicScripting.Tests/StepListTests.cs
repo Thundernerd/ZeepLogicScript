@@ -41,6 +41,8 @@ public class StepListTests
     [InlineData("complete", typeof(CompleteStep))]
     [InlineData("expect-completion t", typeof(ExpectCompletionStep))]
     [InlineData("expect-call-help logic(", typeof(ExpectCallHelpStep))]
+    [InlineData("expect-call-help-active op:", typeof(ExpectCallHelpActiveStep))]
+    [InlineData("expect-call-help-no-active", typeof(ExpectCallHelpActiveStep))]
     [InlineData("expect-no-completion", typeof(ExpectNoCompletionStep))]
     [InlineData("expect-no-call-help", typeof(ExpectNoCallHelpStep))]
     [InlineData("press ctrl+space", typeof(PressStep))]
@@ -87,6 +89,16 @@ public class StepListTests
 
         Assert.Equal(label, step.Label);
         Assert.Equal(detail, step.Detail);
+    }
+
+    [Theory]
+    [InlineData("expect-call-help-active op:", "op:")]
+    [InlineData("expect-call-help-no-active", null)]
+    public void ExpectCallHelpActive_ReadsTheLabel(string line, string label)
+    {
+        var step = Assert.IsType<ExpectCallHelpActiveStep>(Assert.Single(ScenarioParser.Parse("steps", line, out _).Steps));
+
+        Assert.Equal(label, step.Label);
     }
 
     [Theory]
