@@ -281,18 +281,30 @@ internal sealed partial class Parser
         return next.Kind == TokenKind.Integer && next.Position.IsDirectlyAfter(sign.Position);
     }
 
+    private static bool IsTouching(Token left, Token right)
+    {
+        return right.Span.Start == left.Span.End;
+    }
+
     private Expression ParsePostfix()
     {
         var expression = ParsePrimary();
         while (Current.Kind == TokenKind.Dot)
         {
+            var beforeDot = Peek(-1);
             var dot = Current;
             _index++;
             if (expression is not (NameExpression or CallExpression))
                 throw Error(dot, "Only names and calls have outputs to pick with .");
 
+            if (!IsTouching(beforeDot, dot))
+                throw Error(dot, $"Write the dot right after '{beforeDot.Text}', without a space");
+
             var output = Current;
             Expect(TokenKind.Name, "an output name");
+            if (!IsTouching(dot, output))
+                throw Error(dot, $"Write '{output.Text}' right after the dot, without a space");
+
             expression = expression is NameExpression library && Current.Kind == TokenKind.OpenParen
                 ? ParseCall(library, output)
                 : new MemberExpression(output.Position, expression, output.Text);
