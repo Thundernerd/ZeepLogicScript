@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
@@ -40,6 +42,20 @@ internal static class StepArgument
         return float.TryParse(argument, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var seconds) && seconds > 0
             ? seconds
             : throw new ScenarioFormatException($"{what}, not '{argument}'");
+    }
+
+    /// <summary>
+    /// Keys separated by spaces, each a key's name with any of <c>shift+</c>, <c>ctrl+</c>, <c>alt+</c> and
+    /// <c>cmd+</c> before it.
+    /// </summary>
+    public static IReadOnlyList<KeyPress> Keys(string step, string argument, int max)
+    {
+        var what = $"{step} takes 1 to {max} keys, such as enter or ctrl+space";
+        var names = argument.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+        if (names.Length == 0 || names.Length > max)
+            throw new ScenarioFormatException(argument.Length == 0 ? what : $"{what}, not {names.Length}");
+
+        return [.. names.Select(name => KeyNames.Parse(name) ?? throw new ScenarioFormatException($"{step} doesn't know the key '{name}'"))];
     }
 
     /// <summary>

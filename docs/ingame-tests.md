@@ -85,6 +85,10 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `complete` | Opens the completion list at the caret, as Ctrl+Space does. |
 | `expect-completion <label> [<detail>]` | The open completion list has a row with the label, matching case, and with exactly the detail when one is given, such as `t logic` or `a input`. |
 | `expect-call-help <text>` | The call help shows, and its call, written as `logic(a, b, op_in, op:, hide:)`, contains the text, matching case. |
+| `expect-no-completion` | The completion list is closed. |
+| `expect-no-call-help` | The call help doesn't show. |
+| `press <keys>` | Presses the keys, separated by spaces, in the same frame, such as `press ctrl+space`, `press enter` or `press escape escape`, up to 8. A key is a character, such as `a` or `/`, or one of `space`, `enter`, `tab`, `escape`, `backspace`, `delete`, `up`, `down`, `left`, `right`, `home`, `end`, `pageup` and `pagedown`, with any of `shift+`, `ctrl+`, `alt+` and `cmd+` before it. The keys go to the focused field the way a player's do; see [Keys](#keys). |
+| `type <text>` | Types the text into the focused field, one key a frame. |
 | `place-block <function>` | Places a block of the Block Function's type in its first style, beside where `place-start` puts the start block, and selects it. A placed-only type such as `lamp` works too. |
 | `insert-selected` | Writes a Placed Block Reference for each selected block at the caret, as Insert selected does. Fails when it writes none. |
 | `undo` | Presses the editor's undo key. Fails when there was nothing to undo. |
@@ -96,7 +100,13 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `screenshot <name>` | Saves a screenshot as `<scenario>-<name>.png`. The name takes letters, digits, `-` and `_`. |
 | `log <text>` | Writes the text to the game's log. |
 
-The window steps need the window open, and the steps for a Script need one selected: they fail and say which step to add first.
+The window steps need the window open, and the steps for a Script need one selected: they fail and say which step to add first. `press` and `type` need a field focused, such as by `caret-at-end`.
+
+### Keys
+
+`press` and `type` hand each key to Imui the way Unity hands it a player's: a key event, then the character it types as an event of its own. Every field, the Script editor's completion list and call help among them, handles them the next frame as typed. A character is the one a US keyboard types, and `type` sends a character without a key of its own here, such as `(`, as its character alone.
+
+Unity's own `Input` never sees these keys, so whatever reads it doesn't either. The Script editor reads Escape there before it handles Escape's key event, so the steps hold an Escape for it the same way. Unity reports one Escape a frame, so each Escape after the first in a `press` comes a frame later. Unity's other Escape path isn't covered: a name prompt that reads Escape from `Input`, and the level editor's own pause key, never see one.
 
 ### Adding a step
 

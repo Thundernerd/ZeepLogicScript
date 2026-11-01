@@ -27,6 +27,10 @@ public class StepListTests
     [InlineData("complete", typeof(CompleteStep))]
     [InlineData("expect-completion t", typeof(ExpectCompletionStep))]
     [InlineData("expect-call-help logic(", typeof(ExpectCallHelpStep))]
+    [InlineData("expect-no-completion", typeof(ExpectNoCompletionStep))]
+    [InlineData("expect-no-call-help", typeof(ExpectNoCallHelpStep))]
+    [InlineData("press ctrl+space", typeof(PressStep))]
+    [InlineData("type b = a", typeof(TypeStep))]
     [InlineData("place-block lamp", typeof(PlaceBlockStep))]
     [InlineData("insert-selected", typeof(InsertSelectedStep))]
     [InlineData("undo", typeof(UndoStep))]
@@ -69,6 +73,60 @@ public class StepListTests
         Assert.Equal(detail, step.Detail);
     }
 
+    [Theory]
+    [InlineData("press enter", "Return", '\n', (int)KeyModifiers.None)]
+    [InlineData("press ctrl+space", "Space", ' ', (int)KeyModifiers.Control)]
+    [InlineData("press ctrl+/", "Slash", '/', (int)KeyModifiers.Control)]
+    [InlineData("press Shift+A", "A", 'A', (int)KeyModifiers.Shift)]
+    [InlineData("press ctrl+shift+k", "K", 'K', (int)(KeyModifiers.Control | KeyModifiers.Shift))]
+    [InlineData("press escape", "Escape", '\0', (int)KeyModifiers.None)]
+    [InlineData("press 7", "Alpha7", '7', (int)KeyModifiers.None)]
+    public void Press_ReadsTheKeyAndItsModifiers(string line, string key, char character, int modifiers)
+    {
+        var step = Assert.IsType<PressStep>(Assert.Single(ScenarioParser.Parse("steps", line, out _).Steps));
+
+        var press = Assert.Single(step.Keys);
+        Assert.Equal(key, press.Key);
+        Assert.Equal(character, press.Character);
+        Assert.Equal((KeyModifiers)modifiers, press.Modifiers);
+    }
+
+    [Fact]
+    public void Press_SeveralKeys_KeepsTheirOrder()
+    {
+        var step = Assert.IsType<PressStep>(Assert.Single(ScenarioParser.Parse("steps", "press  escape enter", out _).Steps));
+
+        Assert.Equal(["Escape", "Return"], step.Keys.Select(k => k.Key));
+    }
+
+    [Theory]
+    [InlineData("press", "press takes 1 to 8 keys, such as enter or ctrl+space")]
+    [InlineData("press a b c d e f g h i", "press takes 1 to 8 keys, such as enter or ctrl+space, not 9")]
+    [InlineData("press ctrl+", "press doesn't know the key 'ctrl+'")]
+    [InlineData("press hyper+a", "press doesn't know the key 'hyper+a'")]
+    [InlineData("press (", "press doesn't know the key '('")]
+    public void Press_WithoutKnownKeys_Fails(string line, string error)
+    {
+        ScenarioParser.Parse("steps", line, out var actual);
+
+        Assert.Equal($"line 1: {error}", actual);
+    }
+
+    [Theory]
+    [InlineData('a', "A", (int)KeyModifiers.None)]
+    [InlineData('A', "A", (int)KeyModifiers.Shift)]
+    [InlineData(' ', "Space", (int)KeyModifiers.None)]
+    [InlineData('=', "Equals", (int)KeyModifiers.None)]
+    [InlineData('(', "None", (int)KeyModifiers.None)]
+    public void Type_SendsTheKeyForEachCharacter(char character, string key, int modifiers)
+    {
+        var press = KeyNames.ForCharacter(character);
+
+        Assert.Equal(key, press.Key);
+        Assert.Equal(character, press.Character);
+        Assert.Equal((KeyModifiers)modifiers, press.Modifiers);
+    }
+
     [Fact]
     public void TheStepList_HoldsExactlyTheStepsTheDocsList()
     {
@@ -91,6 +149,7 @@ public class StepListTests
     [Theory]
     [InlineData("smoke.zlstest")]
     [InlineData("test-mode.zlstest")]
+    [InlineData("keys.zlstest")]
     public void TheShippedScenarios_CanBeRead(string file)
     {
         var text = RepoFiles.Read($"Zeepkist.LogicScripting.InGameTests/Scenarios/{file}");
