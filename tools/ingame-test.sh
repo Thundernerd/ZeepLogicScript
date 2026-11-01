@@ -115,6 +115,8 @@ prefix="$(cd "$game/../.." && pwd)/compatdata/$app_id/pfx"
 [[ -d "$prefix" ]] || fail "No Proton prefix at $prefix, so the mod's data can't be backed up. Is $game in a Steam library?"
 game_data="$prefix/drive_c/users/steamuser/AppData/Roaming/Zeepkist"
 mod_data="$game_data/Mods/$mod_guid"
+# Where the player's own mod data waits while the game runs without it, so a run killed outright leaves it findable
+set_aside_data="$game_data/zls-ingame-test-mod-data"
 # Test mode and leaving the editor save the level into these, on top of the player's own
 level_saves=(Autosaves Backups)
 mod_cfg="$bepinex/config/$mod_guid.cfg"
@@ -314,6 +316,7 @@ restore() {
     elif [[ -f "$backup/backed-up" ]]; then
         rm -rf "$mod_data"
     fi
+    [[ -f "$backup/backed-up" ]] && rm -rf "$set_aside_data"
     for folder in "${level_saves[@]}"; do
         if [[ -f "$backup/had-$folder" ]]; then
             rm -rf "${game_data:?}/$folder"
@@ -360,6 +363,11 @@ if [[ -d "$disabled" ]]; then
     move_tree_back "$disabled" "$plugins"
 fi
 rm -rf "$test_deploy"
+if [[ -d "$set_aside_data" ]]; then
+    log "Putting back the mod's data an earlier run set aside"
+    rm -rf "$mod_data"
+    mv "$set_aside_data" "$mod_data"
+fi
 
 if [[ -d "$mod_data" ]]; then
     cp -a "$mod_data" "$backup/mod-data"
@@ -378,7 +386,7 @@ for folder in "${level_saves[@]}"; do
 done
 touch "$backup/backed-up"
 # The game starts without the mod's data, so a Scenario sees only the Libraries and Drafts the run makes
-rm -rf "$mod_data"
+[[ -d "$mod_data" ]] && mv "$mod_data" "$set_aside_data"
 
 while IFS= read -r -d '' file; do
     relative="${file#"$plugins"/}"
