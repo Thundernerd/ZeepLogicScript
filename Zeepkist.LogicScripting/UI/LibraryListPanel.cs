@@ -47,15 +47,31 @@ internal sealed class LibraryListPanel : ItemListPanel<Library>
     }
 
     /// <summary>
-    /// Returns the rest of <paramref name="rect"/>, under the warning.
+    /// Like <see cref="ItemListPanel{T}.GetMinHeight"/>, with room for a row of the warning, the rest of which scrolls.
+    /// </summary>
+    public static float GetMinHeightWithWarning(ImGui gui, bool readFailed)
+    {
+        return GetMinHeight(gui) + (readFailed ? WindowRegion.GetRowHeight(gui) : 0);
+    }
+
+    /// <summary>
+    /// Returns the rest of <paramref name="rect"/>, under the warning. In a short tab the warning scrolls, so the list
+    /// keeps its two rows and New.
     /// </summary>
     private static ImRect DrawReadFailed(ImGui gui, ImRect rect)
     {
         var spacing = gui.Style.Layout.Spacing;
         var settings = WrappedText.GetSettings(gui);
-        var height = WrappedText.GetHeight(gui, ReadFailedText, in settings, rect.W - (spacing * 2), minHeight: 0);
-        var warning = rect.TakeTop(height + spacing, out var rest);
-        gui.Text(ReadFailedText, in settings, WindowColors.Error, warning.WithPadding(left: spacing, right: spacing, top: spacing));
+        var wanted = WrappedText.GetHeight(gui, ReadFailedText, in settings, rect.W - (spacing * 2), minHeight: 0) + (spacing * 2);
+        var height = FooterSplit.GetWarningHeight(rect.H, wanted, GetMinHeight(gui), WindowRegion.GetRowHeight(gui));
+        var warning = rect.TakeTop(height, out var rest);
+
+        // A scope of its own, so the warning's scroll area doesn't share an id with the list's
+        gui.PushId("read failed");
+        WindowRegion.Begin(gui, warning);
+        gui.Text(ReadFailedText, in settings, WindowColors.Error);
+        WindowRegion.End(gui);
+        gui.PopId();
         return rest;
     }
 

@@ -9,6 +9,14 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// </summary>
 internal static class WindowRegion
 {
+    /// <summary>
+    /// The height of a region that shows one row, with the padding <see cref="Begin"/> puts around it.
+    /// </summary>
+    public static float GetRowHeight(ImGui gui)
+    {
+        return gui.GetRowHeight() + (gui.Style.Layout.Spacing * 2);
+    }
+
     public static void Begin(ImGui gui, ImRect rect)
     {
         gui.Layout.Push(ImAxis.Vertical, rect.WithPadding(gui.Style.Layout.Spacing));

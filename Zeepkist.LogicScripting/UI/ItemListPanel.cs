@@ -84,16 +84,29 @@ internal abstract class ItemListPanel<T> : IListPanel
     }
 
     /// <summary>
+    /// The height a tab needs for the list's two rows, a row of the open prompt or the result line, the rest of which
+    /// scrolls, and New.
+    /// </summary>
+    public static float GetMinHeight(ImGui gui)
+    {
+        return GetMinListHeight(gui) + (WindowRegion.GetRowHeight(gui) * 2);
+    }
+
+    private static float GetMinListHeight(ImGui gui)
+    {
+        return gui.GetRowsHeightWithSpacing(MinListRows) + (gui.Style.Layout.Spacing * 2);
+    }
+
+    /// <summary>
     /// Begins the list's scroll region, for <see cref="DrawEntries"/> and what's listed with them. The prompts and result
     /// line take the height they took last frame, so while they grow they're cut short for one frame.
     /// </summary>
     public void BeginList(ImGui gui, ImRect rect)
     {
-        var spacing = gui.Style.Layout.Spacing;
         _tab = rect;
         _rowHeight = gui.GetRowHeight();
-        _minListHeight = gui.GetRowsHeightWithSpacing(MinListRows) + (spacing * 2);
-        _newRow = rect.TakeBottom(_rowHeight + (spacing * 2), out var rest);
+        _minListHeight = GetMinListHeight(gui);
+        _newRow = rect.TakeBottom(WindowRegion.GetRowHeight(gui), out var rest);
         _prompts = rest.TakeBottom(FooterSplit.GetFooterHeight(rest.H, _promptsHeight, _minListHeight), out _list);
 
         // A scope each, so an entry coming or going doesn't change the id, and with it the focus and text, of the name

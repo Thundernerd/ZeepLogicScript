@@ -1,5 +1,6 @@
 using Imui.Controls;
 using Imui.Core;
+using Imui.IO.Events;
 using Imui.Rendering;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Storage;
@@ -85,20 +86,21 @@ internal sealed partial class ScriptWindow
 
         // A field sets whether it has focus as it's drawn, so one in a hidden tab or a collapsed side has none
         ReleasePanelFocus();
+        var minHeight = GetMinHeight(gui);
+        HoldResizeAt(gui, minHeight);
         if (gui.BeginWindow(
                 Title,
                 ref open,
                 ref _mouseOver,
-                GetInitialRect(gui),
+                GetInitialRect(gui, minHeight),
                 mouseEntered: () => SetMouseBlocked(true),
                 mouseExited: () => SetMouseBlocked(false)))
         {
             ref var window = ref gui.WindowManager.GetWindowState(gui.PeekId());
-            if (_requestedHeight is { } height)
-            {
+            var height = Mathf.Max(_requestedHeight ?? window.Rect.H, minHeight);
+            _requestedHeight = null;
+            if (height != window.Rect.H)
                 window.Rect = WithHeight(window.Rect, height);
-                _requestedHeight = null;
-            }
 
             StoreRect(window.Rect);
             RefreshScripts();
@@ -116,11 +118,14 @@ internal sealed partial class ScriptWindow
     /// Imui only takes this rect when it first makes the window and keeps its own rect after that, through test mode
     /// too. So it's where the window was in an earlier session, kept on screen in case the resolution changed since.
     /// </summary>
-    private ImRect GetInitialRect(ImGui gui)
+    private ImRect GetInitialRect(ImGui gui, float minHeight)
     {
         var screen = gui.Canvas.SafeScreenRect;
         if (_state.Width > 0 && _state.Height > 0)
-            return ImRectUtility.Clamp(screen, new ImRect(_state.X, _state.Y, _state.Width, _state.Height));
+        {
+            var stored = new ImRect(_state.X, _state.Y, _state.Width, _state.Height);
+            return ImRectUtility.Clamp(screen, WithHeight(stored, Mathf.Max(stored.H, minHeight)));
+        }
 
         var width = Mathf.Min(DefaultWidth, screen.W);
         var height = Mathf.Min(DefaultHeight, screen.H);
@@ -132,8 +137,46 @@ internal sealed partial class ScriptWindow
     /// </summary>
     private static ImRect WithHeight(ImRect rect, float height)
     {
-        var grown = Mathf.Max(height, ImWindow.MIN_HEIGHT) - rect.H;
+        var grown = height - rect.H;
         return new ImRect(rect.X, rect.Y - grown, rect.W, rect.H + grown);
+    }
+
+    /// <summary>
+    /// The window is no shorter than the Scripts side's tab bar and either tab's minimum: two list rows, a row of the
+    /// open prompt and New, with a row of the libraries.json warning while it shows. Nor is it shorter than the editor's
+    /// minimum.
+    /// </summary>
+    private float GetMinHeight(ImGui gui)
+    {
+        var spacing = gui.Style.Layout.Spacing;
+        var minTabHeight = Mathf.Max(ScriptListPanel.GetMinHeight(gui), LibraryListPanel.GetMinHeightWithWarning(gui, _libraryStore.ReadFailed));
+        var minScriptsHeight = GetPanelHeaderHeight(gui) + ImTabsPane.GetTabBarHeight(gui) + (spacing * 2) + minTabHeight;
+
+        // The center's padding, and the spacing above the editor and above the error panel
+        var minCenterHeight = gui.GetRowHeight() + gui.GetRowsHeightWithSpacing(MinFieldRows) + GetPanelHeaderHeight(gui) + (spacing * 4);
+        return ImWindow.GetTitleBarHeight(gui) + gui.Style.Window.ContentPadding.Vertical + Mathf.Max(minScriptsHeight, minCenterHeight);
+    }
+
+    /// <summary>
+    /// Imui's resize handle takes a drag off the window's height as the window begins, down to Imui's own 64 px, so
+    /// clamping afterwards would draw the window too short for that frame. A drag that would take it below
+    /// <paramref name="minHeight"/> first makes the window as much taller as the drag takes off it past that.
+    /// </summary>
+    private static void HoldResizeAt(ImGui gui, float minHeight)
+    {
+        ref readonly var evt = ref gui.Input.MouseEvent;
+        if (evt.Type != ImMouseEventType.Drag)
+            return;
+
+        // The ids Imui gives the window and, in its own scope, the title bar and then the resize handle
+        var windowId = gui.GetControlId(Title);
+        var resizeHandleId = gui.GetControlId(2u, gui.GetControlId("win_ctrl", windowId));
+        if (gui.GetActiveControl() != resizeHandleId)
+            return;
+
+        ref var window = ref gui.WindowManager.GetWindowState(windowId);
+        if (window.Rect.H - evt.Delta.y < minHeight)
+            window.Rect = WithHeight(window.Rect, minHeight + evt.Delta.y);
     }
 
     private void StoreRect(ImRect rect)
