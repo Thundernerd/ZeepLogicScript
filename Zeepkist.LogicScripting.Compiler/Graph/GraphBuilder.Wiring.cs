@@ -41,9 +41,7 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// Connects the deferred Wires from <paramref name="start"/> on, each looked up in the scope it was written in. A
-    /// value passed into a Function can itself be deferred in its caller's scope, so connecting it defers its Wire
-    /// again, to look up further out later in the loop.
+    /// Connects the deferred Wires from <paramref name="start"/> on, each looked up in the scope it was written in.
     /// </summary>
     private void ConnectDeferredWires(int start)
     {
@@ -57,15 +55,25 @@ internal sealed partial class GraphBuilder
         _scope = scope;
     }
 
+    /// <summary>
+    /// A value passed into a Function can itself be deferred in its caller's scope, so this follows it outward until
+    /// it reaches a block or fails.
+    /// </summary>
     private InputFeed Resolve(DeferredValue deferred)
     {
-        _scope = deferred.Scope;
-        var value = Evaluate(deferred.Expression);
-        foreach (var member in deferred.Members)
+        InputFeed feed = deferred;
+        while (feed is DeferredValue next)
         {
-            value = value.SelectMember(this, member);
+            _scope = next.Scope;
+            var value = Evaluate(next.Expression);
+            foreach (var member in next.Members)
+            {
+                value = value.SelectMember(this, member);
+            }
+
+            feed = value.ToFeed(this, next.Origin);
         }
 
-        return value.ToFeed(this, deferred.Origin);
+        return feed;
     }
 }
