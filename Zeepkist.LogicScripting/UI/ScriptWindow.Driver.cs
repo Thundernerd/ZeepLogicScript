@@ -24,7 +24,14 @@ internal sealed partial class ScriptWindow
 
         public bool IsOpen => _window.IsOpen;
         public bool HasScript => _window.CurrentScript != null;
+
+        /// <summary>
+        /// Whether a Script or a Library is selected, so there's text in the editor.
+        /// </summary>
+        public bool HasText => _window._edited != null;
+
         public IReadOnlyList<string> ScriptNames => [.. _window._scripts.Entries.Select(e => e.Name)];
+        public IReadOnlyList<string> LibraryNames => [.. _window.Libraries.Entries.Select(l => l.Name)];
 
         /// <summary>
         /// Empty until a Compile, and again after an edit or selecting another Script.
@@ -32,7 +39,7 @@ internal sealed partial class ScriptWindow
         public string Result => _window._result;
 
         /// <summary>
-        /// The selected Script's text in the editor, or null with none selected.
+        /// The selected Script's or Library's text in the editor, or null with neither selected.
         /// </summary>
         public string Text => _window._edited?.Editor.Text;
 
@@ -58,10 +65,12 @@ internal sealed partial class ScriptWindow
         }
 
         /// <summary>
-        /// Like New Script and naming it in the prompt, which selects it. Returns why the name isn't taken, or null.
+        /// Like New Script on the Scripts tab and naming it in the prompt, which selects it. Returns why the name isn't
+        /// taken, or null.
         /// </summary>
         public string NewScript(string name)
         {
+            _window._state.ShowLibraries = false;
             var entry = _window._scriptListPanel.New(name, out var error);
             if (entry != null)
                 _window.Select(entry);
@@ -70,7 +79,7 @@ internal sealed partial class ScriptWindow
         }
 
         /// <summary>
-        /// Like clicking the Script in the list. Returns whether there's one by that name.
+        /// Like clicking the Script in the list on the Scripts tab. Returns whether there's one by that name.
         /// </summary>
         public bool SelectScript(string name)
         {
@@ -78,6 +87,7 @@ internal sealed partial class ScriptWindow
             if (entry == null)
                 return false;
 
+            _window._state.ShowLibraries = false;
             if (entry != _window.CurrentScript)
                 _window.Select(entry);
 
@@ -99,6 +109,36 @@ internal sealed partial class ScriptWindow
         }
 
         /// <summary>
+        /// Like New Library on the Libraries tab and naming it in the prompt, which selects it. Returns why the name
+        /// isn't taken, or null.
+        /// </summary>
+        public string NewLibrary(string name)
+        {
+            _window._state.ShowLibraries = true;
+            var library = _window._libraryListPanel.New(name, out var error);
+            if (library != null)
+                _window.SelectLibrary(library);
+
+            return error;
+        }
+
+        /// <summary>
+        /// Like clicking the Library in the list on the Libraries tab. Returns whether there's one by that name.
+        /// </summary>
+        public bool SelectLibrary(string name)
+        {
+            var library = _window.Libraries.Entries.FirstOrDefault(l => l.Name == name);
+            if (library == null)
+                return false;
+
+            _window._state.ShowLibraries = true;
+            if (library != _window.CurrentLibrary)
+                _window.SelectLibrary(library);
+
+            return true;
+        }
+
+        /// <summary>
         /// Null when there's none by that name.
         /// </summary>
         private ScriptEntry FindScript(string name)
@@ -107,7 +147,7 @@ internal sealed partial class ScriptWindow
         }
 
         /// <summary>
-        /// Replaces the selected Script's text as one edit, as typing it would leave it.
+        /// Replaces the selected Script's or Library's text as one edit, as typing it would leave it.
         /// </summary>
         public void SetText(string text)
         {
@@ -116,7 +156,7 @@ internal sealed partial class ScriptWindow
         }
 
         /// <summary>
-        /// Like clicking at a character index of the selected Script's text, which focuses the field.
+        /// Like clicking at a character index of the selected Script's or Library's text, which focuses the field.
         /// </summary>
         public void PlaceCaret(int index)
         {

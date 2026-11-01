@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using BepInEx.Logging;
 using TNRD.Zeepkist.LogicScripting.UI;
 using UnityEngine;
@@ -32,6 +33,12 @@ internal sealed class StepContext
     public ScriptWindow.Driver Window { get; }
     public GameEvents Game { get; }
     public ManualLogSource Logger { get; }
+
+    /// <summary>
+    /// The UIDs of the blocks <c>place-block ... as &lt;name&gt;</c> placed, by that name, for <c>{uid:&lt;name&gt;}</c> in
+    /// a step's text. They last the scenario.
+    /// </summary>
+    public Dictionary<string, string> PlacedUids { get; } = [];
 
     public bool Failed { get; private set; }
 
@@ -125,5 +132,19 @@ internal sealed class StepContext
             Fail("no Script selected: add new-script or select-script first");
 
         return Window.HasScript;
+    }
+
+    /// <summary>
+    /// Like <see cref="RequireOpenWindow"/>, with a Script or a Library selected too, for a step on the editor's text.
+    /// </summary>
+    public bool RequireText()
+    {
+        if (!RequireOpenWindow())
+            return false;
+
+        if (!Window.HasText)
+            Fail("no Script or Library selected: add new-script, select-script, new-library or select-library first");
+
+        return Window.HasText;
     }
 }

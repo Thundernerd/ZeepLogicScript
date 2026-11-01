@@ -9,19 +9,26 @@ namespace TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
 /// <summary>
 /// Places a block of a Logic Block type, by its Block Function's name, in its first style on the ground below the
 /// camera, and selects it, as one undo step each like doing it by hand. A placed-only type, such as <c>lamp</c>, can be
-/// placed too, so a Script can refer to it.
+/// placed too, so a Script can refer to it. With a name, the scenario's later <c>set-text</c> steps can write its UID
+/// as <c>{uid:&lt;name&gt;}</c>.
 /// </summary>
 internal sealed class PlaceBlockStep : ScenarioStep
 {
     private const string UndoLabel = "In-game test: place block";
     private const float GridSize = 16;
 
-    public PlaceBlockStep(string function)
+    public PlaceBlockStep(string function, string name = null)
     {
         Function = function;
+        Name = name;
     }
 
     public string Function { get; }
+
+    /// <summary>
+    /// Null when the block isn't remembered.
+    /// </summary>
+    public string Name { get; }
 
     public override IEnumerator Run(StepContext context)
     {
@@ -52,6 +59,9 @@ internal sealed class PlaceBlockStep : ScenarioStep
 
         var placed = BlockBatch.Apply(central, [json], [], [], UndoLabel);
         BlockGroups.Select(central, placed);
+        if (Name != null)
+            context.PlacedUids[Name] = json.u;
+
         context.Detail = $"{Function}, block {blockId}, UID \"{json.u}\" at {position}";
         yield return null;
     }
