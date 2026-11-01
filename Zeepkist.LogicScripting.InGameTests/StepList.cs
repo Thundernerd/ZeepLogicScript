@@ -23,6 +23,12 @@ internal static class StepList
         ["libraries"] = true,
     };
 
+    private static readonly Dictionary<string, bool> _onOff = new()
+    {
+        ["on"] = true,
+        ["off"] = false,
+    };
+
     private static readonly Dictionary<string, Func<string, string, ScenarioStep>> _steps = new()
     {
         ["open-window"] = (step, argument) => None(step, argument, new OpenWindowStep()),
@@ -42,6 +48,7 @@ internal static class StepList
         ["expect-prompt"] = (step, argument) => new ExpectPromptStep(StepArgument.Choice(step, argument, PromptNames.Prompts)),
         ["expect-footer-in-view"] = (step, argument) => None(step, argument, new ExpectFooterInViewStep()),
         ["set-window-height"] = (step, argument) => new SetWindowHeightStep(StepArgument.Pixels(step, argument)),
+        ["library-read-failed"] = (step, argument) => new LibraryReadFailedStep(StepArgument.Choice(step, argument, _onOff)),
         ["compile"] = (step, argument) => None(step, argument, new CompileStep()),
         ["expect-text"] = (step, argument) => new ExpectTextStep(StepArgument.Text(step, argument, "the text to look for")),
         ["expect-result"] = (step, argument) => new ExpectResultStep(StepArgument.Text(step, argument, "the text to look for")),
