@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Imui.Controls;
 using Imui.Core;
-using Imui.Rendering;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 
@@ -28,9 +27,7 @@ internal sealed class EditedLibrary : EditedItem
 
     public override bool DrawHeader(ImGui gui)
     {
-        gui.AddSpacingIfLayoutFrameNotEmpty();
-        var row = gui.AddSingleRowRect(default);
-        var settings = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f, overflow: ImTextOverflow.Ellipsis);
+        var row = AddNameRow(gui, out var settings);
         gui.Text($"Library {Library.Name}", settings, row);
         return false;
     }

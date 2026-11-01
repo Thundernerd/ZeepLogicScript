@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using Imui.Controls;
 using Imui.Core;
+using Imui.Rendering;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 using UnityEngine;
@@ -34,7 +36,7 @@ internal abstract class EditedItem
     public ScriptEditor Editor { get; }
 
     /// <summary>
-    /// Those of the last check, or null when it couldn't run.
+    /// Errors from the last check, or null when it couldn't run.
     /// </summary>
     public IReadOnlyList<Diagnostic> Errors { get; private set; }
 
@@ -47,7 +49,7 @@ internal abstract class EditedItem
     public abstract bool BelongsToLevel { get; }
 
     /// <summary>
-    /// The name row and what goes under it. Returns whether Compile was clicked.
+    /// Returns whether Compile was clicked.
     /// </summary>
     public abstract bool DrawHeader(ImGui gui);
 
@@ -67,9 +69,6 @@ internal abstract class EditedItem
     /// </summary>
     public abstract BlockProperties DrawPlacedBlocks(ImGui gui, PlacedBlocksPanel panel, out bool edited);
 
-    /// <summary>
-    /// The check waits until typing stops.
-    /// </summary>
     public void OnEdited()
     {
         StoreText(Editor.Text);
@@ -91,16 +90,23 @@ internal abstract class EditedItem
 
     protected void CheckNow()
     {
-        _nextCheckTime = 0;
+        CheckSoon();
         RefreshCheck();
     }
 
-    /// <summary>
-    /// Checks again on the next <see cref="RefreshCheck"/>.
-    /// </summary>
     protected void CheckSoon()
     {
         _nextCheckTime = 0;
+    }
+
+    /// <summary>
+    /// Adds the row the name is drawn in, and returns it with the settings to draw it with.
+    /// </summary>
+    protected static ImRect AddNameRow(ImGui gui, out ImTextSettings settings)
+    {
+        gui.AddSpacingIfLayoutFrameNotEmpty();
+        settings = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f, overflow: ImTextOverflow.Ellipsis);
+        return gui.AddSingleRowRect(default);
     }
 
     protected abstract void StoreText(string text);

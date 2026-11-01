@@ -77,7 +77,7 @@ internal sealed class ScriptListPanel : ItemListPanel<ScriptEntry>
         _draftSaver.Request();
     }
 
-    protected override bool HasBlocks(ScriptEntry entry)
+    protected override bool AsksAboutBlocks(ScriptEntry entry)
     {
         return entry.HasGroup;
     }

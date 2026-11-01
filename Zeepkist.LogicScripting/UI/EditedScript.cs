@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using BepInEx.Logging;
 using Imui.Controls;
 using Imui.Core;
-using Imui.Rendering;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
@@ -40,18 +39,13 @@ internal sealed class EditedScript : EditedItem
 
     public override bool BelongsToLevel => true;
 
-    /// <summary>
-    /// The Script's name and marks, Compile on the right, and the storage warning under them.
-    /// </summary>
     public override bool DrawHeader(ImGui gui)
     {
-        gui.AddSpacingIfLayoutFrameNotEmpty();
-        var row = gui.AddSingleRowRect(default);
+        var row = AddNameRow(gui, out var settings);
         var buttonWidth = gui.MeasureTextSize(CompileLabel).x + (gui.Style.Layout.Indent * 2);
         var buttonRect = row.TakeRight(buttonWidth, gui.Style.Layout.Spacing, out var nameRect);
 
         var (glyph, label, tooltip) = ScriptMarkText.Get(Entry.Mark);
-        var settings = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f, overflow: ImTextOverflow.Ellipsis);
         gui.Text(glyph == null ? Entry.Name : $"{Entry.Name}  {glyph} {label}", settings, nameRect);
         if (tooltip != null && nameRect.Contains(gui.Input.MousePosition))
             gui.Tooltip(tooltip, nameRect);

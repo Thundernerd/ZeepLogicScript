@@ -31,13 +31,10 @@ internal abstract class ItemListPanel<T>
 
     protected abstract IReadOnlyList<T> Entries { get; }
 
-    /// <summary>
-    /// Shown in place of the list while it's empty.
-    /// </summary>
     protected abstract string EmptyText { get; }
 
     /// <summary>
-    /// The New button's tooltip, or null for none.
+    /// Null for none.
     /// </summary>
     protected virtual string NewTooltip => null;
 
@@ -127,7 +124,7 @@ internal abstract class ItemListPanel<T>
 
         if (_deletePrompt.Deleted is { } deleted)
         {
-            var choice = _deletePrompt.Draw(gui, GetDeleteQuestion(deleted), HasBlocks(deleted));
+            var choice = _deletePrompt.Draw(gui, GetDeleteQuestion(deleted), AsksAboutBlocks(deleted));
             if (choice != DeleteChoice.None)
             {
                 Delete(deleted, choice);
@@ -143,7 +140,10 @@ internal abstract class ItemListPanel<T>
 
     protected abstract string GetName(T entry);
 
-    protected abstract string GetLabel(T entry);
+    protected virtual string GetLabel(T entry)
+    {
+        return GetName(entry);
+    }
 
     protected virtual string GetTooltip(T entry)
     {
@@ -168,10 +168,7 @@ internal abstract class ItemListPanel<T>
 
     protected abstract string GetDeleteQuestion(T entry);
 
-    /// <summary>
-    /// Whether deleting <paramref name="entry"/> asks what happens to its blocks.
-    /// </summary>
-    protected virtual bool HasBlocks(T entry)
+    protected virtual bool AsksAboutBlocks(T entry)
     {
         return false;
     }

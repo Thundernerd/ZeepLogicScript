@@ -26,14 +26,13 @@ internal sealed class DeletePrompt<T>
 
     /// <summary>
     /// Call while <see cref="Deleted"/> is set. Returns the player's choice once they make one; Cancel closes the
-    /// prompt. <paramref name="question"/> asks about <see cref="Deleted"/>. With <paramref name="keepBlocks"/>, the
-    /// player picks whether its blocks go too.
+    /// prompt. With <paramref name="askAboutBlocks"/>, the player picks whether its blocks go too.
     /// </summary>
-    public DeleteChoice Draw(ImGui gui, string question, bool keepBlocks)
+    public DeleteChoice Draw(ImGui gui, string question, bool askAboutBlocks)
     {
         var choice = DeleteChoice.None;
         gui.Text(question, wrap: true);
-        if (keepBlocks)
+        if (askAboutBlocks)
         {
             if (gui.Button("Delete blocks too"))
                 choice = DeleteChoice.Delete;

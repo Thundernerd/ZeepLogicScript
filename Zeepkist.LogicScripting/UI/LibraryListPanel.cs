@@ -47,11 +47,6 @@ internal sealed class LibraryListPanel : ItemListPanel<Library>
         return entry.Name;
     }
 
-    protected override string GetLabel(Library entry)
-    {
-        return entry.Name;
-    }
-
     protected override string GetNameError(string name, Library renamed)
     {
         return _libraries.GetNameError(name, renamed?.Id);
