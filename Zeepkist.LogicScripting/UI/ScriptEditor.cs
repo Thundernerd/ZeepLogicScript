@@ -54,6 +54,12 @@ internal sealed partial class ScriptEditor
     /// </summary>
     public bool HoldsEscape { get; private set; }
 
+    /// <inheritdoc cref="CompletionPopup.Items"/>
+    public IReadOnlyList<CompletionItem> CompletionItems => _completion.Items;
+
+    /// <inheritdoc cref="CallHelpPopup.Help"/>
+    public CallHelp CallHelp => _callHelp.Help;
+
     /// <summary>
     /// Spans are character indices into <see cref="Text"/>.
     /// </summary>
@@ -84,7 +90,7 @@ internal sealed partial class ScriptEditor
         JumpTo(ScriptText.GetIndex(Text, position));
     }
 
-    private void JumpTo(int index)
+    public void JumpTo(int index)
     {
         _completion.Close();
         _state.Caret = index;
@@ -92,6 +98,12 @@ internal sealed partial class ScriptEditor
         _state.Flag |= ImTextEditStateFlag.NeedScrollToCaret;
         _history.BreakGroup();
         _focusRequested = true;
+    }
+
+    /// <inheritdoc cref="CompletionPopup.Request"/>
+    public void RequestCompletion()
+    {
+        _completion.Request();
     }
 
     /// <summary>

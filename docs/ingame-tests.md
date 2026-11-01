@@ -79,6 +79,13 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `expect-no-errors` | The window's check finds no errors in the text. |
 | `expect-errors <count>` | The check finds this many errors. |
 | `expect-blocks <count>` | The level has this many Logic Blocks, placed by a Script or not. Other blocks, such as a start block, don't count. |
+| `caret-at-start` | Puts the caret before the selected Script's first character and focuses the field, as clicking there does. |
+| `caret-at-end` | Puts the caret after its last character, the same way. The call help shows for the call the caret is then in. |
+| `complete` | Opens the completion list at the caret, as Ctrl+Space does. |
+| `expect-completion <label> [<detail>]` | The open completion list has a row with the label, matching case, and with exactly the detail when one is given, such as `t logic` or `a input`. |
+| `expect-call-help <text>` | The call help shows, and its call, written as `logic(a, b, op_in, op:, hide:)`, contains the text, matching case. |
+| `place-block <function>` | Places a block of the Block Function's type in its first style, beside where `place-start` puts the start block, and selects it. A placed-only type such as `lamp` works too. |
+| `insert-selected` | Writes a Placed Block Reference for each selected block at the caret, as Insert selected does. Fails when it writes none. |
 | `undo` | Presses the editor's undo key. Fails when there was nothing to undo. |
 | `redo` | Presses the editor's redo key. Fails when there was nothing to redo. |
 | `place-start` | Places a start block on the ground below the camera, facing the way it looks, as one undo step. A level needs one for test mode. |

@@ -24,6 +24,13 @@ internal static class StepList
         ["expect-no-errors"] = (step, argument) => None(step, argument, new ExpectNoErrorsStep()),
         ["expect-errors"] = (step, argument) => new ExpectErrorsStep(StepArgument.Count(step, argument)),
         ["expect-blocks"] = (step, argument) => new ExpectBlocksStep(StepArgument.Count(step, argument)),
+        ["caret-at-start"] = (step, argument) => None(step, argument, new PlaceCaretStep(atEnd: false)),
+        ["caret-at-end"] = (step, argument) => None(step, argument, new PlaceCaretStep(atEnd: true)),
+        ["complete"] = (step, argument) => None(step, argument, new CompleteStep()),
+        ["expect-completion"] = (step, argument) => ExpectCompletion(StepArgument.Text(step, argument, "a row's label, and optionally its detail")),
+        ["expect-call-help"] = (step, argument) => new ExpectCallHelpStep(StepArgument.Text(step, argument, "the text to look for")),
+        ["place-block"] = (step, argument) => new PlaceBlockStep(StepArgument.Text(step, argument, "a Block Function's name")),
+        ["insert-selected"] = (step, argument) => None(step, argument, new InsertSelectedStep()),
         ["undo"] = (step, argument) => None(step, argument, new UndoStep()),
         ["redo"] = (step, argument) => None(step, argument, new RedoStep()),
         ["place-start"] = (step, argument) => None(step, argument, new PlaceStartStep()),
@@ -45,6 +52,17 @@ internal static class StepList
     public static ScenarioStep Create(string step, string argument)
     {
         return _steps.TryGetValue(step, out var create) ? create(step, argument) : null;
+    }
+
+    /// <summary>
+    /// A label has no spaces, so the rest of the line is the detail.
+    /// </summary>
+    private static ScenarioStep ExpectCompletion(string argument)
+    {
+        var space = argument.IndexOf(' ');
+        return space < 0
+            ? new ExpectCompletionStep(argument, null)
+            : new ExpectCompletionStep(argument.Substring(0, space), argument.Substring(space + 1).Trim());
     }
 
     private static ScenarioStep None(string step, string argument, ScenarioStep created)

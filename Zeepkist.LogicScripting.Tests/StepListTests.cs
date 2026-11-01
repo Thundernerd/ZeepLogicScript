@@ -21,6 +21,13 @@ public class StepListTests
     [InlineData("expect-no-errors", typeof(ExpectNoErrorsStep))]
     [InlineData("expect-errors 2", typeof(ExpectErrorsStep))]
     [InlineData("expect-blocks 3", typeof(ExpectBlocksStep))]
+    [InlineData("caret-at-start", typeof(PlaceCaretStep))]
+    [InlineData("caret-at-end", typeof(PlaceCaretStep))]
+    [InlineData("complete", typeof(CompleteStep))]
+    [InlineData("expect-completion t", typeof(ExpectCompletionStep))]
+    [InlineData("expect-call-help logic(", typeof(ExpectCallHelpStep))]
+    [InlineData("place-block lamp", typeof(PlaceBlockStep))]
+    [InlineData("insert-selected", typeof(InsertSelectedStep))]
     [InlineData("undo", typeof(UndoStep))]
     [InlineData("redo", typeof(RedoStep))]
     [InlineData("place-start", typeof(PlaceStartStep))]
@@ -47,6 +54,18 @@ public class StepListTests
 
         Assert.Null(scenario);
         Assert.Contains("takes nothing after it", error);
+    }
+
+    [Theory]
+    [InlineData("expect-completion a", "a", null)]
+    [InlineData("expect-completion a logic", "a", "logic")]
+    [InlineData("expect-completion a placed block", "a", "placed block")]
+    public void ExpectCompletion_ALabel_ThenTheDetail(string line, string label, string detail)
+    {
+        var step = Assert.IsType<ExpectCompletionStep>(Assert.Single(ScenarioParser.Parse("steps", line, out _).Steps));
+
+        Assert.Equal(label, step.Label);
+        Assert.Equal(detail, step.Detail);
     }
 
     [Fact]

@@ -31,6 +31,11 @@ internal sealed class CallHelpPopup
     public bool IsShown => _session.Help != null;
 
     /// <summary>
+    /// What the box shows; null while it's hidden.
+    /// </summary>
+    public CallHelp Help => _session.Help;
+
+    /// <summary>
     /// Above the caret's line, whose top left is <paramref name="linePosition"/>, or under it when there's no room
     /// above, as <see cref="PopupPlacement"/> picks; past the completion list when that's open on the same side.
     /// Hidden when neither fits inside <paramref name="window"/>.

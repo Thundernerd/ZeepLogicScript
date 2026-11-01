@@ -30,7 +30,7 @@ internal sealed class PlacedBlocksPanel
         var central = ComponentCache.Get<LEV_LevelEditorCentral>();
         var selectedCount = central == null ? 0 : central.selection.list.Count;
         if (gui.Button($"Insert selected ({selectedCount})"))
-            edited = InsertSelected(gui, central, editor);
+            edited = InsertSelected(central, editor, gui.Input.Time);
 
         gui.TooltipAtLastControl("Select blocks in the level, then insert them at the caret");
         if (_insertMessage.Length > 0)
@@ -78,7 +78,10 @@ internal sealed class PlacedBlocksPanel
         return check.PlacedBlockReferences.Where(r => shown.Add(r.Uid)).ToList();
     }
 
-    private bool InsertSelected(ImGui gui, LEV_LevelEditorCentral central, ScriptEditor editor)
+    /// <summary>
+    /// Returns whether it changed the editor's text.
+    /// </summary>
+    public bool InsertSelected(LEV_LevelEditorCentral central, ScriptEditor editor, double time)
     {
         if (central == null || central.selection.list.Count == 0)
         {
@@ -95,7 +98,7 @@ internal sealed class PlacedBlocksPanel
         // Clicking the button took focus from the field, but the editor still holds the caret
         var insert = PlacedBlockReferenceInsert.Insert(editor.Text, editor.Caret, selected);
         if (insert.InsertedCount > 0)
-            editor.Replace(insert.Text, insert.Caret, gui.Input.Time);
+            editor.Replace(insert.Text, insert.Caret, time);
 
         _insertMessage = $"Inserted {insert.InsertedCount} placed blocks";
         if (insert.AlreadyReferencedCount > 0)

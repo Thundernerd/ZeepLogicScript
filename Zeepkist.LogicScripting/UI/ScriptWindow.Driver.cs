@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler;
+using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 using UnityEngine;
 
 namespace TNRD.Zeepkist.LogicScripting.UI;
@@ -44,6 +45,12 @@ internal sealed partial class ScriptWindow
         /// </summary>
         public IReadOnlyList<Diagnostic> Errors => _window._edited?.Errors;
 
+        /// <inheritdoc cref="ScriptEditor.CompletionItems"/>
+        public IReadOnlyList<CompletionItem> CompletionItems => _window._edited?.Editor.CompletionItems ?? [];
+
+        /// <inheritdoc cref="ScriptEditor.CallHelp"/>
+        public CallHelp CallHelp => _window._edited?.Editor.CallHelp;
+
         public void SetOpen(bool open)
         {
             _window.SetOpen(open);
@@ -83,6 +90,32 @@ internal sealed partial class ScriptWindow
         {
             _window._edited.Editor.Replace(text, text.Length, Time.unscaledTimeAsDouble);
             _window.OnTyped();
+        }
+
+        /// <summary>
+        /// Like clicking at a character index of the selected Script's text, which focuses the field.
+        /// </summary>
+        public void PlaceCaret(int index)
+        {
+            _window._edited.Editor.JumpTo(index);
+        }
+
+        /// <inheritdoc cref="ScriptEditor.RequestCompletion"/>
+        public void RequestCompletion()
+        {
+            _window._edited.Editor.RequestCompletion();
+        }
+
+        /// <summary>
+        /// Like Insert selected. Returns whether it changed the text.
+        /// </summary>
+        public bool InsertSelected(LEV_LevelEditorCentral central)
+        {
+            var edited = _window._placedBlocksPanel.InsertSelected(central, _window._edited.Editor, Time.unscaledTimeAsDouble);
+            if (edited)
+                _window.OnEdited();
+
+            return edited;
         }
 
         /// <summary>
