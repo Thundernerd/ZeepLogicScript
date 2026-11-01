@@ -93,5 +93,5 @@ One go of `tools/ingame-test.sh`: it installs the branch's build, starts the gam
 _Avoid_: playtest, test session
 
 **Scenario**:
-A `.zlstest` file of Run Steps, one per line, that an In-Game Test Run takes in order, such as a ticket's "try in game" steps written down. The first step that fails stops its Scenario.
+A `.zlstest` file of steps, one per line, each of which becomes a Run Step of the In-Game Test Run that takes it, such as a ticket's "try in game" steps written down. The first step that fails stops its Scenario.
 _Avoid_: test case, test script (a Script is what a player writes)

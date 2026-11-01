@@ -1,5 +1,4 @@
 using System.Collections;
-using ZeepSDK.Utilities;
 
 namespace TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
 
@@ -20,12 +19,9 @@ internal abstract class HistoryKeyStep : ScenarioStep
 
     public override IEnumerator Run(StepContext context)
     {
-        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        var central = context.RequireEditor();
         if (central == null)
-        {
-            context.Fail("not in the level editor");
             yield break;
-        }
 
         var before = central.undoRedo.currentHistoryPosition;
         EditorKeys.Press(_key);

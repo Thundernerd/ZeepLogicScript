@@ -3,6 +3,7 @@ using System.Collections;
 using BepInEx.Logging;
 using TNRD.Zeepkist.LogicScripting.UI;
 using UnityEngine;
+using ZeepSDK.Utilities;
 
 namespace TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
 
@@ -43,6 +44,16 @@ internal sealed class StepContext
         Actual = null;
     }
 
+    /// <summary>
+    /// For a check that passed, so the results show what it compared.
+    /// </summary>
+    public void Pass(string detail, string expected, string actual)
+    {
+        Detail = detail;
+        Expected = expected;
+        Actual = actual;
+    }
+
     public void Fail(string detail, string expected = null, string actual = null)
     {
         Failed = true;
@@ -70,6 +81,18 @@ internal sealed class StepContext
         {
             yield return null;
         }
+    }
+
+    /// <summary>
+    /// The level editor, or null after failing the step when the game isn't in it.
+    /// </summary>
+    public LEV_LevelEditorCentral RequireEditor()
+    {
+        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        if (central == null)
+            Fail("not in the level editor");
+
+        return central;
     }
 
     /// <summary>

@@ -2,8 +2,7 @@ namespace TNRD.Zeepkist.LogicScripting.InGameTests;
 
 /// <summary>
 /// Presses the level editor's undo and redo keys for one frame, through the input actions <see cref="LEV_UndoRedo"/>
-/// reads them from. The game only writes those when a key's state changes, so a press is let go again right after the
-/// editor read it.
+/// reads them from, and lets the press go again once the editor's update has read it.
 /// </summary>
 internal static class EditorKeys
 {

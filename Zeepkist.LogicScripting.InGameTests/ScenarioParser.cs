@@ -59,6 +59,9 @@ internal static class ScenarioParser
         if (stepName == StepList.End)
             throw new ScenarioFormatException($"{StepList.End} without {StepList.SetText}");
 
+        if (stepName == StepList.SetText)
+            throw new ScenarioFormatException($"{StepList.SetText} takes nothing after it: the text goes on the lines below it");
+
         return StepList.Create(stepName, argument)
             ?? throw new ScenarioFormatException($"unknown step '{stepName}'");
     }

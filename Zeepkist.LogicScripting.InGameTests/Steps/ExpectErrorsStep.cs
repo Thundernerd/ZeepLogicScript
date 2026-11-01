@@ -38,7 +38,7 @@ internal class ExpectErrorsStep : ScenarioStep
 
         var listed = string.Join("; ", errors.Select(e => e.ToString()));
         if (errors.Count == Count)
-            context.Detail = listed;
+            context.Pass(listed, Count.ToString(), errors.Count.ToString());
         else
             context.Fail($"{errors.Count} errors", Count.ToString(), errors.Count == 0 ? "0" : $"{errors.Count}: {listed}");
     }

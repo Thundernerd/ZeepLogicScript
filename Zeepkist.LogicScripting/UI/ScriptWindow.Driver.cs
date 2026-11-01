@@ -77,20 +77,17 @@ internal sealed partial class ScriptWindow
         public void SetText(string text)
         {
             _window._edited.Editor.Replace(text, text.Length, Time.unscaledTimeAsDouble);
-            _window._placedBlocksPanel.ClearMessage();
-            _window.OnEdited();
+            _window.OnTyped();
         }
 
         /// <summary>
-        /// Like Ctrl+Enter in the editor. Returns the result line, or null when a check just found errors, which the
-        /// error list shows.
+        /// Like Ctrl+Enter in the editor. Returns the result line, which says why when Compile can't run, or null when
+        /// the check it runs first on unchecked text found errors, which the error list shows.
         /// </summary>
         public string Compile()
         {
             var result = _window._edited.CompileFromKeyboard();
-            if (result != null)
-                _window._result = result;
-
+            _window.ShowResult(result);
             return result;
         }
     }

@@ -69,6 +69,7 @@ public class ScenarioParserTests
 
     [Theory]
     [InlineData("open-window now", "line 1: open-window takes nothing after it")]
+    [InlineData("set-text a = 1", "line 1: set-text takes nothing after it: the text goes on the lines below it")]
     [InlineData("expect-blocks two", "line 1: expect-blocks takes a whole number of 0 or more, not 'two'")]
     [InlineData("expect-blocks -1", "line 1: expect-blocks takes a whole number of 0 or more, not '-1'")]
     [InlineData("expect-blocks", "line 1: expect-blocks takes a whole number of 0 or more")]

@@ -19,7 +19,7 @@ internal sealed class ExpectResultStep : ScenarioStep
     {
         var result = context.Window.Result;
         if (result.IndexOf(Text, StringComparison.Ordinal) >= 0)
-            context.Detail = result;
+            context.Pass(result, Text, result);
         else
             context.Fail("the result line doesn't contain it", Text, result.Length == 0 ? "(no result line)" : result);
 

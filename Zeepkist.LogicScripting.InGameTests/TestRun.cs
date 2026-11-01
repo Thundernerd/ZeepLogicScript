@@ -53,21 +53,29 @@ internal sealed class TestRun : IDisposable
     /// </summary>
     public IEnumerator Run()
     {
-        var scenarios = ReadScenarios();
-        if (scenarios.Count > 0)
+        List<Scenario> scenarios = [];
+        Exception error = null;
+        try
         {
-            Exception error = null;
+            scenarios = ReadScenarios();
+        }
+        catch (Exception exception)
+        {
+            error = exception;
+        }
+
+        if (error == null && scenarios.Count > 0)
             yield return GuardedRoutine.Run(Walk(), exception => error = exception);
-            if (error != null)
-            {
-                _logger.LogError(error);
-                Step(RunStep.Fail("no errors", $"{error.GetType().Name}: {error.Message}"));
-                yield return Screenshot("failure");
-            }
-            else if (!_results.AnyStepFailed)
-            {
-                yield return RunScenarios(scenarios);
-            }
+
+        if (error != null)
+        {
+            _logger.LogError(error);
+            Step(RunStep.Fail("no errors", $"{error.GetType().Name}: {error.Message}"));
+            yield return Screenshot("failure");
+        }
+        else if (scenarios.Count > 0 && !_results.AnyStepFailed)
+        {
+            yield return RunScenarios(scenarios);
         }
 
         yield return Finish();

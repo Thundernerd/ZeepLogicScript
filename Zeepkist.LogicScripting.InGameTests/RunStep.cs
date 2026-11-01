@@ -12,12 +12,12 @@ internal sealed class RunStep
     public int Line { get; set; }
 
     /// <summary>
-    /// Set by a failed check, null otherwise.
+    /// Set by the checks, null for other steps.
     /// </summary>
     public string Expected { get; set; }
 
     /// <summary>
-    /// Set by a failed check, null otherwise.
+    /// Set by the checks, null for other steps.
     /// </summary>
     public string Actual { get; set; }
 

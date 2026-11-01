@@ -208,7 +208,7 @@ collect() {
             jq -r '
                 def line: "- \(if .Passed then "PASS" else "FAIL" end) \(if .Line > 0 then "line \(.Line): " else "" end)\(.Name)"
                     + (if .Detail != "" then ": \(.Detail)" else "" end)
-                    + (if .Expected != null then "\n  - expected: `\(.Expected)`\n  - actual: `\(.Actual)`" else "" end);
+                    + (if .Expected != null and (.Passed | not) then "\n  - expected: `\(.Expected)`\n  - actual: `\(.Actual)`" else "" end);
                 (.Steps | map(select(.Scenario == "")) | map(line) | .[]),
                 (.Steps | map(select(.Scenario != "")) | group_by(.Scenario) | sort_by(.[0].Index)[]
                     | "", "## \(.[0].Scenario): \(if all(.Passed) then "passed" else map(select(.Passed | not))[0] | "failed\(if .Line > 0 then " at line \(.Line)" else "" end)" end)", "",

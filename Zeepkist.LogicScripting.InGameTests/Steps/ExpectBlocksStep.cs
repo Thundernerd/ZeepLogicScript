@@ -1,6 +1,5 @@
 using System.Collections;
 using TNRD.Zeepkist.LogicScripting.Compiler.Manifest;
-using ZeepSDK.Utilities;
 
 namespace TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
 
@@ -18,12 +17,9 @@ internal sealed class ExpectBlocksStep : ScenarioStep
 
     public override IEnumerator Run(StepContext context)
     {
-        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        var central = context.RequireEditor();
         if (central == null)
-        {
-            context.Fail("not in the level editor");
             yield break;
-        }
 
         var count = 0;
         foreach (var block in central.undoRedo.allBlocksDictionary.Values)
@@ -33,7 +29,7 @@ internal sealed class ExpectBlocksStep : ScenarioStep
         }
 
         if (count == Count)
-            context.Detail = $"{count} Logic Blocks";
+            context.Pass($"{count} Logic Blocks", Count.ToString(), count.ToString());
         else
             context.Fail($"{count} Logic Blocks", Count.ToString(), count.ToString());
     }
