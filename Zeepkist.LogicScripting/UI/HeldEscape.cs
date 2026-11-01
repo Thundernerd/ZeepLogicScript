@@ -45,4 +45,12 @@ internal sealed class HeldEscape
         _frame = null;
         return true;
     }
+
+    /// <summary>
+    /// Forgets the held Escape without handling it, as when what held it lost focus before its event.
+    /// </summary>
+    public void Drop()
+    {
+        _frame = null;
+    }
 }

@@ -37,9 +37,25 @@ internal sealed partial class ScriptEditor
 
             if (completing)
             {
-                _completion.Update(new TextSnapshot(text, _state.Caret, _state.Selection), typedName, typedSeparator, gui.IsControlActive(Id));
+                var current = new TextSnapshot(text, _state.Caret, _state.Selection);
+                _completion.Update(current, typedName, typedSeparator, gui.IsControlActive(Id));
                 typedName = false;
                 typedSeparator = false;
+                if (evt.Key == KeyCode.Escape)
+                {
+                    if (!_heldEscape.Release(Time.frameCount))
+                        continue;
+
+                    gui.Input.UseKeyboardEvent(i);
+                    _callHelp.Update(current, gui.IsControlActive(Id));
+
+                    // The keys after it were pressed after leaving the field
+                    if (RunEscape(gui))
+                        break;
+
+                    continue;
+                }
+
                 if (_completion.HandleKeyboardEvent(gui, i) is { } accepted)
                 {
                     Text = text;
@@ -141,6 +157,44 @@ internal sealed partial class ScriptEditor
 
         Text = text;
         return changed;
+    }
+
+    /// <summary>
+    /// Call once a frame, before the keyboard is handled. Every Escape is held here, by the same check as the one that
+    /// unfocuses other fields, and handled at its key event, which comes a frame later, so the keys pressed before it
+    /// are handled first.
+    /// </summary>
+    private void HoldEscape(ImGui gui)
+    {
+        var frame = Time.frameCount;
+        if (_heldEscape.Expire(frame))
+            RunEscape(gui);
+
+        // While one is held, a second Escape goes on to FieldFocus, which handles it after the first
+        TookEscape = gui.IsControlActive(Id) && Input.GetKeyDown(KeyCode.Escape) && _heldEscape.Hold(frame);
+    }
+
+    /// <summary>
+    /// Closes the completion list, else hides the call's help, else leaves the field; returns whether it left.
+    /// </summary>
+    private bool RunEscape(ImGui gui)
+    {
+        if (_completion.IsOpen)
+        {
+            _completion.Close();
+            return false;
+        }
+
+        if (_callHelp.IsShown)
+        {
+            _callHelp.Dismiss();
+            return false;
+        }
+
+        if (gui.IsControlActive(Id))
+            gui.ResetActiveControl();
+
+        return true;
     }
 
     /// <summary>

@@ -57,4 +57,16 @@ public class HeldEscapeTests
 
         Assert.False(escape.Expire(12));
     }
+
+    [Fact]
+    public void ADroppedEscape_NeitherReleasesNorExpires()
+    {
+        var escape = new HeldEscape();
+        escape.Hold(10);
+        escape.Drop();
+
+        Assert.False(escape.Release(11));
+        Assert.False(escape.Expire(20));
+        Assert.True(escape.Hold(20));
+    }
 }
