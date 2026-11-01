@@ -96,6 +96,7 @@ plugins="$bepinex/plugins"
 [[ -d "$plugins" ]] || fail "BepInEx isn't installed in $game"
 
 prefix="$(cd "$game/../.." && pwd)/compatdata/$app_id/pfx"
+[[ -d "$prefix" ]] || fail "No Proton prefix at $prefix, so the mod's data can't be backed up. Is $game in a Steam library?"
 mod_data="$prefix/drive_c/users/steamuser/AppData/Roaming/Zeepkist/Mods/$mod_guid"
 mod_cfg="$bepinex/config/$mod_guid.cfg"
 test_cfg="$bepinex/config/$test_guid.cfg"
@@ -115,6 +116,9 @@ log "Run $run_id, game in $game"
 launched=0
 restored=0
 deployed=0
+timed_out=0
+interrupted=0
+passed=false
 
 stop_game() {
     game_running || return 0
@@ -155,10 +159,53 @@ remove_build() {
     return 0
 }
 
+# Copies what the run left in the game folder into the run folder, so an interrupted or failed run has results too
+collect() {
+    [[ -d "$test_deploy/out" ]] && cp -a "$test_deploy/out/." "$run_dir/"
+    ((launched)) && cp "$bepinex/LogOutput.log" "$run_dir/LogOutput.log"
+
+    passed=false
+    if [[ -f "$run_dir/results.json" ]]; then
+        passed="$(jq -r '.Passed' "$run_dir/results.json")"
+        if ((timed_out)); then
+            passed=false
+            jq '.TimedOut = true | .Passed = false' "$run_dir/results.json" >"$run_dir/results.json.tmp"
+            mv "$run_dir/results.json.tmp" "$run_dir/results.json"
+        fi
+    fi
+
+    {
+        echo "# In-game test run $run_id"
+        echo
+        if ((interrupted)); then
+            echo "**Interrupted.**"
+        elif ((timed_out)); then
+            echo "**Timed out** after $timeout seconds."
+        elif [[ "$passed" == true ]]; then
+            echo "**Passed.**"
+        else
+            echo "**Failed.**"
+        fi
+        echo
+        if [[ -f "$run_dir/results.json" ]]; then
+            jq -r '.Steps[] | "- \(if .Passed then "PASS" else "FAIL" end) \(.Name)\(if .Detail != "" then ": \(.Detail)" else "" end)"' "$run_dir/results.json"
+            echo
+            jq -r '.Screenshots[] | "- ![\(.)](\(.))"' "$run_dir/results.json"
+        else
+            echo "No results: the test plugin didn't write any. See LogOutput.log."
+        fi
+    } >"$run_dir/results.md"
+}
+
+# Runs once, from the end of a run or the EXIT trap. It mustn't stop halfway, so a second Ctrl+C is ignored and a
+# failing step is logged instead of ending the script.
 restore() {
     ((restored)) && return
     restored=1
+    trap '' INT TERM
+    set +e
     ((launched)) && stop_game
+    collect
 
     rm -rf "$test_deploy"
     [[ -f "$backup/had-test-cfg" ]] || rm -f "$test_cfg"
@@ -186,6 +233,7 @@ restore() {
         log "Restored the game install"
     fi
     log "Restored the mod's data"
+    set -e
 }
 
 on_exit() {
@@ -194,7 +242,7 @@ on_exit() {
     exit "$code"
 }
 trap on_exit EXIT
-trap 'log "Interrupted"; exit 130' INT TERM
+trap 'interrupted=1; log "Interrupted"; exit 130' INT TERM
 
 # A run with --keep, or one that was killed outright, may have left its build installed and other copies set aside:
 # undo that first, so this run sets aside, and afterwards restores, the install as it really is
@@ -238,13 +286,13 @@ jq -n --arg runId "$run_id" '{runId: $runId}' >"$test_deploy/run.json"
 
 log "Starting the game"
 launched=1
-steam -applaunch "$app_id" -zls-ingame-test "$run_id" >/dev/null 2>&1 &
+# Closing the lock for it, so a Steam process that outlives this script can't keep later runs waiting
+steam -applaunch "$app_id" -zls-ingame-test "$run_id" >/dev/null 2>&1 9>&- &
 disown
 
 results="$test_deploy/out/results.json"
 deadline=$((SECONDS + timeout))
 started=0
-timed_out=0
 while :; do
     if [[ -f "$results" ]] && [[ "$(jq -r '.Done' "$results" 2>/dev/null)" == true ]]; then
         break
@@ -271,35 +319,6 @@ if ((!timed_out)); then
     done
 fi
 stop_game
-
-[[ -d "$test_deploy/out" ]] && cp -a "$test_deploy/out/." "$run_dir/"
-cp "$bepinex/LogOutput.log" "$run_dir/LogOutput.log" 2>/dev/null || true
-
-passed=false
-if [[ -f "$run_dir/results.json" ]]; then
-    passed="$(jq -r '.Passed' "$run_dir/results.json")"
-    ((timed_out)) && passed=false
-fi
-
-{
-    echo "# In-game test run $run_id"
-    echo
-    if ((timed_out)); then
-        echo "**Timed out** after $timeout seconds."
-    elif [[ "$passed" == true ]]; then
-        echo "**Passed.**"
-    else
-        echo "**Failed.**"
-    fi
-    echo
-    if [[ -f "$run_dir/results.json" ]]; then
-        jq -r '.Steps[] | "- \(if .Passed then "PASS" else "FAIL" end) \(.Name)\(if .Detail != "" then ": \(.Detail)" else "" end)"' "$run_dir/results.json"
-        echo
-        jq -r '.Screenshots[] | "- ![\(.)](\(.))"' "$run_dir/results.json"
-    else
-        echo "No results: the test plugin didn't write any. See LogOutput.log."
-    fi
-} >"$run_dir/results.md"
 
 restore
 echo
