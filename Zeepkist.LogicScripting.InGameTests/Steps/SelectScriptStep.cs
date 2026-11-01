@@ -14,7 +14,7 @@ internal sealed class SelectScriptStep : ScenarioStep
     public override IEnumerator Run(StepContext context)
     {
         if (context.RequireOpenWindow() && !context.Window.SelectScript(Name))
-            context.Fail($"no Script named \"{Name}\"", Name, string.Join(", ", context.Window.ScriptNames));
+            context.FailNoScript(Name);
 
         yield return null;
     }
