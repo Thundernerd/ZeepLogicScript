@@ -187,7 +187,10 @@ quit_exceptions() {
     [[ -f "$run_dir/LogOutput.log" ]] || return 0
     local cut=0
     [[ -n "$(tail -c 1 "$run_dir/LogOutput.log")" ]] && cut=1
-    awk -v finished="[ZLS-TEST] run $run_id " -v cut="$cut" '
+    # A missing or unreadable results.json counts as a run that didn't finish
+    local run_done=0
+    jq -e '.Done == true' "$run_dir/results.json" >/dev/null 2>&1 && run_done=1
+    awk -v finished="[ZLS-TEST] run $run_id " -v cut="$cut" -v done="$run_done" '
         function count(message, frame,    key) {
             key = message "\t" frame
             if (!(key in counts)) order[++keys] = key
@@ -217,7 +220,9 @@ quit_exceptions() {
             print "## Exceptions at quit"
             print ""
             if (!quitting) {
-                print "Not read: the run didn\047t finish."
+                # The test plugin writes the log out as it finishes, so this is a log that lost its end some other way
+                if (done) print "Not read: the log was cut off before the run\047s end."
+                else print "Not read: the run didn\047t finish."
                 exit
             }
             if (state == 2) record("")
@@ -236,6 +241,10 @@ quit_exceptions() {
             for (i = 1; i <= keys; i++) {
                 split(order[i], parts, "\t")
                 printf "- %s`%s`%s\n", (counts[order[i]] > 1 ? counts[order[i]] "× " : ""), parts[1], (parts[2] != "" ? " at `" parts[2] "`" : "")
+            }
+            if (cut) {
+                print ""
+                print "The log was cut off as the game quit, so this may not be all of them."
             }
         }
     ' "$run_dir/LogOutput.log"
