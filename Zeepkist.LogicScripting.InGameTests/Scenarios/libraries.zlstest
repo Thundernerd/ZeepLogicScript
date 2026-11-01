@@ -37,12 +37,12 @@ screenshot error
 place-block lamp as lamp
 set-text
 p = player_input()
-lamp_1 = placed("{uid:lamp}")
-lamp_1(red: timing.edge(p.horn))
+toggler(timing.edge(p.horn), targets: placed("{uid:lamp}"))
 end
 expect-no-errors
+expect-text placed("
 compile
-expect-result Placed 4 blocks, wired to 1 placed blocks
+expect-result Placed 5 blocks
 screenshot compiled
 
 select-library timing
