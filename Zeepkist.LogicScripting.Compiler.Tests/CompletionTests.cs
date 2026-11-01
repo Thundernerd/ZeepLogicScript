@@ -655,7 +655,7 @@ public class CompletionTests
     [Theory]
     [InlineData("x = simple_telemetry().|", new[] { "speed", "yaw", "up", "state" })]
     [InlineData("x = simple_telemetry(mode: global_velocity).|", new[] { "x", "y", "z", "heading" })]
-    [InlineData("x = simple_telemetry(1, mode: local_velocity).|", new[] { "yaw", "x", "y", "z" })]
+    [InlineData("x = simple_telemetry(hide: true, mode: local_velocity).|", new[] { "yaw", "x", "y", "z" })]
     public void Items_AfterACallsDot_TheOutputsOfTheBlockFunction_InItsWrittenMode(string text, string[] expected)
     {
         Assert.Equal(expected, Labels(text));
