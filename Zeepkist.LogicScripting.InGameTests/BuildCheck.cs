@@ -11,7 +11,7 @@ namespace TNRD.Zeepkist.LogicScripting.InGameTests;
 /// </summary>
 internal static class BuildCheck
 {
-    private const string Guid = "Zeepkist.LogicScripting";
+    private const string Guid = LogicScripting.MyPluginInfo.PLUGIN_GUID;
     private const string OldGuid = "net.tnrd.zeepkist.logicscripting";
 
     public static string Problem(string testFolder)

@@ -17,6 +17,8 @@ namespace TNRD.Zeepkist.LogicScripting.InGameTests;
 /// </summary>
 internal sealed class TestRun : IDisposable
 {
+    // Starts every line this plugin logs, so a run's lines can be picked out of the BepInEx log
+    public const string Marker = "[ZLS-TEST]";
     private const float WaitSeconds = 120;
 
     private readonly ManualLogSource _logger;
@@ -150,7 +152,7 @@ internal sealed class TestRun : IDisposable
             }
         }
 
-        _logger.LogWarning("[ZLS-TEST] no Level Editor button found, starting the editor directly");
+        _logger.LogWarning($"{Marker} no Level Editor button found, starting the editor directly");
         menu.StartLevelEditor();
     }
 
@@ -197,23 +199,23 @@ internal sealed class TestRun : IDisposable
         var texture = ScreenCapture.CaptureScreenshotAsTexture();
         File.WriteAllBytes(_results.ScreenshotPath(name), texture.EncodeToPNG());
         Object.Destroy(texture);
-        _logger.LogInfo($"[ZLS-TEST] screenshot {name}");
+        _logger.LogInfo($"{Marker} screenshot {name}");
     }
 
     private void Step(string name, bool passed, string detail = "")
     {
         _results.Add(name, passed, detail);
-        var marker = $"[ZLS-TEST] {name} {(passed ? "PASS" : "FAIL")} {detail}".TrimEnd();
+        var line = $"{Marker} {name} {(passed ? "PASS" : "FAIL")} {detail}".TrimEnd();
         if (passed)
-            _logger.LogInfo(marker);
+            _logger.LogInfo(line);
         else
-            _logger.LogError(marker);
+            _logger.LogError(line);
     }
 
     private IEnumerator Finish()
     {
         _results.Finish();
-        _logger.LogInfo($"[ZLS-TEST] run {_results.RunId} {(_results.Passed ? "passed" : "failed")}");
+        _logger.LogInfo($"{Marker} run {_results.RunId} {(_results.Passed ? "passed" : "failed")}");
 
         // Quitting this way skips the editor's unsaved-level prompt
         yield return null;

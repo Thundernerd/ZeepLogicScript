@@ -8,7 +8,7 @@ namespace TNRD.Zeepkist.LogicScripting.InGameTests;
 /// It does nothing in normal play: a run needs both the script's command-line flag and a run.json next to this DLL.
 /// </summary>
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
-[BepInDependency("Zeepkist.LogicScripting")]
+[BepInDependency(LogicScripting.MyPluginInfo.PLUGIN_GUID)]
 [BepInDependency("ZeepSDK")]
 public class Plugin : BaseUnityPlugin
 {
@@ -20,7 +20,7 @@ public class Plugin : BaseUnityPlugin
         if (!RunRequest.TryRead(folder, System.Environment.GetCommandLineArgs(), out var request))
             return;
 
-        Logger.LogInfo($"[ZLS-TEST] run {request.RunId} starting");
+        Logger.LogInfo($"{TestRun.Marker} run {request.RunId} starting");
         var results = new RunResults(request.RunId, Path.Combine(folder, "out"));
         _run = new TestRun(Logger, results, folder);
         StartCoroutine(_run.Run());
