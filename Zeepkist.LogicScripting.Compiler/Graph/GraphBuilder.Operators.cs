@@ -6,11 +6,11 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Graph;
 
 internal sealed partial class GraphBuilder
 {
-    private OutputValue VisitUnary(UnaryExpression unary)
+    private InputFeed VisitUnary(UnaryExpression unary)
     {
         var operand = EvaluateFeed(unary.Operand);
-        if (operand == null)
-            return null;
+        if (operand is FailedValue)
+            return FailedValue.Instance;
 
         var op = unary.Operator;
         List<Func<InputFeed>> inputs = [];
@@ -23,12 +23,12 @@ internal sealed partial class GraphBuilder
         return AddOperatorBlock(unary, op.Block, inputs);
     }
 
-    private OutputValue VisitBinary(BinaryExpression binary)
+    private InputFeed VisitBinary(BinaryExpression binary)
     {
         var left = EvaluateFeed(binary.Left);
         var right = EvaluateFeed(binary.Right);
-        if (left == null || right == null)
-            return null;
+        if (left is FailedValue || right is FailedValue)
+            return FailedValue.Instance;
 
         var op = binary.Operator;
         return AddOperatorBlock(binary, op.Block, [() => left, () => right]);
@@ -43,7 +43,7 @@ internal sealed partial class GraphBuilder
         var block = AddBlock(origin, type, type.DefaultStyle, operatorBlock.Setting);
         for (var i = 0; i < inputs.Count; i++)
         {
-            Connect(inputs[i](), block, type.Inputs[i].Index);
+            inputs[i]().Connect(this, block, type.Inputs[i].Index);
         }
 
         return new OutputValue(block, block.Outputs[0].Index);

@@ -11,7 +11,7 @@ internal sealed partial class GraphBuilder
         }
 
         /// <summary>
-        /// Null when the argument failed to evaluate.
+        /// A <see cref="FailedValue"/> when the argument failed to evaluate.
         /// </summary>
         public InputFeed Feed { get; }
         public bool IsByPosition { get; }

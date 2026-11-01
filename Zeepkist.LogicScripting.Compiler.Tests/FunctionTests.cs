@@ -112,6 +112,15 @@ public class FunctionTests
     }
 
     [Fact]
+    public void DelayForwardReference_InABody_ReachesTheCallersForwardReference()
+    {
+        var result = Compile("function f(a) -> y\n    y = delay(b, ticks: 1)\n    b = a\nend\nx = delay(f(later), ticks: 1)\nlater = player_input().horn\npower_display(x)");
+
+        Assert.Empty(result.Errors);
+        Assert.Equal("delay[ldl=1](delay[ldl=1](player_input().horn))", BlockTree.RenderLast(result));
+    }
+
+    [Fact]
     public void DelayForwardReference_ToItself_PassesThroughAFunction()
     {
         var result = Compile("function same(x) -> y\n    y = x\nend\nheld = delay(same(held) ^ 1, ticks: 1)\npower_display(held)");

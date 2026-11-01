@@ -14,15 +14,7 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private InputFeed EvaluateFeed(Expression expression)
     {
-        if (TryDefer(expression) is { } deferred)
-            return deferred;
-
-        var value = Evaluate(expression);
-        if (value is InputFeed feed)
-            return feed;
-
-        ReportNoSingleOutput(expression, value);
-        return null;
+        return (InputFeed)TryDefer(expression) ?? Evaluate(expression).ToFeed(this, expression);
     }
 
     /// <summary>
@@ -48,19 +40,6 @@ internal sealed partial class GraphBuilder
             _scope.DelayDepth--;
     }
 
-    private void Connect(InputFeed feed, BlockNode to, int toConnector)
-    {
-        switch (feed)
-        {
-            case OutputValue output:
-                _graph.AddWire(output.Output, to, toConnector);
-                break;
-            case DeferredValue deferred:
-                _deferredWires.Add(new DeferredWire(deferred, to, toConnector));
-                break;
-        }
-    }
-
     /// <summary>
     /// Connects the deferred Wires from <paramref name="start"/> on, each looked up in the scope it was written in.
     /// </summary>
@@ -70,9 +49,7 @@ internal sealed partial class GraphBuilder
         for (var i = start; i < _deferredWires.Count; i++)
         {
             var wire = _deferredWires[i];
-            var output = Resolve(wire.From);
-            if (output != null)
-                _graph.AddWire(output.Value, wire.To, wire.ToConnector);
+            Resolve(wire.From).Connect(this, wire.To, wire.ToConnector);
         }
 
         _scope = scope;
@@ -80,30 +57,23 @@ internal sealed partial class GraphBuilder
 
     /// <summary>
     /// A value passed into a Function can itself be deferred in its caller's scope, so this follows it outward until
-    /// it reaches a block.
+    /// it reaches a block or fails.
     /// </summary>
-    private BlockOutput? Resolve(DeferredValue deferred)
+    private InputFeed Resolve(DeferredValue deferred)
     {
-        while (true)
+        InputFeed feed = deferred;
+        while (feed is DeferredValue next)
         {
-            _scope = deferred.Scope;
-            var value = Evaluate(deferred.Expression);
-            foreach (var member in deferred.Members)
+            _scope = next.Scope;
+            var value = Evaluate(next.Expression);
+            foreach (var member in next.Members)
             {
-                value = SelectMember(member, value);
+                value = value.SelectMember(this, member);
             }
 
-            switch (value)
-            {
-                case DeferredValue next:
-                    deferred = next;
-                    break;
-                case OutputValue output:
-                    return output.Output;
-                default:
-                    ReportNoSingleOutput(deferred.Origin, value);
-                    return null;
-            }
+            feed = value.ToFeed(this, next.Origin);
         }
+
+        return feed;
     }
 }

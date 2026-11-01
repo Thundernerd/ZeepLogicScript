@@ -171,7 +171,7 @@ internal sealed partial class GraphBuilder
         var function = FindFunction(call);
         var outputs = ExpandCall(call, function);
         if (outputs == null)
-            return null;
+            return FailedValue.Instance;
 
         return function.Outputs.Count switch
         {
@@ -212,7 +212,7 @@ internal sealed partial class GraphBuilder
         {
             foreach (var argument in arguments)
             {
-                if (argument.Value == null)
+                if (argument.Value is FailedValue)
                     scope.FailedNames.Add(argument.Key);
                 else
                     scope.Names.Add(argument.Key, argument.Value);
@@ -253,7 +253,7 @@ internal sealed partial class GraphBuilder
 
     /// <summary>
     /// Every input's value by name, each evaluated once in the caller's scope, so a body that uses an input twice
-    /// shares its blocks. A value that failed, already reported, is null and stands for nothing in the body, which is
+    /// shares its blocks. A value that failed, already reported, stands for nothing in the body, which is
     /// still checked with the others, such as the constants passed to its Settings. Null after reporting that the
     /// arguments don't match the inputs.
     /// </summary>
@@ -333,8 +333,8 @@ internal sealed partial class GraphBuilder
 
     /// <summary>
     /// The value of an argument for the input at <paramref name="inputIndex"/>, which is -1 when the call names none: a
-    /// constant for a Setting input, or else what <see cref="EvaluateArgumentValue"/> gives. Null after reporting why
-    /// there's none.
+    /// constant for a Setting input, or else what <see cref="EvaluateArgumentValue"/> gives. A
+    /// <see cref="FailedValue"/> after reporting why there's none.
     /// </summary>
     private Resolved EvaluateInput(CallExpression call, FunctionDefinition function, int inputIndex, Expression value, Position valuePosition)
     {
@@ -343,7 +343,7 @@ internal sealed partial class GraphBuilder
 
         var input = function.Inputs[inputIndex];
         return GetSettingInputs(function, FunctionsOf(function)).ContainsKey(input.Name)
-            ? BindSetting(call, input, value, valuePosition)
+            ? (Resolved)BindSetting(call, input, value, valuePosition) ?? FailedValue.Instance
             : EvaluateArgumentValue(value);
     }
 
@@ -383,7 +383,7 @@ internal sealed partial class GraphBuilder
         Dictionary<string, Resolved> outputs = [];
         foreach (var output in function.Outputs)
         {
-            outputs.Add(output.Name, scope.Names.TryGetValue(output.Name, out var value) ? value : null);
+            outputs.Add(output.Name, scope.Names.TryGetValue(output.Name, out var value) ? value : FailedValue.Instance);
         }
 
         return outputs;

@@ -1,3 +1,4 @@
+using System;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
@@ -22,6 +23,7 @@ public class Plugin : BaseUnityPlugin
     private ScriptToolbarDrawer _toolbarDrawer;
     private bool _returningFromTestMode;
     private bool _hintLogged;
+    private bool _quitting;
 
     /// <summary>
     /// For the in-game tests, which drive it through <see cref="ScriptWindow.Driver"/>.
@@ -37,6 +39,7 @@ public class Plugin : BaseUnityPlugin
         LevelEditorApi.EnteredLevelEditor += OnEnteredLevelEditor;
         LevelEditorApi.EnteredTestMode += OnEnteredTestMode;
         LevelEditorApi.LevelLoaded += OnLevelLoaded;
+        Application.quitting += OnQuitting;
 
         // F12 is Steam's screenshot key; F9 is the only F key the game itself leaves free
         _toggleKey = Config.Bind(
@@ -69,25 +72,52 @@ public class Plugin : BaseUnityPlugin
         Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
     }
 
+    /// <summary>
+    /// When the game quits, the UI goes with it: ZeepSDK's toolbar is already gone by then, and removing a drawer from
+    /// it throws.
+    /// </summary>
     private void OnDestroy()
     {
         LevelEditorApi.EnteredLevelEditor -= OnEnteredLevelEditor;
         LevelEditorApi.EnteredTestMode -= OnEnteredTestMode;
         LevelEditorApi.LevelLoaded -= OnLevelLoaded;
-
-        if (_toolbarDrawer != null)
-            UIApi.RemoveToolbarDrawer(_toolbarDrawer);
+        Application.quitting -= OnQuitting;
 
         if (_scriptWindow != null)
         {
-            UIApi.RemoveZeepGUIDrawer(_scriptWindow);
-            _scriptWindow.ReleaseInput();
-            _scriptWindow.SaveDrafts();
-            _scriptWindow.SaveLibraries();
-            _scriptWindow.SaveState();
+            RunShutdownStep("save the Drafts", _scriptWindow.SaveDrafts);
+            RunShutdownStep("save the Libraries", _scriptWindow.SaveLibraries);
+            RunShutdownStep("save the window's layout", _scriptWindow.SaveState);
         }
 
+        if (!_quitting)
+            RemoveUI();
+
         _harmony?.UnpatchSelf();
+    }
+
+    private void RemoveUI()
+    {
+        if (_toolbarDrawer != null)
+            RunShutdownStep("remove the toolbar menu", () => UIApi.RemoveToolbarDrawer(_toolbarDrawer));
+
+        if (_scriptWindow != null)
+        {
+            RunShutdownStep("remove the Script window", () => UIApi.RemoveZeepGUIDrawer(_scriptWindow));
+            RunShutdownStep("release the editor's input", _scriptWindow.ReleaseInput);
+        }
+    }
+
+    private void RunShutdownStep(string step, Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception e)
+        {
+            Logger.LogWarning($"Couldn't {step} while unloading: {e}");
+        }
     }
 
     /// <summary>
@@ -118,6 +148,11 @@ public class Plugin : BaseUnityPlugin
         Logger.LogInfo(key == KeyCode.None
             ? "Open the Logic Script window from the Logic Script menu in ZeepSDK's menu bar, or set a toggle key in the mod's settings"
             : $"Press {key} in the level editor to open the Logic Script window (also in the Logic Script menu of ZeepSDK's menu bar)");
+    }
+
+    private void OnQuitting()
+    {
+        _quitting = true;
     }
 
     private void OnEnteredTestMode()

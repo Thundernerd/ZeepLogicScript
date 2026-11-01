@@ -51,7 +51,7 @@ internal sealed partial class GraphBuilder
         var value = Evaluate(definition.Value);
         _scope.Current = null;
 
-        if (value == null)
+        if (value is FailedValue)
             _scope.FailedNames.Add(definition.Name);
         else
             _scope.Names.Add(definition.Name, value);
@@ -102,11 +102,11 @@ internal sealed partial class GraphBuilder
     {
         // A Setting input used as a Signal is reported with its Function
         if (_scope.Names.TryGetValue(name.Name, out var value))
-            return value is SettingConstant ? null : value;
+            return value is SettingConstant ? FailedValue.Instance : value;
 
         // Its definition already reported why it failed
         if (_scope.FailedNames.Contains(name.Name))
-            return null;
+            return FailedValue.Instance;
 
         if (_scope.Current != null && _scope.Current.Name == name.Name)
             return Fail(name, $"'{name.Name}' can't refer to itself outside delay(...)");

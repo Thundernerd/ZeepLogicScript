@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
+using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 using UnityEngine;
 
 namespace TNRD.Zeepkist.LogicScripting.UI;
@@ -73,7 +74,7 @@ internal sealed partial class ScriptWindow
         /// </summary>
         public bool SelectScript(string name)
         {
-            var entry = _window._scripts.Entries.FirstOrDefault(e => e.Name == name);
+            var entry = FindScript(name);
             if (entry == null)
                 return false;
 
@@ -81,6 +82,28 @@ internal sealed partial class ScriptWindow
                 _window.Select(entry);
 
             return true;
+        }
+
+        /// <summary>
+        /// Like Delete in the Script's context menu, which opens the delete prompt. Returns whether there's one by that
+        /// name.
+        /// </summary>
+        public bool OpenDelete(string name)
+        {
+            var entry = FindScript(name);
+            if (entry == null)
+                return false;
+
+            _window._scriptListPanel.OpenDelete(entry);
+            return true;
+        }
+
+        /// <summary>
+        /// Null when there's none by that name.
+        /// </summary>
+        private ScriptEntry FindScript(string name)
+        {
+            return _window._scripts.Entries.FirstOrDefault(e => e.Name == name);
         }
 
         /// <summary>
