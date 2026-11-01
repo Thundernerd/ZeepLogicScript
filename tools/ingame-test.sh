@@ -64,8 +64,9 @@ pgrep -x steam >/dev/null || fail "Steam isn't running. Start Steam first."
 
 if ((build)); then
     log "Building"
-    dotnet build "$repo/Zeepkist.LogicScripting/Zeepkist.LogicScripting.csproj" -c Release -v quiet -nologo
-    dotnet build "$repo/$test_guid/$test_guid.csproj" -c Release -v quiet -nologo
+    # The build leaves compiler servers running, which mustn't inherit the lock and keep later runs waiting
+    dotnet build "$repo/Zeepkist.LogicScripting/Zeepkist.LogicScripting.csproj" -c Release -v quiet -nologo 9>&-
+    dotnet build "$repo/$test_guid/$test_guid.csproj" -c Release -v quiet -nologo 9>&-
 fi
 
 mod_build="$repo/Zeepkist.LogicScripting/bin/Release/net472"
@@ -286,7 +287,7 @@ jq -n --arg runId "$run_id" '{runId: $runId}' >"$test_deploy/run.json"
 
 log "Starting the game"
 launched=1
-# Closing the lock for it, so a Steam process that outlives this script can't keep later runs waiting
+# Closing the lock for it too, as a Steam process can outlive this script
 steam -applaunch "$app_id" -zls-ingame-test "$run_id" >/dev/null 2>&1 9>&- &
 disown
 
