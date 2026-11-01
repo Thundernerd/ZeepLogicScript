@@ -50,9 +50,9 @@ internal sealed partial class ScriptEditor
                     gui.Input.UseKeyboardEvent(i);
                     _callHelp.Update(current, gui.IsControlActive(Id));
 
-                    // The keys after it were pressed after leaving the field, so they're not the editor's. They're
-                    // lost: they came in the frame before this one, while the field still blocked the level editor's
-                    // keyboard, and handing them to it would mean faking its input (#198)
+                    // The keys after the Escape that leaves the field aren't the field's. They're lost: Unity reported
+                    // them the frame before, while the field still blocked the level editor's keyboard, and handing
+                    // them to it would mean faking its input
                     if (HandleEscape(gui))
                         break;
 
