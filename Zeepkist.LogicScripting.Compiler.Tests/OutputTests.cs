@@ -59,4 +59,44 @@ public class OutputTests
         var error = Assert.Single(result.Errors);
         Assert.Equal((new Position(line, column), message), (error.Position, error.Message));
     }
+
+    [Theory]
+    [InlineData("t = simple_telemetry()\npower_display(t .speed)", 2, 17, "Write the dot right after 't', without a space")]
+    [InlineData("t = simple_telemetry()\npower_display(t. speed)", 2, 16, "Write 'speed' right after the dot, without a space")]
+    [InlineData("t = simple_telemetry()\npower_display(t . speed)", 2, 17, "Write the dot right after 't', without a space")]
+    [InlineData("power_display(simple_telemetry() .speed)", 1, 34, "Write the dot right after ')', without a space")]
+    [InlineData("power_display(simple_telemetry(). speed)", 1, 33, "Write 'speed' right after the dot, without a space")]
+    [InlineData("t = simple_telemetry()\npower_display(t\n.speed)", 3, 1, "Write the dot right after 't', without a space")]
+    [InlineData("t = simple_telemetry()\npower_display(t.\nspeed)", 2, 16, "Write 'speed' right after the dot, without a space")]
+    [InlineData("t = simple_telemetry()\npower_display(t\t.speed)", 2, 17, "Write the dot right after 't', without a space")]
+    [InlineData("t = simple_telemetry()\npower_display(t # speed\n.speed)", 3, 1, "Write the dot right after 't', without a space")]
+    [InlineData("t = simple_telemetry()\npower_display((t) .speed)", 2, 19, "Write the dot right after ')', without a space")]
+    [InlineData("function f(a) -> hi, lo\n    hi = a\n    lo = a\nend\npower_display(f(1) .hi)", 5, 20, "Write the dot right after ')', without a space")]
+    public void DotAccess_WithASpace_IsAnErrorAtTheDot(string text, int line, int column, string message)
+    {
+        var result = ScriptCompiler.Compile(text, 0);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal((new Position(line, column), message), (error.Position, error.Message));
+    }
+
+    [Theory]
+    [InlineData("t = simple_telemetry()\npower_display(t.speed)")]
+    [InlineData("power_display(simple_telemetry().speed)")]
+    [InlineData("t = simple_telemetry()\npower_display((t).speed)")]
+    [InlineData("function f(a) -> hi, lo\n    hi = a\n    lo = a\nend\npower_display(f(1).hi)")]
+    public void DotAccess_TouchingBothSides_Compiles(string text)
+    {
+        var result = ScriptCompiler.Compile(text, 0);
+
+        Assert.True(result.Succeeded, string.Join("\n", result.Errors));
+    }
+
+    [Fact]
+    public void DecimalNumber_KeepsItsOwnError()
+    {
+        var result = ScriptCompiler.Compile("power_display(0.5)", 0);
+
+        Assert.Equal(["1:15: Only whole numbers are allowed"], result.Errors.Select(e => e.ToString()));
+    }
 }

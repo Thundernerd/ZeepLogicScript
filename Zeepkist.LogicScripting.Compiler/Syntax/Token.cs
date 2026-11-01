@@ -42,4 +42,9 @@ internal readonly struct Token
     /// The unary operator an <see cref="TokenKind.Operator"/> token spells, if any; <c>-</c> is both.
     /// </summary>
     public UnaryOperator UnaryOperator { get; }
+
+    public bool IsDirectlyAfter(Token other)
+    {
+        return Span.Start == other.Span.End;
+    }
 }

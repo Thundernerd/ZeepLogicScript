@@ -67,6 +67,8 @@ public class LibraryTests
     [InlineData("power_display(timing.edge())", "1:15: 'timing.edge' needs input 'x'")]
     [InlineData("power_display(timing.edge(1, 2))", "1:15: 'timing.edge' takes 1 input, got 2")]
     [InlineData("power_display(timing.edge(1).r)", "1:30: 'timing.edge' has a single output. Use it without .r")]
+    [InlineData("power_display(timing .edge(1))", "1:22: Write the dot right after 'timing', without a space")]
+    [InlineData("power_display(timing. edge(1))", "1:21: Write 'edge' right after the dot, without a space")]
     public void MissingLibraryOrFunction_AndArgumentErrors(string text, string error)
     {
         var result = Compile(text, new() { ["timing"] = Timing });

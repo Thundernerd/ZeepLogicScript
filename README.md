@@ -231,6 +231,8 @@ p = player_input(player: 2)
 steer = p.left | p.right
 ```
 
+The dot touches both sides, with no space before or after it: `p.left`, `player_input().horn`, `timing.edge(x)`.
+
 `simple_telemetry`'s outputs depend on its `mode:`.
 The Reference tab lists them per mode.
 
