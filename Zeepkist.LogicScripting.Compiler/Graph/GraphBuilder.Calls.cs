@@ -92,7 +92,7 @@ internal sealed partial class GraphBuilder
     private string GetUnknownFunctionMessage(string function)
     {
         // A Setting input called as a placed block is reported with its Function
-        if (_scope.FailedNames.Contains(function) || _scope.Names.TryGetValue(function, out var value) && value is SettingConstant)
+        if (_scope.FailedNames.Contains(function) || _scope.SettingConstants.ContainsKey(function))
             return null;
 
         if (_scope.Names.ContainsKey(function))

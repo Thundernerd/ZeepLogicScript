@@ -191,33 +191,24 @@ internal sealed partial class GraphBuilder
         {
             for (var i = 0; i < call.Arguments.Count; i++)
             {
-                EvaluateInput(call, function, i, call.Arguments[i], call.Arguments[i].Position);
+                EvaluateInput(call, function, i, call.Arguments[i], call.Arguments[i].Position, out _);
             }
 
             foreach (var argument in call.NamedArguments)
             {
                 var input = function?.Inputs.FindIndex(i => i.Name == argument.Name) ?? -1;
-                EvaluateInput(call, function, input, argument.Value, argument.ValuePosition);
+                EvaluateInput(call, function, input, argument.Value, argument.ValuePosition, out _);
             }
 
             return null;
         }
 
-        var arguments = BindArguments(call, function);
-        if (arguments == null)
+        var bindInputs = BindArguments(call, function);
+        if (bindInputs == null)
             return null;
 
         var callSite = _libraryFunctions.ContainsKey(function) ? _scope.CallSite ?? call.Position : (Position?)null;
-        return Expand(function, callSite, scope =>
-        {
-            foreach (var argument in arguments)
-            {
-                if (argument.Value is FailedValue)
-                    scope.FailedNames.Add(argument.Key);
-                else
-                    scope.Names.Add(argument.Key, argument.Value);
-            }
-        });
+        return Expand(function, callSite, bindInputs);
     }
 
     /// <summary>
@@ -254,21 +245,23 @@ internal sealed partial class GraphBuilder
     /// <summary>
     /// Every input's value by name, each evaluated once in the caller's scope, so a body that uses an input twice
     /// shares its blocks. A value that failed, already reported, stands for nothing in the body, which is
-    /// still checked with the others, such as the constants passed to its Settings. Null after reporting that the
-    /// arguments don't match the inputs.
+    /// still checked with the others, such as the constants passed to its Settings. Gives what binds them in the body's
+    /// scope, or null after reporting that the arguments don't match the inputs.
     /// </summary>
-    private Dictionary<string, Resolved> BindArguments(CallExpression call, FunctionDefinition function)
+    private Action<Scope> BindArguments(CallExpression call, FunctionDefinition function)
     {
         var inputs = function.Inputs;
         var values = new Resolved[inputs.Count];
+        var constants = new SettingConstant[inputs.Count];
         var isGiven = new bool[inputs.Count];
         var failed = false;
         for (var i = 0; i < call.Arguments.Count; i++)
         {
-            var value = EvaluateInput(call, function, i, call.Arguments[i], call.Arguments[i].Position);
+            var value = EvaluateInput(call, function, i, call.Arguments[i], call.Arguments[i].Position, out var constant);
             if (i < inputs.Count)
             {
                 values[i] = value;
+                constants[i] = constant;
                 isGiven[i] = true;
             }
         }
@@ -284,7 +277,7 @@ internal sealed partial class GraphBuilder
         foreach (var argument in call.NamedArguments)
         {
             var input = inputs.FindIndex(i => i.Name == argument.Name);
-            var value = EvaluateInput(call, function, input, argument.Value, argument.ValuePosition);
+            var value = EvaluateInput(call, function, input, argument.Value, argument.ValuePosition, out var constant);
             if (!givenNames.Add(argument.Name))
             {
                 Error(argument, $"'{argument.Name}' is given twice");
@@ -305,6 +298,7 @@ internal sealed partial class GraphBuilder
             else
             {
                 values[input] = value;
+                constants[input] = constant;
                 isGiven[input] = true;
             }
         }
@@ -322,29 +316,43 @@ internal sealed partial class GraphBuilder
         if (failed || namesFailed)
             return null;
 
-        Dictionary<string, Resolved> arguments = [];
-        for (var i = 0; i < inputs.Count; i++)
+        return scope =>
         {
-            arguments.Add(inputs[i].Name, values[i]);
-        }
-
-        return arguments;
+            for (var i = 0; i < inputs.Count; i++)
+            {
+                if (constants[i] != null)
+                    scope.SettingConstants.Add(inputs[i].Name, constants[i]);
+                else if (values[i] is FailedValue)
+                    scope.FailedNames.Add(inputs[i].Name);
+                else
+                    scope.Names.Add(inputs[i].Name, values[i]);
+            }
+        };
     }
 
     /// <summary>
-    /// The value of an argument for the input at <paramref name="inputIndex"/>, which is -1 when the call names none: a
-    /// constant for a Setting input, or else what <see cref="EvaluateArgumentValue"/> gives. A
-    /// <see cref="FailedValue"/> after reporting why there's none.
+    /// The value of an argument for the input at <paramref name="inputIndex"/>, which is -1 when the call names none:
+    /// what <see cref="EvaluateArgumentValue"/> gives, or for a Setting input, null with the constant in
+    /// <paramref name="constant"/>. A <see cref="FailedValue"/> after reporting why there's none.
     /// </summary>
-    private Resolved EvaluateInput(CallExpression call, FunctionDefinition function, int inputIndex, Expression value, Position valuePosition)
+    private Resolved EvaluateInput(
+        CallExpression call,
+        FunctionDefinition function,
+        int inputIndex,
+        Expression value,
+        Position valuePosition,
+        out SettingConstant constant)
     {
+        constant = null;
         if (function == null || inputIndex < 0 || inputIndex >= function.Inputs.Count)
             return EvaluateArgumentValue(value);
 
         var input = function.Inputs[inputIndex];
-        return GetSettingInputs(function, FunctionsOf(function)).ContainsKey(input.Name)
-            ? (Resolved)BindSetting(call, input, value, valuePosition) ?? FailedValue.Instance
-            : EvaluateArgumentValue(value);
+        if (!GetSettingInputs(function, FunctionsOf(function)).ContainsKey(input.Name))
+            return EvaluateArgumentValue(value);
+
+        constant = BindSetting(call, input, value, valuePosition);
+        return constant == null ? FailedValue.Instance : null;
     }
 
     /// <summary>

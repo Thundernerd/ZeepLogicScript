@@ -42,6 +42,12 @@ internal sealed partial class GraphBuilder
         public Dictionary<string, Resolved> Names { get; } = [];
         public HashSet<string> FailedNames { get; } = [];
 
+        /// <summary>
+        /// The constant the call passed to each of the Function's Setting inputs. A Setting input that failed is in
+        /// <see cref="FailedNames"/> instead.
+        /// </summary>
+        public Dictionary<string, SettingConstant> SettingConstants { get; } = [];
+
         public Definition Current { get; set; }
 
         /// <summary>
