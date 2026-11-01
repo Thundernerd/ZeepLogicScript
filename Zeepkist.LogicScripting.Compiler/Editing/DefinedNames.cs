@@ -43,7 +43,7 @@ public static class DefinedNames
                 continue;
 
             var function = definedFunctions.FirstOrDefault(f => f.Contains(tokens[i].Span.Start));
-            var value = ReadValue(tokens, i + 2, findPlacedBlock, definedFunctions, names.Where(n => n.Function == function));
+            var value = ReadValue(tokens, i + 2, findPlacedBlock, definedFunctions, names.Where(n => n.Function == function).ToList());
             names.Add(new DefinedName(name, tokens[i].Span, value, function));
         }
 
@@ -151,16 +151,20 @@ public static class DefinedNames
 
     /// <summary>
     /// What the value starting at <paramref name="start"/> stands for when the whole value is one call the editor
-    /// knows, or a name defined as one, in parentheses or not, since the compiler drops them. A name is its first
-    /// definition in the same scope before the value, of the <paramref name="earlier"/> ones; a Function's name is
-    /// the Function, which has no value.
+    /// knows, or a name defined as one, in any parentheses, since the compiler drops them. A name is its first
+    /// definition; a Function's name is the Function, which has no value.
     /// </summary>
+    /// <param name="tokens"></param>
+    /// <param name="start"></param>
+    /// <param name="findPlacedBlock"></param>
+    /// <param name="functions"></param>
+    /// <param name="earlierInScope">The names defined before the value, in its scope.</param>
     private static DefinedValue ReadValue(
         List<Token> tokens,
         int start,
         Func<string, PlacedBlock> findPlacedBlock,
         IReadOnlyList<DefinedFunction> functions,
-        IEnumerable<DefinedName> earlier)
+        IEnumerable<DefinedName> earlierInScope)
     {
         var depth = 0;
         while (tokens[start + depth].Kind == TokenKind.OpenParen)
@@ -175,9 +179,9 @@ public static class DefinedNames
         {
             value = ReadBlockValue(tokens, inner, findPlacedBlock, out end) ?? ReadFunctionCall(tokens, inner, functions, out end);
         }
-        else if (tokens[inner].Kind == TokenKind.Name && !functions.Any(f => f.Name == tokens[inner].Text))
+        else if (tokens[inner].Kind == TokenKind.Name && FindFunction(functions, tokens[inner].Text) == null)
         {
-            value = earlier.FirstOrDefault(n => n.Name == tokens[inner].Text)?.Value;
+            value = earlierInScope.FirstOrDefault(n => n.Name == tokens[inner].Text)?.Value;
             end = inner + 1;
         }
         else
@@ -229,15 +233,20 @@ public static class DefinedNames
     /// a Function's, and of a Function defined twice, the first is the one the compiler keeps. <paramref name="end"/>
     /// is the token after it.
     /// </summary>
-    private static DefinedValue ReadFunctionCall(List<Token> tokens, int start, IEnumerable<DefinedFunction> functions, out int end)
+    private static DefinedValue ReadFunctionCall(List<Token> tokens, int start, IReadOnlyList<DefinedFunction> functions, out int end)
     {
         end = start;
         if (GraphBuilder.IsReserved(tokens[start].Text))
             return null;
 
         end = FindCallEnd(tokens, start + 1, null, out _);
-        var callee = functions.FirstOrDefault(f => f.Name == tokens[start].Text);
+        var callee = FindFunction(functions, tokens[start].Text);
         return callee == null ? null : DefinedValue.FunctionCall(callee);
+    }
+
+    private static DefinedFunction FindFunction(IReadOnlyList<DefinedFunction> functions, string name)
+    {
+        return functions.FirstOrDefault(f => f.Name == name);
     }
 
     private static bool IsCall(List<Token> tokens, int start)

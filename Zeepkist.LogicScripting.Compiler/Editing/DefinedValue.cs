@@ -4,8 +4,7 @@ namespace TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 
 /// <summary>
 /// What a defined name's value is, when the whole value is one call the editor knows: a Block Function call, a Placed
-/// Block Reference to a block in the level, or a call to the Script's own Function. A name defined as another such
-/// name, or as such a call in parentheses, stands for that call.
+/// Block Reference to a block in the level, or a call to the Script's own Function.
 /// </summary>
 public sealed class DefinedValue
 {

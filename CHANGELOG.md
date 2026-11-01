@@ -21,6 +21,7 @@ All notable changes to Logic Scripting are listed here.
   A name set to a call of one of your Functions lists the Function's outputs, like `r.hi` for `function f(a) -> hi, lo`.
   A call followed by a `.` lists its outputs too, like `simple_telemetry(mode: global_velocity).heading` or `f(1).hi`.
   So does a name set to such a call in parentheses, like `r = (f(1))`, or to another such name, like `s = r`.
+  A name set to a `placed(...)` name that way lists the block's inputs in its call too, like the `placed(...)` name.
 - Inside a call, a box above the line shows its inputs and settings, highlighting the one you're writing.
 - Resting the mouse on the Script editor's text tells you about what's under it:
   a block function's Reference entry, the line that defines a name, a named argument's input or setting,

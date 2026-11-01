@@ -104,7 +104,7 @@ public class DefinedNamesTests
     [InlineData("a = logic(1, 2)\nx = (a)", "logic")]
     [InlineData("a = (logic(1, 2))\nb = a\nx = b", "logic")]
     [InlineData("a = simple_telemetry()\na = logic(1, 2)\nx = a", "simple_telemetry")]
-    public void Read_TheBlockType_OfAParenthesizedValueOrAnAlias(string text, string function)
+    public void Read_TheBlockType_OfAParenthesizedValueOrANameDefinedAsAnother(string text, string function)
     {
         Assert.Equal(function, Read(text).Last().Value?.Type?.Function);
     }
@@ -120,13 +120,13 @@ public class DefinedNamesTests
     [InlineData("a = logic(1, 2)\nx = a & 1")]
     [InlineData("a = logic(1, 2)\nfunction f()\n  x = a\nend")]
     [InlineData("function f(a)\n  x = a\nend")]
-    public void Read_NoType_ForAParenthesizedValueOrAnAliasThatIsntOneKnownCall(string text)
+    public void Read_NoType_ForAParenthesizedValueOrANameDefinedAsAnotherThatIsntOneKnownCall(string text)
     {
         Assert.Null(Read(text).Single(n => n.Name == "x").Value?.Type);
     }
 
     [Fact]
-    public void Read_AnAliasOfAPlacedBlockReference_IsOne()
+    public void Read_ANameDefinedAsAPlacedBlockReferencesName_IsOne()
     {
         Assert.True(Read("p = placed(\"L\")\nx = p").Last().Value?.IsPlaced);
     }
@@ -136,7 +136,7 @@ public class DefinedNamesTests
     [InlineData("r = f(1)\nx = r")]
     [InlineData("r = (f(1))\ns = (r)\nx = s")]
     [InlineData("function g()\n  r = f(1)\n  x = r\nend")]
-    public void Read_TheScriptsOwnFunction_AParenthesizedValueOrAnAliasCalls(string text)
+    public void Read_TheScriptsOwnFunction_AParenthesizedValueOrANameDefinedAsAnotherCalls(string text)
     {
         var names = Read($"function f(a) -> b, c\nend\n{text}");
 
@@ -144,7 +144,7 @@ public class DefinedNamesTests
     }
 
     [Fact]
-    public void Read_NoCallee_ForAnAliasOfAFunctionsName()
+    public void Read_NoCallee_ForANameDefinedAsAFunctionsName()
     {
         Assert.Null(Read("function f(a) -> b, c\nend\nf = f(1)\nx = f").Single(n => n.Name == "x").Value);
     }

@@ -657,7 +657,7 @@ public class CompletionTests
     [InlineData("t = (simple_telemetry())\nx = t.|")]
     [InlineData("t = simple_telemetry()\nu = t\nx = u.|")]
     [InlineData("t = (simple_telemetry())\nu = (t)\nv = u\nx = v.|")]
-    public void Items_AfterADot_TheOutputsOfTheBlockAParenthesizedValueOrAnAliasStandsFor(string text)
+    public void Items_AfterADot_TheOutputsOfTheBlockAParenthesizedValueOrANameDefinedAsAnotherStandsFor(string text)
     {
         Assert.Equal(["speed", "yaw", "up", "state"], NameLabels(text));
     }
@@ -666,7 +666,7 @@ public class CompletionTests
     [InlineData("function f(a) -> hi, lo\nend\nr = (f(1))\nx = r.|")]
     [InlineData("function f(a) -> hi, lo\nend\nr = f(1)\ns = r\nx = s.|")]
     [InlineData("function f(a) -> hi, lo\nend\nfunction g()\n  r = (f(1))\n  s = r\n  x = s.|\nend")]
-    public void Items_AfterADot_TheOutputsOfTheFunctionAParenthesizedValueOrAnAliasCalls(string text)
+    public void Items_AfterADot_TheOutputsOfTheFunctionAParenthesizedValueOrANameDefinedAsAnotherCalls(string text)
     {
         Assert.Equal(["hi", "lo"], NameLabels(text));
     }
@@ -676,7 +676,7 @@ public class CompletionTests
     [InlineData("u = t\nt = simple_telemetry()\nx = u.|")]
     [InlineData("t = simple_telemetry()\nfunction f()\n  u = t\n  x = u.|\nend")]
     [InlineData("function f(a) -> hi\nend\nr = (f(1))\nx = r.|")]
-    public void Items_AfterADot_NothingForAnAliasOrParenthesizedValueThatIsntABlockOrFunctionCallWithSeveralOutputs(string text)
+    public void Items_AfterADot_NothingForAParenthesizedValueOrANameDefinedAsAnotherThatIsntABlockOrFunctionCallWithSeveralOutputs(string text)
     {
         Assert.Empty(Names(text));
     }
