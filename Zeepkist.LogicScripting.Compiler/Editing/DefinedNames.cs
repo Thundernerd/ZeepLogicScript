@@ -234,7 +234,7 @@ public static class DefinedNames
     /// The token after the call's closing parenthesis, or the end of its statement when it has none, while typing.
     /// Notes the option of a named argument that sets the type's mode Setting on the way.
     /// </summary>
-    private static int FindCallEnd(List<Token> tokens, int openParen, BlockType type, out string mode)
+    internal static int FindCallEnd(List<Token> tokens, int openParen, BlockType type, out string mode)
     {
         mode = null;
         var modeSetting = type?.Modes?.Setting.Name;

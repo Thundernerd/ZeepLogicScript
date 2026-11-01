@@ -153,25 +153,39 @@ public static class Completion
     }
 
     /// <summary>
-    /// The outputs of the block the name before the dot stands for, in its written mode or, for a Placed Block
-    /// Reference, its mode in the level, or of the Script's own Function its value calls, in the order its first line
-    /// writes them. A block or Function with one output is used without a dot, so it offers none; nor does a name whose
-    /// value is neither, or a Function's name, which the compiler takes for the Function. A name or Function defined
-    /// twice is the first definition, which the compiler keeps.
+    /// The outputs of the block the name or call before the dot stands for, in its written mode or, for a Placed Block
+    /// Reference, its mode in the level, or of the Script's own Function its value or the call calls, in the order its
+    /// first line writes them. A block or Function with one output is used without a dot, so it offers none; nor does a
+    /// name whose value is neither, or a Function's name, which the compiler takes for the Function. A name or Function
+    /// defined twice is the first definition, which the compiler keeps.
     /// </summary>
     private static IEnumerable<CompletionItem> GetOutputItems(CaretContext context, IReadOnlyList<DefinedName> definedNames)
+    {
+        var outputs = context.DottedCallee != null ? GetCallOutputs(context) : GetNameOutputs(context, definedNames);
+        return outputs.Count > 1 ? outputs.Select(o => new CompletionItem(o, CompletionKind.Output, OutputDetail)) : [];
+    }
+
+    private static IReadOnlyList<string> GetNameOutputs(CaretContext context, IReadOnlyList<DefinedName> definedNames)
     {
         if (context.Functions.Any(f => f.Name == context.DottedName))
             return [];
 
         var name = definedNames.FirstOrDefault(n => n.Name == context.DottedName && IsVisible(context, n));
-        IReadOnlyList<string> outputs = [];
         if (name?.Type != null)
-            outputs = name.Type.GetOutputs(name.Mode).Select(o => o.Name).ToList();
-        else if (name?.Callee != null)
-            outputs = name.Callee.Outputs;
+            return name.Type.GetOutputs(name.Mode).Select(o => o.Name).ToList();
 
-        return outputs.Count > 1 ? outputs.Select(o => new CompletionItem(o, CompletionKind.Output, OutputDetail)) : [];
+        return name?.Callee?.Outputs ?? [];
+    }
+
+    /// <summary>
+    /// A Block Function's name is reserved, so it's never a Function's.
+    /// </summary>
+    private static IReadOnlyList<string> GetCallOutputs(CaretContext context)
+    {
+        if (BlockManifest.TryGetFunction(context.DottedCallee, out var type))
+            return type.GetOutputs(context.DottedMode).Select(o => o.Name).ToList();
+
+        return context.Functions.FirstOrDefault(f => f.Name == context.DottedCallee)?.Outputs ?? [];
     }
 
     private static IEnumerable<CompletionItem> GetInputItems(CaretContext context, IEnumerable<string> inputs)

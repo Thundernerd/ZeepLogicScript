@@ -92,6 +92,18 @@ public class CompletionSessionTests
         Assert.Equal(["x", "y", "z", "heading"], session.Items.Select(i => i.Label));
     }
 
+    [Fact]
+    public void TypingADotAfterACall_OpensWithItsOutputs()
+    {
+        var session = new CompletionSession();
+        const string Text = "x = simple_telemetry(mode: global_velocity).";
+
+        session.Update(new TextSnapshot(Text, Text.Length), typedName: false, whileTyping: true, focused: true, typedSeparator: true);
+
+        Assert.True(session.IsOpen);
+        Assert.Equal(["x", "y", "z", "heading"], session.Items.Select(i => i.Label));
+    }
+
     [Theory]
     [InlineData("x = 1.")]
     [InlineData("x = a & b\ny = x.")]
