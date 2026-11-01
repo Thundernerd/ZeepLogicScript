@@ -47,6 +47,11 @@ internal sealed class CompletionPopup
 
     public bool IsOpen => _session.IsOpen;
 
+    /// <summary>
+    /// The list's rows; empty while it's closed.
+    /// </summary>
+    public IReadOnlyList<CompletionItem> Items => _session.IsOpen ? _session.Items : [];
+
     /// <inheritdoc cref="CompletionSession.WordStart"/>
     public int? WordStart => _session.WordStart;
 
@@ -58,6 +63,14 @@ internal sealed class CompletionPopup
     public void Close()
     {
         _session.Close();
+    }
+
+    /// <summary>
+    /// Like Ctrl+Space in the field.
+    /// </summary>
+    public void Request()
+    {
+        _session.Request();
     }
 
     /// <summary>
