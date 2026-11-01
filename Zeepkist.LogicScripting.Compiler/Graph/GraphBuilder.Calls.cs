@@ -10,7 +10,7 @@ internal sealed partial class GraphBuilder
     {
         if (IsReferenceCall(call))
         {
-            VisitReferenceCall(call);
+            VisitReferenceCall(call, usedAsValue: false);
             return null;
         }
 

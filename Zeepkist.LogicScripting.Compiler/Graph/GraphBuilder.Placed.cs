@@ -89,7 +89,7 @@ internal sealed partial class GraphBuilder
     /// <c>lamp_1(intensity: x)</c>: wires into a placed block's inputs, each at most once, and never changes its
     /// Settings.
     /// </summary>
-    private void VisitReferenceCall(CallExpression call, bool isValue = false)
+    private void VisitReferenceCall(CallExpression call, bool usedAsValue)
     {
         var block = GetPlacedBlock(_scope.Names[call.Function]);
         var type = block.Type;
@@ -129,7 +129,7 @@ internal sealed partial class GraphBuilder
         }
 
         // A call used as a value is already an error, and a Wire's own errors would only pile on top of it
-        if (check.Failed || isValue)
+        if (check.Failed || usedAsValue)
             return;
 
         for (var i = 0; i < check.Inputs.Length; i++)
