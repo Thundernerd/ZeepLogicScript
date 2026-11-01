@@ -35,7 +35,10 @@ internal sealed class ExpectCallHelpStep : ScenarioStep
             context.Fail("the call help doesn't show it", Text, actual);
     }
 
-    private static string Describe(CallHelp help)
+    /// <summary>
+    /// The call as the box writes it, such as <c>logic(a, b, op_in, op:, hide:)</c>.
+    /// </summary>
+    public static string Describe(CallHelp help)
     {
         return $"{help.Callee}({string.Join(", ", help.Items.Select(i => i.Label))})";
     }

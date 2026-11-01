@@ -59,6 +59,8 @@ internal sealed partial class ScriptWindow
         /// <inheritdoc cref="ScriptEditor.CallHelp"/>
         public CallHelp CallHelp => _window._edited?.Editor.CallHelp;
 
+        public bool IsFieldFocused => _window.AnyFieldFocused;
+
         public void SetOpen(bool open)
         {
             _window.SetOpen(open);
@@ -175,6 +177,12 @@ internal sealed partial class ScriptWindow
         public void RequestCompletion()
         {
             _window._edited.Editor.RequestCompletion();
+        }
+
+        /// <inheritdoc cref="ScriptEditor.HoldSentEscape"/>
+        public void HoldSentEscape()
+        {
+            _window._edited?.Editor.HoldSentEscape();
         }
 
         /// <summary>

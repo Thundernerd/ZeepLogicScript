@@ -17,8 +17,8 @@ Scenarios run in the order given, each on a new, empty level in the editor: the 
 
 The script prints a summary and exits 0 only when every step of every Scenario passed. Everything the run found is in `.ingame-test/<run id>/`:
 
-- `results.md`: each Scenario's steps, with what a failing check expected and found
-- `results.json`: the same, for tools
+- `results.md`: each Scenario's steps, with what a failing check expected and found, the exceptions the game logged meanwhile, and the exceptions it logged as it quit
+- `results.json`: the same, for tools, without the exceptions at quit
 - the screenshots: `editor.png` once the walk reaches the editor, and `<scenario>-<name>.png` for a Scenario's own, including `<scenario>-failure.png` where one failed
 - `LogOutput.log`: the game's BepInEx log, where the test plugin's lines start with `[ZLS-TEST]`
 
@@ -34,6 +34,12 @@ Only one run can use the game at a time. A second run, say from another worktree
 | `-h`, `--help` | Prints the usage. |
 
 `ZEEPKIST_DIR` sets the game's install folder, when it isn't found in Steam's libraries.
+
+### Exceptions
+
+The test plugin records every exception the game logs while the run is going, mod or not, with the first line of its stack trace. `results.md` lists each Scenario's under it, and those logged on the way to the editor at the top, counted where the same one comes from the same place. They don't fail a step: end a Scenario with `expect-no-exceptions` to check that it logged none.
+
+Once the game has quit, the script reads what it logged after the run finished from `LogOutput.log` into an **Exceptions at quit** section, grouped by the exception and its first stack line, with a count. These are reported, but don't fail the run. When the run didn't finish, the section says so instead.
 
 ## Scenarios
 
@@ -88,6 +94,10 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `complete` | Opens the completion list at the caret, as Ctrl+Space does. |
 | `expect-completion <label> [<detail>]` | The open completion list has a row with the label, matching case, and with exactly the detail when one is given, such as `t logic` or `a input`. |
 | `expect-call-help <text>` | The call help shows, and its call, written as `logic(a, b, op_in, op:, hide:)`, contains the text, matching case. |
+| `expect-no-completion` | The completion list is closed. |
+| `expect-no-call-help` | The call help doesn't show. |
+| `press <keys>` | Presses the keys, separated by spaces, in the same frame, such as `press ctrl+space`, `press enter` or `press escape escape`, up to 8. A key is a character, such as `a` or `/`, or one of `space`, `enter`, `tab`, `escape`, `backspace`, `delete`, `up`, `down`, `left`, `right`, `home`, `end`, `pageup` and `pagedown`, with any of `shift+`, `ctrl+`, `alt+` and `cmd+` before it. `shift+` makes a letter upper case and leaves other characters as they are. The keys go to the focused field the way a player's do; see [Keys](#keys). |
+| `type <text>` | Types the text into the focused field, one key a frame. Spaces at either end are taken off with the line's: press them with `press space`. |
 | `place-block <function> [as <name>]` | Places a block of the Block Function's type in its first style, beside where `place-start` puts the start block, and selects it. A placed-only type such as `lamp` works too. With `as <name>`, the Scenario's later `set-text` steps can write its UID as `{uid:<name>}`. The name takes letters, digits, `-` and `_`, and fails when a block was already placed as it. |
 | `insert-selected` | Writes a Placed Block Reference for each selected block at the caret, as Insert selected does. Fails when it writes none. |
 | `undo` | Presses the editor's undo key. Fails when there was nothing to undo. |
@@ -97,11 +107,18 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `back-to-editor` | Quits test mode from the pause menu, and waits until the editor has loaded the level again. |
 | `wait <seconds>` | Waits, such as for the level to run a little before a screenshot. |
 | `screenshot <name>` | Saves a screenshot as `<scenario>-<name>.png`. The name takes letters, digits, `-` and `_`. |
+| `expect-no-exceptions` | The game logged no exception since the Scenario started, or since the last `expect-no-exceptions`. It fails with the ones it logged. |
 | `log <text>` | Writes the text to the game's log. |
 
 A Library lives on this machine rather than in the level, so one a Scenario makes is still there for the rest of the run: give each Scenario's Libraries their own names.
 
-The window steps need the window open, and the steps for the editor's text need a Script or a Library selected: they fail and say which step to add first. `compile` and `insert-selected` need a Script.
+The window steps need the window open, and the steps for the editor's text need a Script or a Library selected: they fail and say which step to add first. `compile` and `insert-selected` need a Script. `press` and `type` need a field focused, such as by `caret-at-end`.
+
+### Keys
+
+`press` and `type` hand each key to Imui the way Unity hands it a player's: a key event, then the character it types as an event of its own. Every field, the Script editor's completion list and call help among them, handles them the next frame as typed. A character is the one a US keyboard types, and `type` sends a character without a key of its own here, such as `(`, as its character alone.
+
+Unity's own `Input` never sees these keys, so whatever reads it doesn't either. The Script editor reads Escape there before it handles Escape's key event, so the steps hold an Escape for it the same way. Unity reports one Escape a frame, so each Escape after the first in a `press` comes a frame later. Unity's other Escape path isn't covered: a name prompt that reads Escape from `Input`, and the level editor's own pause key, never see one.
 
 ### Adding a step
 

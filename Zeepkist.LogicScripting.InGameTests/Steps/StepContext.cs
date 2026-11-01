@@ -18,12 +18,14 @@ internal sealed class StepContext
         string scenario,
         ScriptWindow.Driver window,
         GameEvents game,
+        ExceptionLog exceptions,
         ManualLogSource logger,
         Func<string, IEnumerator> screenshot)
     {
         Scenario = scenario;
         Window = window;
         Game = game;
+        Exceptions = exceptions;
         Logger = logger;
         _screenshot = screenshot;
     }
@@ -31,6 +33,7 @@ internal sealed class StepContext
     public string Scenario { get; }
     public ScriptWindow.Driver Window { get; }
     public GameEvents Game { get; }
+    public ExceptionLog Exceptions { get; }
     public ManualLogSource Logger { get; }
 
     /// <summary>
@@ -116,6 +119,21 @@ internal sealed class StepContext
             Fail("the window isn't open: add open-window first");
 
         return Window.IsOpen;
+    }
+
+    /// <summary>
+    /// Fails the step when no field in the window has focus, as keys typed then go to the level editor. Returns whether
+    /// one has.
+    /// </summary>
+    public bool RequireFocusedField()
+    {
+        if (!RequireOpenWindow())
+            return false;
+
+        if (!Window.IsFieldFocused)
+            Fail("no field is focused: add caret-at-start or caret-at-end first");
+
+        return Window.IsFieldFocused;
     }
 
     /// <summary>

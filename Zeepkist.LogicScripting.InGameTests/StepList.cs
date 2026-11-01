@@ -35,6 +35,10 @@ internal static class StepList
         ["complete"] = (step, argument) => None(step, argument, new CompleteStep()),
         ["expect-completion"] = (step, argument) => ExpectCompletion(StepArgument.Text(step, argument, "a row's label, and optionally its detail")),
         ["expect-call-help"] = (step, argument) => new ExpectCallHelpStep(StepArgument.Text(step, argument, "the text to look for")),
+        ["expect-no-completion"] = (step, argument) => None(step, argument, new ExpectNoCompletionStep()),
+        ["expect-no-call-help"] = (step, argument) => None(step, argument, new ExpectNoCallHelpStep()),
+        ["press"] = (step, argument) => new PressStep(StepArgument.Keys(step, argument, KeysStep.MaxKeysPerFrame)),
+        ["type"] = (step, argument) => new TypeStep(StepArgument.Text(step, argument, "the text to type")),
         ["place-block"] = PlaceBlock,
         ["insert-selected"] = (step, argument) => None(step, argument, new InsertSelectedStep()),
         ["undo"] = (step, argument) => None(step, argument, new UndoStep()),
@@ -44,6 +48,7 @@ internal static class StepList
         ["back-to-editor"] = (step, argument) => None(step, argument, new BackToEditorStep()),
         ["wait"] = (step, argument) => new WaitStep(StepArgument.Seconds(step, argument)),
         ["screenshot"] = (step, argument) => new ScreenshotStep(StepArgument.FileName(step, argument)),
+        ["expect-no-exceptions"] = (step, argument) => None(step, argument, new ExpectNoExceptionsStep()),
         ["log"] = (step, argument) => new LogStep(StepArgument.Text(step, argument, "the text to log")),
     };
 

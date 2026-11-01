@@ -182,6 +182,15 @@ internal sealed partial class ScriptEditor
     }
 
     /// <summary>
+    /// Holds an Escape for this frame as <see cref="HoldEscape"/> does, for the in-game tests, which send Imui an
+    /// Escape that Unity's <c>Input</c> never reports. Call after the field is drawn; a field without focus drops it.
+    /// </summary>
+    public void HoldSentEscape()
+    {
+        _heldEscape.Hold(Time.frameCount);
+    }
+
+    /// <summary>
     /// Closes the completion list, else hides the call's help, else leaves the field; returns whether it left.
     /// </summary>
     private bool HandleEscape(ImGui gui)

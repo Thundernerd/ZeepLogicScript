@@ -18,3 +18,4 @@ select-script Lights
 expect-text power_display(1 & 1)
 expect-no-errors
 screenshot back-in-editor
+expect-no-exceptions
