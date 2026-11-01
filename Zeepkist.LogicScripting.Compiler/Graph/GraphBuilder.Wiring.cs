@@ -22,7 +22,7 @@ internal sealed partial class GraphBuilder
             return feed;
 
         ReportNoSingleOutput(expression, value);
-        return null;
+        return FailedValue.Instance;
     }
 
     /// <summary>

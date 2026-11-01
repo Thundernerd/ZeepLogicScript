@@ -19,7 +19,7 @@ internal sealed partial class GraphBuilder
         public FunctionDefinition Function { get; }
 
         /// <summary>
-        /// Null for an output whose definition failed, which already reported why.
+        /// A <see cref="FailedValue"/> for an output whose definition failed, which already reported why.
         /// </summary>
         public Dictionary<string, Resolved> Values { get; }
     }

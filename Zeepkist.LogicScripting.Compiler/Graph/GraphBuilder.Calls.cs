@@ -132,7 +132,7 @@ internal sealed partial class GraphBuilder
     private InputFeed EvaluateArgument(ArgumentCheck check, Expression expression)
     {
         var feed = EvaluateFeed(expression);
-        if (feed == null)
+        if (feed is FailedValue)
             check.MarkFailed();
 
         return feed;

@@ -121,7 +121,7 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// Null after reporting why the expression stands for nothing.
+    /// A <see cref="FailedValue"/> after reporting why the expression stands for nothing.
     /// </summary>
     private Resolved Evaluate(Expression expression)
     {
@@ -185,14 +185,14 @@ internal sealed partial class GraphBuilder
             case CallExpression call:
                 var block = VisitCall(call);
                 if (block == null)
-                    return null;
+                    return FailedValue.Instance;
 
                 return block.Outputs.Count == 0
                     ? Fail(call, $"'{call.Function}' has no output to use as a value")
                     : ValueOf(block);
 
             default:
-                return null;
+                return FailedValue.Instance;
         }
     }
 
@@ -207,7 +207,8 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// Reports why a value that should be one output isn't. A null value already reported why it stands for nothing.
+    /// Reports why a value that should be one output isn't. A <see cref="FailedValue"/> already reported why it
+    /// stands for nothing.
     /// </summary>
     private void ReportNoSingleOutput(Expression expression, Resolved value)
     {
@@ -241,8 +242,8 @@ internal sealed partial class GraphBuilder
         BlockNode block;
         switch (target)
         {
-            case null:
-                return null;
+            case FailedValue:
+                return target;
 
             case DeferredValue deferred:
                 return deferred.WithMember(member);
@@ -326,7 +327,7 @@ internal sealed partial class GraphBuilder
     private Resolved Fail(SyntaxNode node, string message)
     {
         Error(node, message);
-        return null;
+        return FailedValue.Instance;
     }
 
     private void Error(SyntaxNode node, string message)

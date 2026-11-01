@@ -107,7 +107,7 @@ internal sealed partial class GraphBuilder
         {
             var value = Evaluate(item);
             var block = GetPlacedBlock(value);
-            if (value == null)
+            if (value is FailedValue)
             {
                 failed = true;
             }
