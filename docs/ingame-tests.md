@@ -91,7 +91,7 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `expect-prompt none\|new\|rename\|delete` | Which prompt the shown tab's footer has open. |
 | `expect-footer-in-view` | The open prompt, the result line and New all lie inside the shown tab, and the tab inside the window, with the list at least two rows tall. The prompts may scroll when there isn't room for all of them, but get at least a row. |
 | `set-window-height <px>` | Sets the window's height, as dragging its edge does, keeping its top edge. |
-| `library-read-failed on\|off` | Makes the Libraries tab show (`on`) or stop showing (`off`) its warning that libraries.json couldn't be read, as when the file fails to load at startup. Only the warning: the file isn't read, written or deleted, and Libraries still save, so the Scenario's other steps, and the Scenarios after it, find Libraries working as they always do. |
+| `library-read-failed on\|off` | Makes the Libraries tab show (`on`) or stop showing (`off`) its warning that libraries.json couldn't be read, as when the file fails to load at startup. The step doesn't touch the file, and Libraries still save, so later steps and Scenarios find them working as usual. |
 | `set-text` | Replaces the selected Script's or Library's text with the lines up to `end`, as one edit. `{uid:<name>}` in them is written as the UID of the block `place-block ... as <name>` placed, so a Script can write `placed("{uid:lamp}")`. Fails for a name no block was placed as. |
 | `compile` | Compiles the selected Script, as Ctrl+Enter does. It passes whatever the Compile did: check that with the steps below. |
 | `expect-text <text>` | The selected Script's or Library's text contains the text, matching case. |
@@ -125,7 +125,7 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 
 A run starts without the player's Libraries and Drafts, and deletes the Libraries before each Scenario after the first, so a Scenario sees only the Libraries it makes itself.
 
-The window keeps its height and shown tab from one Scenario to the next, the way it does for a player, and the warning `library-read-failed` shows stays too: a Scenario that changes them puts them back at its end.
+The window keeps its height and shown tab from one Scenario to the next, the way it does for a player, and so does the libraries.json warning `library-read-failed` turns on: a Scenario that changes them puts them back at its end.
 
 The window steps need the window open, and the steps for the editor's text need a Script or a Library selected: they fail and say which step to add first. `compile` and `insert-selected` need a Script. `press` and `type` need a field focused, such as by `caret-at-end`.
 

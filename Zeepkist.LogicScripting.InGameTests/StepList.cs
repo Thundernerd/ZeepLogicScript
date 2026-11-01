@@ -23,9 +23,6 @@ internal static class StepList
         ["libraries"] = true,
     };
 
-    /// <summary>
-    /// Whether the libraries.json warning shows.
-    /// </summary>
     private static readonly Dictionary<string, bool> _onOff = new()
     {
         ["on"] = true,

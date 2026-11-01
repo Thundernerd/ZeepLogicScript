@@ -194,21 +194,11 @@ public class StepListTests
     [Theory]
     [InlineData("library-read-failed on", true)]
     [InlineData("library-read-failed off", false)]
-    public void LibraryReadFailed_ReadsOnOrOff(string line, bool failed)
+    public void LibraryReadFailed_ReadsOnOrOff(string line, bool show)
     {
         var step = Assert.IsType<LibraryReadFailedStep>(Assert.Single(ScenarioParser.Parse("steps", line, out _).Steps));
 
-        Assert.Equal(failed, step.Failed);
-    }
-
-    [Theory]
-    [InlineData("library-read-failed", "library-read-failed takes on or off")]
-    [InlineData("library-read-failed yes", "library-read-failed takes on or off, not 'yes'")]
-    public void LibraryReadFailed_WithoutOnOrOff_Fails(string line, string error)
-    {
-        ScenarioParser.Parse("steps", line, out var actual);
-
-        Assert.Equal($"line 1: {error}", actual);
+        Assert.Equal(show, step.Show);
     }
 
     [Theory]
@@ -244,6 +234,8 @@ public class StepListTests
     [InlineData("set-window-height tall", "set-window-height takes a whole number of pixels above 0, not 'tall'")]
     [InlineData("open-new now", "open-new takes nothing after it")]
     [InlineData("expect-footer-in-view now", "expect-footer-in-view takes nothing after it")]
+    [InlineData("library-read-failed", "library-read-failed takes on or off")]
+    [InlineData("library-read-failed yes", "library-read-failed takes on or off, not 'yes'")]
     public void TheFooterSteps_WithAWrongArgument_Fail(string line, string error)
     {
         ScenarioParser.Parse("steps", line, out var actual);

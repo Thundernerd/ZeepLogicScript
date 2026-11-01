@@ -136,7 +136,7 @@ internal sealed partial class ScriptWindow
 
         /// <summary>
         /// Makes the Libraries tab show, or stop showing, the warning it shows when libraries.json couldn't be read.
-        /// Only the warning: the file isn't touched, and Libraries still save.
+        /// Libraries still save.
         /// </summary>
         public void ShowLibraryReadFailed(bool show)
         {
