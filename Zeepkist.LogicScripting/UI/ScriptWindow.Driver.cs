@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Imui.Core;
 using TNRD.Zeepkist.LogicScripting.Compiler;
 using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
@@ -61,6 +62,21 @@ internal sealed partial class ScriptWindow
 
         public bool IsFieldFocused => _window.AnyFieldFocused;
 
+        /// <summary>
+        /// The shown tab's list and footer.
+        /// </summary>
+        public IListPanel ShownList => _window._state.ShowLibraries ? _window._libraryListPanel : _window._scriptListPanel;
+
+        /// <summary>
+        /// The window's rect as Imui last drew it.
+        /// </summary>
+        public ImRect WindowRect => new(_window._state.X, _window._state.Y, _window._state.Width, _window._state.Height);
+
+        /// <summary>
+        /// Whether a height <see cref="SetWindowHeight"/> asked for waits for the window to be drawn.
+        /// </summary>
+        public bool IsHeightPending => _window._requestedHeight != null;
+
         public void SetOpen(bool open)
         {
             _window.SetOpen(open);
@@ -97,17 +113,25 @@ internal sealed partial class ScriptWindow
         }
 
         /// <summary>
-        /// Like Delete in the Script's context menu, which opens the delete prompt. Returns whether there's one by that
-        /// name.
+        /// Like Select group in the Script's context menu on the Scripts tab. Returns whether there's one by that name.
         /// </summary>
-        public bool OpenDelete(string name)
+        public bool SelectGroup(string name)
         {
             var entry = FindScript(name);
             if (entry == null)
                 return false;
 
-            _window._scriptListPanel.OpenDelete(entry);
+            ShowTab(libraries: false);
+            _window._scriptListPanel.SelectGroup(entry);
             return true;
+        }
+
+        /// <summary>
+        /// Like dragging the window's edge until it's this tall, which it is from the next frame.
+        /// </summary>
+        public void SetWindowHeight(float height)
+        {
+            _window._requestedHeight = height;
         }
 
         /// <summary>
@@ -141,9 +165,23 @@ internal sealed partial class ScriptWindow
         }
 
         /// <summary>
+        /// Like Delete on every Library on the Libraries tab, without the prompts. A prompt left open is closed too, as
+        /// it could be for a Library that's gone.
+        /// </summary>
+        public void DeleteLibraries()
+        {
+            _window._libraryListPanel.Clear();
+            foreach (var library in _window.Libraries.Entries.ToList())
+            {
+                _window.Libraries.Remove(library.Id);
+                _window.OnLibraryDeleted(library);
+            }
+        }
+
+        /// <summary>
         /// Like clicking the Scripts or the Libraries tab, whose list the buttons for one are in.
         /// </summary>
-        private void ShowTab(bool libraries)
+        public void ShowTab(bool libraries)
         {
             _window._state.ShowLibraries = libraries;
         }

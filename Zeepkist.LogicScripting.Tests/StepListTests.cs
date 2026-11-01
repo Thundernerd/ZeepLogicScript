@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using TNRD.Zeepkist.LogicScripting.InGameTests;
 using TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
+using TNRD.Zeepkist.LogicScripting.UI;
 using Xunit;
 
 namespace TNRD.Zeepkist.LogicScripting.Tests;
@@ -17,6 +18,16 @@ public class StepListTests
     [InlineData("new-library timing", typeof(NewLibraryStep))]
     [InlineData("select-library timing", typeof(SelectLibraryStep))]
     [InlineData("open-delete Lights", typeof(OpenDeleteStep))]
+    [InlineData("show-tab libraries", typeof(ShowTabStep))]
+    [InlineData("open-new", typeof(OpenNewStep))]
+    [InlineData("open-rename Lights", typeof(OpenRenameStep))]
+    [InlineData("type-name Lights", typeof(TypeNameStep))]
+    [InlineData("press-prompt keep-blocks", typeof(PressPromptStep))]
+    [InlineData("select-group Lights", typeof(SelectGroupStep))]
+    [InlineData("expect-list-result Deleted", typeof(ExpectListResultStep))]
+    [InlineData("expect-prompt none", typeof(ExpectPromptStep))]
+    [InlineData("expect-footer-in-view", typeof(ExpectFooterInViewStep))]
+    [InlineData("set-window-height 300", typeof(SetWindowHeightStep))]
     [InlineData("set-text\na = 1\nend", typeof(SetTextStep))]
     [InlineData("compile", typeof(CompileStep))]
     [InlineData("expect-text a = 1", typeof(ExpectTextStep))]
@@ -30,6 +41,8 @@ public class StepListTests
     [InlineData("complete", typeof(CompleteStep))]
     [InlineData("expect-completion t", typeof(ExpectCompletionStep))]
     [InlineData("expect-call-help logic(", typeof(ExpectCallHelpStep))]
+    [InlineData("expect-call-help-active op:", typeof(ExpectCallHelpActiveStep))]
+    [InlineData("expect-call-help-no-active", typeof(ExpectCallHelpActiveStep))]
     [InlineData("expect-no-completion", typeof(ExpectNoCompletionStep))]
     [InlineData("expect-no-call-help", typeof(ExpectNoCallHelpStep))]
     [InlineData("press ctrl+space", typeof(PressStep))]
@@ -76,6 +89,16 @@ public class StepListTests
 
         Assert.Equal(label, step.Label);
         Assert.Equal(detail, step.Detail);
+    }
+
+    [Theory]
+    [InlineData("expect-call-help-active op:", "op:")]
+    [InlineData("expect-call-help-no-active", null)]
+    public void ExpectCallHelpActive_ReadsTheLabel(string line, string label)
+    {
+        var step = Assert.IsType<ExpectCallHelpActiveStep>(Assert.Single(ScenarioParser.Parse("steps", line, out _).Steps));
+
+        Assert.Equal(label, step.Label);
     }
 
     [Theory]
@@ -157,6 +180,64 @@ public class StepListTests
     }
 
     [Theory]
+    [InlineData("show-tab scripts", false)]
+    [InlineData("show-tab libraries", true)]
+    public void ShowTab_ReadsTheTab(string line, bool libraries)
+    {
+        var step = Assert.IsType<ShowTabStep>(Assert.Single(ScenarioParser.Parse("steps", line, out _).Steps));
+
+        Assert.Equal(libraries, step.Libraries);
+    }
+
+    [Theory]
+    [InlineData("press-prompt ok", (int)PromptButton.Ok)]
+    [InlineData("press-prompt cancel", (int)PromptButton.Cancel)]
+    [InlineData("press-prompt delete", (int)PromptButton.Delete)]
+    [InlineData("press-prompt keep-blocks", (int)PromptButton.KeepBlocks)]
+    public void PressPrompt_ReadsTheButton(string line, int button)
+    {
+        var step = Assert.IsType<PressPromptStep>(Assert.Single(ScenarioParser.Parse("steps", line, out _).Steps));
+
+        Assert.Equal((PromptButton)button, step.Button);
+    }
+
+    [Theory]
+    [InlineData("expect-prompt none", (int)ListPrompt.None)]
+    [InlineData("expect-prompt new", (int)ListPrompt.New)]
+    [InlineData("expect-prompt rename", (int)ListPrompt.Rename)]
+    [InlineData("expect-prompt delete", (int)ListPrompt.Delete)]
+    public void ExpectPrompt_ReadsThePrompt(string line, int prompt)
+    {
+        var step = Assert.IsType<ExpectPromptStep>(Assert.Single(ScenarioParser.Parse("steps", line, out _).Steps));
+
+        Assert.Equal((ListPrompt)prompt, step.Prompt);
+    }
+
+    [Theory]
+    [InlineData("show-tab", "show-tab takes scripts or libraries")]
+    [InlineData("show-tab blocks", "show-tab takes scripts or libraries, not 'blocks'")]
+    [InlineData("press-prompt yes", "press-prompt takes ok, cancel, delete or keep-blocks, not 'yes'")]
+    [InlineData("expect-prompt open", "expect-prompt takes none, new, rename or delete, not 'open'")]
+    [InlineData("set-window-height 0", "set-window-height takes a whole number of pixels above 0, not '0'")]
+    [InlineData("set-window-height tall", "set-window-height takes a whole number of pixels above 0, not 'tall'")]
+    [InlineData("open-new now", "open-new takes nothing after it")]
+    [InlineData("expect-footer-in-view now", "expect-footer-in-view takes nothing after it")]
+    public void TheFooterSteps_WithAWrongArgument_Fail(string line, string error)
+    {
+        ScenarioParser.Parse("steps", line, out var actual);
+
+        Assert.Equal($"line 1: {error}", actual);
+    }
+
+    [Fact]
+    public void SetWindowHeight_ReadsThePixels()
+    {
+        var step = Assert.IsType<SetWindowHeightStep>(Assert.Single(ScenarioParser.Parse("steps", "set-window-height 300", out _).Steps));
+
+        Assert.Equal(300, step.Height);
+    }
+
+    [Theory]
     [InlineData("place-block lamp", "lamp", null)]
     [InlineData("place-block lamp as lamp_1", "lamp", "lamp_1")]
     [InlineData("place-block simple_telemetry as speed-gauge", "simple_telemetry", "speed-gauge")]
@@ -204,6 +285,7 @@ public class StepListTests
     [InlineData("test-mode.zlstest")]
     [InlineData("keys.zlstest")]
     [InlineData("libraries.zlstest")]
+    [InlineData("list-footer.zlstest")]
     public void TheShippedScenarios_CanBeRead(string file)
     {
         var text = RepoFiles.Read($"Zeepkist.LogicScripting.InGameTests/Scenarios/{file}");

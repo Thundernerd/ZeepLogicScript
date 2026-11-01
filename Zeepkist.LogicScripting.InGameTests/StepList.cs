@@ -14,6 +14,15 @@ internal static class StepList
     public const string SetText = "set-text";
     public const string End = "end";
 
+    /// <summary>
+    /// Whether the tab is the Libraries tab.
+    /// </summary>
+    private static readonly Dictionary<string, bool> _tabs = new()
+    {
+        ["scripts"] = false,
+        ["libraries"] = true,
+    };
+
     private static readonly Dictionary<string, Func<string, string, ScenarioStep>> _steps = new()
     {
         ["open-window"] = (step, argument) => None(step, argument, new OpenWindowStep()),
@@ -23,6 +32,16 @@ internal static class StepList
         ["new-library"] = (step, argument) => new NewLibraryStep(StepArgument.Text(step, argument, "a name")),
         ["select-library"] = (step, argument) => new SelectLibraryStep(StepArgument.Text(step, argument, "a name")),
         ["open-delete"] = (step, argument) => new OpenDeleteStep(StepArgument.Text(step, argument, "a name")),
+        ["show-tab"] = (step, argument) => new ShowTabStep(StepArgument.Choice(step, argument, _tabs)),
+        ["open-new"] = (step, argument) => None(step, argument, new OpenNewStep()),
+        ["open-rename"] = (step, argument) => new OpenRenameStep(StepArgument.Text(step, argument, "a name")),
+        ["type-name"] = (step, argument) => new TypeNameStep(StepArgument.Text(step, argument, "the name to type")),
+        ["press-prompt"] = (step, argument) => new PressPromptStep(StepArgument.Choice(step, argument, PromptNames.Buttons)),
+        ["select-group"] = (step, argument) => new SelectGroupStep(StepArgument.Text(step, argument, "a name")),
+        ["expect-list-result"] = (step, argument) => new ExpectListResultStep(StepArgument.Text(step, argument, "the text to look for")),
+        ["expect-prompt"] = (step, argument) => new ExpectPromptStep(StepArgument.Choice(step, argument, PromptNames.Prompts)),
+        ["expect-footer-in-view"] = (step, argument) => None(step, argument, new ExpectFooterInViewStep()),
+        ["set-window-height"] = (step, argument) => new SetWindowHeightStep(StepArgument.Pixels(step, argument)),
         ["compile"] = (step, argument) => None(step, argument, new CompileStep()),
         ["expect-text"] = (step, argument) => new ExpectTextStep(StepArgument.Text(step, argument, "the text to look for")),
         ["expect-result"] = (step, argument) => new ExpectResultStep(StepArgument.Text(step, argument, "the text to look for")),
@@ -35,6 +54,8 @@ internal static class StepList
         ["complete"] = (step, argument) => None(step, argument, new CompleteStep()),
         ["expect-completion"] = (step, argument) => ExpectCompletion(StepArgument.Text(step, argument, "a row's label, and optionally its detail")),
         ["expect-call-help"] = (step, argument) => new ExpectCallHelpStep(StepArgument.Text(step, argument, "the text to look for")),
+        ["expect-call-help-active"] = (step, argument) => new ExpectCallHelpActiveStep(StepArgument.Text(step, argument, "the highlighted input's or Setting's label")),
+        ["expect-call-help-no-active"] = (step, argument) => None(step, argument, new ExpectCallHelpActiveStep(null)),
         ["expect-no-completion"] = (step, argument) => None(step, argument, new ExpectNoCompletionStep()),
         ["expect-no-call-help"] = (step, argument) => None(step, argument, new ExpectNoCallHelpStep()),
         ["press"] = (step, argument) => new PressStep(StepArgument.Keys(step, argument, KeysStep.MaxKeysPerFrame)),

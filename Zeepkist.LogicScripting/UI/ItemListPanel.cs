@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Imui.Controls;
 using Imui.Core;
 
@@ -8,7 +9,7 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// A list of Scripts or Libraries in a scroll region, and per entry Rename and Delete. Under the list is a footer pinned
 /// to the bottom of the tab, which holds whichever prompt is open, the result line, and New as its bottom row.
 /// </summary>
-internal abstract class ItemListPanel<T>
+internal abstract class ItemListPanel<T> : IListPanel
     where T : class
 {
     private const int MinListRows = 2;
@@ -17,8 +18,13 @@ internal abstract class ItemListPanel<T>
     private readonly NamePrompt _namePrompt;
     private readonly DeletePrompt<T> _deletePrompt = new();
     private T _renamed;
+    private ImRect _tab;
+    private ImRect _list;
     private ImRect _prompts;
     private ImRect _newRow;
+    private float _minListHeight;
+    private float _rowHeight;
+    private PromptButton? _pressed;
 
     // Measured as the prompts are drawn, as Imui lays out top-down and the list above them needs to know the height first
     private float _promptsHeight;
@@ -34,7 +40,26 @@ internal abstract class ItemListPanel<T>
 
     public bool NameFocused => _namePrompt.Focused;
 
-    protected string Message { get; set; } = string.Empty;
+    public string Noun => _noun;
+    public IReadOnlyList<string> Names => [.. Entries.Select(GetName)];
+    public string Message { get; protected set; } = string.Empty;
+
+    public ListPrompt OpenPrompt =>
+        _deletePrompt.Deleted != null ? ListPrompt.Delete
+        : _namePrompt.IsRenaming ? ListPrompt.Rename
+        : _namePrompt.IsOpen ? ListPrompt.New
+        : ListPrompt.None;
+
+    public ListFooterLayout FooterLayout => new(_tab, _list, _prompts, _newRow, _promptsHeight, _minListHeight, _rowHeight);
+    public bool IsPressPending => _pressed != null;
+
+    public IReadOnlyList<PromptButton> PromptButtons => OpenPrompt switch
+    {
+        ListPrompt.New or ListPrompt.Rename => [PromptButton.Ok, PromptButton.Cancel],
+        ListPrompt.Delete when AsksAboutBlocks(_deletePrompt.Deleted) => [PromptButton.Delete, PromptButton.KeepBlocks, PromptButton.Cancel],
+        ListPrompt.Delete => [PromptButton.Delete, PromptButton.Cancel],
+        _ => [],
+    };
 
     protected abstract IReadOnlyList<T> Entries { get; }
 
@@ -54,6 +79,7 @@ internal abstract class ItemListPanel<T>
     {
         _namePrompt.Close();
         _deletePrompt.Close();
+        _pressed = null;
         Message = string.Empty;
     }
 
@@ -64,14 +90,16 @@ internal abstract class ItemListPanel<T>
     public void BeginList(ImGui gui, ImRect rect)
     {
         var spacing = gui.Style.Layout.Spacing;
-        var minListHeight = gui.GetRowsHeightWithSpacing(MinListRows) + (spacing * 2);
-        _newRow = rect.TakeBottom(gui.GetRowHeight() + (spacing * 2), out var rest);
-        _prompts = rest.TakeBottom(FooterSplit.GetFooterHeight(rest.H, _promptsHeight, minListHeight), out var list);
+        _tab = rect;
+        _rowHeight = gui.GetRowHeight();
+        _minListHeight = gui.GetRowsHeightWithSpacing(MinListRows) + (spacing * 2);
+        _newRow = rect.TakeBottom(_rowHeight + (spacing * 2), out var rest);
+        _prompts = rest.TakeBottom(FooterSplit.GetFooterHeight(rest.H, _promptsHeight, _minListHeight), out _list);
 
         // A scope each, so an entry coming or going doesn't change the id, and with it the focus and text, of the name
         // field in the footer
         gui.PushId("list");
-        WindowRegion.Begin(gui, list);
+        WindowRegion.Begin(gui, _list);
     }
 
     /// <summary>
@@ -117,11 +145,7 @@ internal abstract class ItemListPanel<T>
             if (gui.BeginContextMenu(rect))
             {
                 if (gui.Menu("Rename"))
-                {
-                    _deletePrompt.Close();
-                    _renamed = entry;
-                    _namePrompt.OpenRename(GetName(entry));
-                }
+                    OpenRename(entry);
 
                 DrawMenuItems(gui, entry);
 
@@ -144,7 +168,9 @@ internal abstract class ItemListPanel<T>
     private T DrawPrompts(ImGui gui)
     {
         T made = null;
-        var named = _namePrompt.Draw(gui, name => GetNameError(name, _renamed));
+        var pressed = _pressed;
+        _pressed = null;
+        var named = _namePrompt.Draw(gui, name => GetNameError(name, _renamed), pressed);
         if (named != null)
         {
             Message = string.Empty;
@@ -158,7 +184,7 @@ internal abstract class ItemListPanel<T>
 
         if (_deletePrompt.Deleted is { } deleted)
         {
-            var choice = _deletePrompt.Draw(gui, GetDeleteQuestion(deleted), AsksAboutBlocks(deleted));
+            var choice = _deletePrompt.Draw(gui, GetDeleteQuestion(deleted), AsksAboutBlocks(deleted), pressed);
             if (choice != DeleteChoice.None)
             {
                 Delete(deleted, choice);
@@ -175,20 +201,54 @@ internal abstract class ItemListPanel<T>
     private void DrawNew(ImGui gui, ImRect rect)
     {
         if (gui.Button($"New {_noun}", rect))
-        {
-            _deletePrompt.Close();
-            _renamed = null;
-            _namePrompt.OpenNew();
-        }
+            OpenNew();
 
         if (NewTooltip != null)
             gui.TooltipAtLastControl(NewTooltip);
+    }
+
+    public void OpenNew()
+    {
+        _deletePrompt.Close();
+        _renamed = null;
+        _namePrompt.OpenNew();
+    }
+
+    public bool OpenRename(string name)
+    {
+        var entry = Find(name);
+        if (entry != null)
+            OpenRename(entry);
+
+        return entry != null;
+    }
+
+    public bool OpenDelete(string name)
+    {
+        var entry = Find(name);
+        if (entry != null)
+            OpenDelete(entry);
+
+        return entry != null;
     }
 
     public void OpenDelete(T entry)
     {
         _namePrompt.Close();
         _deletePrompt.Open(entry);
+    }
+
+    public bool SetName(string name)
+    {
+        if (_namePrompt.IsOpen)
+            _namePrompt.SetName(name);
+
+        return _namePrompt.IsOpen;
+    }
+
+    public void Press(PromptButton button)
+    {
+        _pressed = button;
     }
 
     /// <summary>
@@ -210,6 +270,21 @@ internal abstract class ItemListPanel<T>
     }
 
     protected abstract string GetName(T entry);
+
+    /// <summary>
+    /// Null when there's none by that name.
+    /// </summary>
+    protected T Find(string name)
+    {
+        return Entries.FirstOrDefault(e => GetName(e) == name);
+    }
+
+    private void OpenRename(T entry)
+    {
+        _deletePrompt.Close();
+        _renamed = entry;
+        _namePrompt.OpenRename(GetName(entry));
+    }
 
     protected virtual string GetLabel(T entry)
     {

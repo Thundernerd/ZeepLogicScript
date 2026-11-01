@@ -27,8 +27,14 @@ internal sealed class NamePrompt
         _noun = noun;
     }
 
-
     public bool Focused { get; set; }
+
+    public bool IsOpen => _open;
+
+    /// <summary>
+    /// Whether it's open to rename a Script or Library, rather than to name a new one.
+    /// </summary>
+    public bool IsRenaming => _open && _renamed != null;
 
     public void OpenNew()
     {
@@ -48,10 +54,19 @@ internal sealed class NamePrompt
     }
 
     /// <summary>
-    /// Returns the trimmed name once the player confirms one that <paramref name="getError"/> finds no error in, or
-    /// null.
+    /// Replaces the text in the field, as typing it would.
     /// </summary>
-    public string Draw(ImGui gui, Func<string, string> getError)
+    public void SetName(string name)
+    {
+        _input = name;
+        _error = string.Empty;
+    }
+
+    /// <summary>
+    /// Returns the trimmed name once the player confirms one that <paramref name="getError"/> finds no error in, or
+    /// null. <paramref name="pressed"/> is a button pressed for the player, which the prompt handles as clicked.
+    /// </summary>
+    public string Draw(ImGui gui, Func<string, string> getError, PromptButton? pressed)
     {
         if (!_open)
         {
@@ -75,10 +90,10 @@ internal sealed class NamePrompt
 
         Focused = gui.IsControlActive(id);
         var confirmed = Focused && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter));
-        if (gui.Button("OK"))
+        if (gui.Button("OK") || pressed == PromptButton.Ok)
             confirmed = true;
 
-        if (gui.Button("Cancel") || (Focused && Input.GetKeyDown(KeyCode.Escape)))
+        if (gui.Button("Cancel") || pressed == PromptButton.Cancel || (Focused && Input.GetKeyDown(KeyCode.Escape)))
         {
             Close();
             return null;

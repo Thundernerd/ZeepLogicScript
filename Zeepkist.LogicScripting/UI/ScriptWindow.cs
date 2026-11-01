@@ -54,6 +54,9 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     private bool _blockingKeyboard;
     private bool _failed;
 
+    // Set by the in-game tests, as Imui keeps the window's rect itself
+    private float? _requestedHeight;
+
     private bool AnyFieldFocused => _fieldFocused || _scriptListPanel.NameFocused || _libraryListPanel.NameFocused || _referencePanel.FilterFocused;
     private LibraryList Libraries => _libraryStore.Libraries;
     private ScriptEntry CurrentScript => (_edited as EditedScript)?.Entry;

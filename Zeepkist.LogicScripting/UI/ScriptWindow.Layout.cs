@@ -93,7 +93,14 @@ internal sealed partial class ScriptWindow
                 mouseEntered: () => SetMouseBlocked(true),
                 mouseExited: () => SetMouseBlocked(false)))
         {
-            StoreRect(gui.WindowManager.GetWindowState(gui.PeekId()).Rect);
+            ref var window = ref gui.WindowManager.GetWindowState(gui.PeekId());
+            if (_requestedHeight is { } height)
+            {
+                window.Rect = WithHeight(window.Rect, height);
+                _requestedHeight = null;
+            }
+
+            StoreRect(window.Rect);
             RefreshScripts();
             hovered = DrawRegions(gui);
         }
@@ -118,6 +125,15 @@ internal sealed partial class ScriptWindow
         var width = Mathf.Min(DefaultWidth, screen.W);
         var height = Mathf.Min(DefaultHeight, screen.H);
         return new ImRect(screen.X + ((screen.W - width) / 2), screen.Y + ((screen.H - height) / 2), width, height);
+    }
+
+    /// <summary>
+    /// Like dragging the window's resize handle: the top edge stays where it is.
+    /// </summary>
+    private static ImRect WithHeight(ImRect rect, float height)
+    {
+        var grown = Mathf.Max(height, ImWindow.MIN_HEIGHT) - rect.H;
+        return new ImRect(rect.X, rect.Y - grown, rect.W, rect.H + grown);
     }
 
     private void StoreRect(ImRect rect)
