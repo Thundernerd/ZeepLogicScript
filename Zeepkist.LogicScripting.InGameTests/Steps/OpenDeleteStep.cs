@@ -2,9 +2,9 @@ using System.Collections;
 
 namespace TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
 
-internal sealed class StartDeleteStep : ScenarioStep
+internal sealed class OpenDeleteStep : ScenarioStep
 {
-    public StartDeleteStep(string name)
+    public OpenDeleteStep(string name)
     {
         Name = name;
     }
@@ -13,7 +13,7 @@ internal sealed class StartDeleteStep : ScenarioStep
 
     public override IEnumerator Run(StepContext context)
     {
-        if (context.RequireOpenWindow() && !context.Window.StartDelete(Name))
+        if (context.RequireOpenWindow() && !context.Window.OpenDelete(Name))
             context.Fail($"no Script named \"{Name}\"", Name, string.Join(", ", context.Window.ScriptNames));
 
         yield return null;

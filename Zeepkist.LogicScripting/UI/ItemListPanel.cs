@@ -185,9 +185,6 @@ internal abstract class ItemListPanel<T>
             gui.TooltipAtLastControl(NewTooltip);
     }
 
-    /// <summary>
-    /// What Delete in an entry's context menu does.
-    /// </summary>
     public void OpenDelete(T entry)
     {
         _namePrompt.Close();
