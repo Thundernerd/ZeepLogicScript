@@ -132,7 +132,7 @@ The window steps need the window open, and the steps for the editor's text need 
 
 `press` and `type` hand each key to Imui the way Unity hands it a player's: a key event, then the character it types as an event of its own. Every field, the Script editor's completion list and call help among them, handles them the next frame as typed. A character is the one a US keyboard types, and `type` sends a character without a key of its own here, such as `(`, as its character alone.
 
-Unity's own `Input` never sees these keys, so whatever reads it doesn't either. The Script editor reads Escape there before it handles Escape's key event, so the steps hold an Escape for it the same way. Unity reports one Escape a frame however often it was pressed, and the Script editor handles every Escape event of the frame after, so the Escapes in one `press` come in one frame, as a quick double press does. Unity's other Escape path isn't covered: a name prompt that reads Escape from `Input`, and the level editor's own pause key, never see one.
+Unity's own `Input` never sees these keys, so whatever reads it doesn't either. The Script editor reads Escape there before it handles Escape's key event, so the steps hold an Escape for it the same way. Unity reports one Escape a frame however often it was pressed, and the Script editor handles every Escape event of the frame after. So the Escapes in one `press` come in one frame, as a quick double press does. Unity's other Escape path isn't covered: a name prompt that reads Escape from `Input`, and the level editor's own pause key, never see one.
 
 ### Adding a step
 
