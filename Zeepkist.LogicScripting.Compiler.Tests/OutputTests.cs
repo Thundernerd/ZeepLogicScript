@@ -68,7 +68,11 @@ public class OutputTests
     [InlineData("power_display(simple_telemetry(). speed)", 1, 33, "Write 'speed' right after the dot, without a space")]
     [InlineData("t = simple_telemetry()\npower_display(t\n.speed)", 3, 1, "Write the dot right after 't', without a space")]
     [InlineData("t = simple_telemetry()\npower_display(t.\nspeed)", 2, 16, "Write 'speed' right after the dot, without a space")]
-    public void SpacedDot_IsAnErrorAtTheDot(string text, int line, int column, string message)
+    [InlineData("t = simple_telemetry()\npower_display(t\t.speed)", 2, 17, "Write the dot right after 't', without a space")]
+    [InlineData("t = simple_telemetry()\npower_display(t # speed\n.speed)", 3, 1, "Write the dot right after 't', without a space")]
+    [InlineData("t = simple_telemetry()\npower_display((t) .speed)", 2, 19, "Write the dot right after ')', without a space")]
+    [InlineData("function f(a) -> hi, lo\n    hi = a\n    lo = a\nend\npower_display(f(1) .hi)", 5, 20, "Write the dot right after ')', without a space")]
+    public void DotAccess_WithASpace_IsAnErrorAtTheDot(string text, int line, int column, string message)
     {
         var result = ScriptCompiler.Compile(text, 0);
 
@@ -80,7 +84,8 @@ public class OutputTests
     [InlineData("t = simple_telemetry()\npower_display(t.speed)")]
     [InlineData("power_display(simple_telemetry().speed)")]
     [InlineData("t = simple_telemetry()\npower_display((t).speed)")]
-    public void TouchingDot_Compiles(string text)
+    [InlineData("function f(a) -> hi, lo\n    hi = a\n    lo = a\nend\npower_display(f(1).hi)")]
+    public void DotAccess_TouchingBothSides_Compiles(string text)
     {
         var result = ScriptCompiler.Compile(text, 0);
 

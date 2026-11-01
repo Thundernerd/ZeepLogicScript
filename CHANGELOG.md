@@ -58,7 +58,7 @@ All notable changes to Logic Scripting are listed here.
 - New Script and New Library are pinned at the bottom of their tab, with the name and delete prompts
   and the result line just above them, so they stay in view however long the list is.
   The warning that `libraries.json` couldn't be read stays above the Libraries list as it scrolls.
-- The dot that picks an output, or a Library's function, touches both sides: `t.speed`, `f(x).hi`, `timing.edge(x)`.
+- The dot that picks an output, or a Library's Function, touches both sides: `t.speed`, `f(x).hi`, `timing.edge(x)`.
   A space before or after it, like `t .speed`, is an error at the dot, the same way completion only follows a touching dot.
 
 ### Fixed
