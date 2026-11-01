@@ -8,7 +8,7 @@ internal sealed partial class GraphBuilder
     /// What a call passed to an input its Function's body uses as a Setting: a number or a word, checked once it's
     /// substituted into the Setting.
     /// </summary>
-    private sealed class SettingConstant : Resolved
+    private sealed class SettingConstant
     {
         public SettingConstant(Expression value, Position valuePosition, Scope scope)
         {
@@ -24,16 +24,5 @@ internal sealed partial class GraphBuilder
         /// Where the constant was written, to report a wrong value there rather than at the body's Setting.
         /// </summary>
         public Scope Scope { get; }
-
-        // Only a Function's body reads a Setting input, and its Function reports one used as a value
-        public override InputFeed ToFeed(GraphBuilder builder, Expression origin)
-        {
-            return FailedValue.Instance;
-        }
-
-        public override Resolved SelectMember(GraphBuilder builder, MemberExpression member)
-        {
-            return FailedValue.Instance;
-        }
     }
 }

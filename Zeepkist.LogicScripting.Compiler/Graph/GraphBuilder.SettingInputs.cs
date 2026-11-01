@@ -256,7 +256,7 @@ internal sealed partial class GraphBuilder
         if (value is not NameExpression name || _scope.Function == null || !GetSettingInputs(_scope.Function, Functions).ContainsKey(name.Name))
             return false;
 
-        constant = _scope.Names.TryGetValue(name.Name, out var bound) ? bound as SettingConstant : null;
+        _scope.SettingConstants.TryGetValue(name.Name, out constant);
         return true;
     }
 

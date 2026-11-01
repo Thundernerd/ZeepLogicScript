@@ -94,18 +94,17 @@ internal sealed partial class GraphBuilder
 
         return name != null
             && _scope.Definitions.ContainsKey(name.Name)
-            && !_scope.Names.ContainsKey(name.Name)
-            && !_scope.FailedNames.Contains(name.Name);
+            && !_scope.IsBound(name.Name);
     }
 
     private Resolved LookUp(NameExpression name)
     {
-        // A Setting input used as a Signal is reported with its Function
         if (_scope.Names.TryGetValue(name.Name, out var value))
-            return value is SettingConstant ? FailedValue.Instance : value;
+            return value;
 
-        // Its definition already reported why it failed
-        if (_scope.FailedNames.Contains(name.Name))
+        // Its definition already reported why it failed, and a Setting input used as a Signal is reported with its
+        // Function
+        if (_scope.FailedNames.Contains(name.Name) || _scope.SettingConstants.ContainsKey(name.Name))
             return FailedValue.Instance;
 
         if (_scope.Current != null && _scope.Current.Name == name.Name)

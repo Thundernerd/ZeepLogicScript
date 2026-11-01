@@ -212,10 +212,7 @@ internal sealed partial class GraphBuilder
         {
             foreach (var argument in arguments)
             {
-                if (argument.Value is FailedValue)
-                    scope.FailedNames.Add(argument.Key);
-                else
-                    scope.Names.Add(argument.Key, argument.Value);
+                argument.Value.BindTo(scope, argument.Key);
             }
         });
     }
@@ -257,10 +254,10 @@ internal sealed partial class GraphBuilder
     /// still checked with the others, such as the constants passed to its Settings. Null after reporting that the
     /// arguments don't match the inputs.
     /// </summary>
-    private Dictionary<string, Resolved> BindArguments(CallExpression call, FunctionDefinition function)
+    private Dictionary<string, ArgumentValue> BindArguments(CallExpression call, FunctionDefinition function)
     {
         var inputs = function.Inputs;
-        var values = new Resolved[inputs.Count];
+        var values = new ArgumentValue[inputs.Count];
         var isGiven = new bool[inputs.Count];
         var failed = false;
         for (var i = 0; i < call.Arguments.Count; i++)
@@ -322,7 +319,7 @@ internal sealed partial class GraphBuilder
         if (failed || namesFailed)
             return null;
 
-        Dictionary<string, Resolved> arguments = [];
+        Dictionary<string, ArgumentValue> arguments = [];
         for (var i = 0; i < inputs.Count; i++)
         {
             arguments.Add(inputs[i].Name, values[i]);
@@ -334,17 +331,19 @@ internal sealed partial class GraphBuilder
     /// <summary>
     /// The value of an argument for the input at <paramref name="inputIndex"/>, which is -1 when the call names none: a
     /// constant for a Setting input, or else what <see cref="EvaluateArgumentValue"/> gives. A
-    /// <see cref="FailedValue"/> after reporting why there's none.
+    /// <see cref="FailedValue"/> after reporting why there's neither.
     /// </summary>
-    private Resolved EvaluateInput(CallExpression call, FunctionDefinition function, int inputIndex, Expression value, Position valuePosition)
+    private ArgumentValue EvaluateInput(CallExpression call, FunctionDefinition function, int inputIndex, Expression value, Position valuePosition)
     {
         if (function == null || inputIndex < 0 || inputIndex >= function.Inputs.Count)
-            return EvaluateArgumentValue(value);
+            return new ArgumentValue(EvaluateArgumentValue(value));
 
         var input = function.Inputs[inputIndex];
-        return GetSettingInputs(function, FunctionsOf(function)).ContainsKey(input.Name)
-            ? (Resolved)BindSetting(call, input, value, valuePosition) ?? FailedValue.Instance
-            : EvaluateArgumentValue(value);
+        if (!GetSettingInputs(function, FunctionsOf(function)).ContainsKey(input.Name))
+            return new ArgumentValue(EvaluateArgumentValue(value));
+
+        var constant = BindSetting(call, input, value, valuePosition);
+        return constant == null ? new ArgumentValue(FailedValue.Instance) : new ArgumentValue(constant);
     }
 
     /// <summary>
