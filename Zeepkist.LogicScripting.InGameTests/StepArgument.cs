@@ -34,6 +34,28 @@ internal static class StepArgument
     }
 
     /// <summary>
+    /// One of the words in <paramref name="choices"/>.
+    /// </summary>
+    public static T Choice<T>(string step, string argument, IReadOnlyDictionary<string, T> choices)
+    {
+        var words = choices.Keys.ToList();
+        var what = $"{step} takes {string.Join(", ", words.Take(words.Count - 1))} or {words[words.Count - 1]}";
+        if (argument.Length == 0)
+            throw new ScenarioFormatException(what);
+
+        return choices.TryGetValue(argument, out var choice) ? choice : throw new ScenarioFormatException($"{what}, not '{argument}'");
+    }
+
+    public static int Pixels(string step, string argument)
+    {
+        var what = $"{step} takes a whole number of pixels above 0";
+        if (argument.Length == 0)
+            throw new ScenarioFormatException(what);
+
+        return TryPositive(argument, out var pixels) ? pixels : throw new ScenarioFormatException($"{what}, not '{argument}'");
+    }
+
+    /// <summary>
     /// A whole number of 1 or more, such as a one-based line.
     /// </summary>
     public static bool TryPositive(string text, out int number)

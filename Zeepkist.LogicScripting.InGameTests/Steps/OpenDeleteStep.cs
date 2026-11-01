@@ -13,8 +13,8 @@ internal sealed class OpenDeleteStep : ScenarioStep
 
     public override IEnumerator Run(StepContext context)
     {
-        if (context.RequireOpenWindow() && !context.Window.OpenDelete(Name))
-            context.Fail($"no Script named \"{Name}\"", Name, string.Join(", ", context.Window.ScriptNames));
+        if (context.RequireOpenWindow() && !context.Window.ShownList.OpenDelete(Name))
+            context.FailNoEntry(Name);
 
         yield return null;
     }

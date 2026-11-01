@@ -78,6 +78,15 @@ internal sealed class StepContext
     }
 
     /// <summary>
+    /// For a step on an entry of the shown tab's list that has none by the name.
+    /// </summary>
+    public void FailNoEntry(string name)
+    {
+        var list = Window.ShownList;
+        Fail($"no {list.Noun} named \"{name}\" on the shown tab", name, string.Join(", ", list.Names));
+    }
+
+    /// <summary>
     /// Saved as <c>&lt;scenario&gt;-&lt;name&gt;.png</c> in the run's results.
     /// </summary>
     public IEnumerator Screenshot(string name)

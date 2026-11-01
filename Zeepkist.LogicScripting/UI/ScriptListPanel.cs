@@ -126,7 +126,10 @@ internal sealed class ScriptListPanel : ItemListPanel<ScriptEntry>
             Message = $"Deleted \"{entry.Name}\" and its {count} blocks";
     }
 
-    private void SelectGroup(ScriptEntry entry)
+    /// <summary>
+    /// What Select group in the Script's context menu does.
+    /// </summary>
+    public void SelectGroup(ScriptEntry entry)
     {
         var central = LevelEdit.GetCentral(out var blocker);
         if (central == null)
