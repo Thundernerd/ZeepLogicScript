@@ -37,7 +37,7 @@ public enum CaretContextKind
     SettingValue,
 
     /// <summary>
-    /// The output name after a name and a dot (<c>t.speed</c>).
+    /// The output name after a name or a call and a dot (<c>t.speed</c>, <c>simple_telemetry().speed</c>).
     /// </summary>
     Output
 }
