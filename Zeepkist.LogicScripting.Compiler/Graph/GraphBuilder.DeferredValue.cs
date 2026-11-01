@@ -41,5 +41,15 @@ internal sealed partial class GraphBuilder
         {
             return new DeferredValue(Expression, Scope, [.. Members, member]);
         }
+
+        public override Resolved SelectMember(GraphBuilder builder, MemberExpression member)
+        {
+            return WithMember(member);
+        }
+
+        public override void Connect(GraphBuilder builder, BlockNode to, int toConnector)
+        {
+            builder._deferredWires.Add(new DeferredWire(this, to, toConnector));
+        }
     }
 }

@@ -19,7 +19,7 @@ internal sealed partial class GraphBuilder
     private readonly List<(GraphWire Wire, SyntaxNode Origin, Scope Scope)> _wiresIntoPlaced = [];
 
     /// <summary>
-    /// Null after reporting why the reference reaches no block. Several references to one UID share one block.
+    /// A <see cref="FailedValue"/> after reporting why the reference reaches no block. Several references to one UID share one block.
     /// </summary>
     private Resolved VisitPlaced(CallExpression call)
     {
@@ -67,22 +67,7 @@ internal sealed partial class GraphBuilder
 
     private bool IsReferenceCall(CallExpression call)
     {
-        return call.Library == null && _scope.Names.TryGetValue(call.Function, out var value) && GetPlacedBlock(value) != null;
-    }
-
-    /// <summary>
-    /// The placed block a value comes from, or null when it doesn't come from one.
-    /// </summary>
-    private static BlockNode GetPlacedBlock(Resolved value)
-    {
-        var block = value switch
-        {
-            OutputValue output => output.Output.Block,
-            BlockValue blockValue => blockValue.Block,
-            _ => null
-        };
-
-        return block is { IsPlaced: true } ? block : null;
+        return call.Library == null && _scope.Names.TryGetValue(call.Function, out var value) && value.PlacedBlock != null;
     }
 
     /// <summary>
@@ -91,7 +76,7 @@ internal sealed partial class GraphBuilder
     /// </summary>
     private void VisitReferenceCall(CallExpression call, bool usedAsValue)
     {
-        var block = GetPlacedBlock(_scope.Names[call.Function]);
+        var block = _scope.Names[call.Function].PlacedBlock;
         var type = block.Type;
         if (type.Inputs.Count == 0)
         {

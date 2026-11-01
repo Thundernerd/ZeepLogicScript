@@ -121,7 +121,7 @@ internal sealed partial class GraphBuilder
     }
 
     /// <summary>
-    /// Null after reporting why the expression stands for nothing.
+    /// A <see cref="FailedValue"/> after reporting why the expression stands for nothing.
     /// </summary>
     private Resolved Evaluate(Expression expression)
     {
@@ -185,14 +185,14 @@ internal sealed partial class GraphBuilder
             case CallExpression call:
                 var block = VisitCall(call);
                 if (block == null)
-                    return null;
+                    return FailedValue.Instance;
 
                 return block.Outputs.Count == 0
                     ? Fail(call, $"'{call.Function}' has no output to use as a value")
                     : ValueOf(block);
 
             default:
-                return null;
+                return FailedValue.Instance;
         }
     }
 
@@ -206,82 +206,15 @@ internal sealed partial class GraphBuilder
             : new BlockValue(block);
     }
 
-    /// <summary>
-    /// Reports why a value that should be one output isn't. A null value already reported why it stands for nothing.
-    /// </summary>
-    private void ReportNoSingleOutput(Expression expression, Resolved value)
+    private void ReportSeveralOutputs(Expression expression, string firstOutput)
     {
-        string first;
-        switch (value)
-        {
-            case BlockValue { Block.Outputs.Count: 0 }:
-                Error(expression, $"'{Describe(expression)}' has no output to use as a value");
-                return;
-            case BlockValue block:
-                first = block.Block.Outputs[0].Name;
-                break;
-            case FunctionOutputs outputs:
-                first = outputs.Function.Outputs[0].Name;
-                break;
-            default:
-                return;
-        }
-
-        var example = expression is NameExpression name ? $"{name.Name}.{first}" : $"{Describe(expression)}().{first}";
+        var example = expression is NameExpression name ? $"{name.Name}.{firstOutput}" : $"{Describe(expression)}().{firstOutput}";
         Error(expression, $"'{Describe(expression)}' has several outputs. Pick one, like {example}");
     }
 
     private Resolved VisitMember(MemberExpression member)
     {
-        return SelectMember(member, Evaluate(member.Target));
-    }
-
-    private Resolved SelectMember(MemberExpression member, Resolved target)
-    {
-        BlockNode block;
-        switch (target)
-        {
-            case null:
-                return null;
-
-            case DeferredValue deferred:
-                return deferred.WithMember(member);
-
-            case FunctionOutputs outputs:
-                if (outputs.Values.TryGetValue(member.Output, out var value))
-                    return value;
-
-                var function = outputs.Function;
-                return Fail(member, $"'{GetQualifiedName(function)}' has no output '{member.Output}'. Use {string.Join(", ", function.Outputs.Select(o => o.Name))}");
-
-            case OutputValue:
-                return Fail(member, $"'{Describe(member.Target)}' has a single output. Use it without .{member.Output}");
-
-            case BlockValue blockValue:
-                block = blockValue.Block;
-                break;
-
-            default:
-                return null;
-        }
-
-        if (block.Outputs.Count == 0)
-            return Fail(member, $"'{Describe(member.Target)}' has no outputs");
-
-        List<string> names = [];
-        foreach (var output in block.Outputs)
-        {
-            if (output.Name == member.Output)
-                return new OutputValue(block, output.Index);
-
-            names.Add(output.Name);
-        }
-
-        var type = block.Type;
-        var mode = type.Modes == null
-            ? string.Empty
-            : $" in {type.Modes.Setting.Name} {type.GetModeName(block.Settings)}";
-        return Fail(member, $"'{type.Function}' has no output '{member.Output}'{mode}. Use {string.Join(", ", names)}");
+        return Evaluate(member.Target).SelectMember(this, member);
     }
 
     private static string Describe(Expression expression)
@@ -326,7 +259,7 @@ internal sealed partial class GraphBuilder
     private Resolved Fail(SyntaxNode node, string message)
     {
         Error(node, message);
-        return null;
+        return FailedValue.Instance;
     }
 
     private void Error(SyntaxNode node, string message)
