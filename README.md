@@ -116,6 +116,9 @@ and its settings, with the one you're writing highlighted and, for a setting, th
 Inside a call nested in another, it shows the inner one.
 Escape hides it until the cursor leaves the call.
 
+With neither the list nor the box showing, Escape leaves the editor, so the level editor's keys work again.
+A key pressed in the same instant right after that Escape does nothing: press it again.
+
 Rest the mouse on the text for half a second to see what's under it:
 a block function's entry from the Reference tab, the line that defines a name,
 what a named argument's input or setting takes, or the message of a red underline.
