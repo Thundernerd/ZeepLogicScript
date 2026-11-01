@@ -120,7 +120,7 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `expect-no-exceptions` | The game logged no exception since the Scenario started, or since the last `expect-no-exceptions`. It fails with the ones it logged. |
 | `log <text>` | Writes the text to the game's log. |
 
-A Library lives on this machine rather than in the level, so one a Scenario makes is still there for the rest of the run: give each Scenario's Libraries their own names.
+A run starts without the player's Libraries and Drafts, and deletes the Libraries before each Scenario after the first, so a Scenario sees only the Libraries it makes itself.
 
 The window keeps its height and shown tab from one Scenario to the next, the way it does for a player: a Scenario that changes them puts them back at its end.
 
@@ -146,7 +146,7 @@ The script undoes all of this when it ends, also after a failure, a timeout or C
 
 - **Other copies of the mod** anywhere under `BepInEx/plugins` (mod.io, an old manual install) move to `BepInEx/zls-ingame-test-disabled/`, so the game loads only this build. They move back afterwards. The test plugin fails the run when the game loaded the mod from anywhere else.
 - **This build** goes into `BepInEx/plugins/Sideloaded/Plugins/Zeepkist.LogicScripting/`, and the test plugin, the Scenarios and a `run.json` into `.../Zeepkist.LogicScripting.InGameTests/`. Both are removed afterwards, except the build with `--keep`.
-- **The mod's data** (Drafts, Libraries, the window's layout) and its BepInEx config are copied into the run folder first and put back once the game has quit.
+- **The mod's data** (Drafts, Libraries, the window's layout) and its BepInEx config are copied into the run folder first, in `backup/`, and put back once the game has quit. The game starts without the mod's data, so a run sees none of the player's Drafts or Libraries and the window opens as it does the first time. Meanwhile the player's data waits in the game's `AppData/Roaming/Zeepkist/zls-ingame-test-mod-data/`.
 - **The game's level saves** in its `Autosaves` and `Backups` folders, which test mode and going back to the main menu add to, are copied the same way and put back.
 
-The test plugin only does anything when the game starts with the script's command-line flag and finds a `run.json` next to it, so a copy left behind by a crash can't take over normal play. If a run was killed outright, the next run first puts back what the last one left.
+The test plugin only does anything when the game starts with the script's command-line flag and finds a `run.json` next to it, so a copy left behind by a crash can't take over normal play. If a run was killed outright, the next run first puts back what the last one left, the player's mod data among it.

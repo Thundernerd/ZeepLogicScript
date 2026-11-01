@@ -104,8 +104,8 @@ internal sealed class TestRun : IDisposable
     }
 
     /// <summary>
-    /// A failed step stops its scenario with a screenshot, and the run goes on with the next, on a new level. The walk
-    /// already brought the first one to a new level.
+    /// A failed step stops its scenario with a screenshot, and the run goes on with the next, on a new level and without
+    /// the Libraries the last one made. The walk already brought the first one to a new level.
     /// </summary>
     private IEnumerator RunScenarios(List<Scenario> scenarios)
     {
@@ -118,6 +118,7 @@ internal sealed class TestRun : IDisposable
             _exceptions.StartScenario(scenario.Name);
             if (i > 0)
             {
+                driver.DeleteLibraries();
                 yield return GuardedRoutine.Run(NewLevel(scenario.Name), WalkFailed);
                 _walkScenario = string.Empty;
                 if (_walkFailed)
