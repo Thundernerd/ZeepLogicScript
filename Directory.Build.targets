@@ -16,14 +16,17 @@
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 
-  <!-- BepInEx.PluginInfoProps writes MyPluginInfo.cs to obj/, which .editorconfig only marks as generated when obj/ is inside the repo.
-       A .g.cs name marks it as generated wherever obj/ is, such as the release workflows' artifacts path outside the repo -->
+  <!-- BepInEx.PluginInfoProps' MyPluginInfo.cs is only generated code to .editorconfig in an obj/ inside the repo; as .g.cs it is wherever obj/ is -->
   <Target Name="MarkPluginInfoGenerated" AfterTargets="AddGeneratedFile" Condition=" '$(TargetFrameworkIdentifier)' == '.NETFramework' ">
-    <Copy SourceFiles="$(IntermediateOutputPath)MyPluginInfo.cs" DestinationFiles="$(IntermediateOutputPath)MyPluginInfo.g.cs" SkipUnchangedFiles="true" />
+    <PropertyGroup>
+      <PluginInfoFile>$(IntermediateOutputPath)MyPluginInfo.cs</PluginInfoFile>
+      <GeneratedPluginInfoFile>$(IntermediateOutputPath)MyPluginInfo.g.cs</GeneratedPluginInfoFile>
+    </PropertyGroup>
+    <Copy SourceFiles="$(PluginInfoFile)" DestinationFiles="$(GeneratedPluginInfoFile)" SkipUnchangedFiles="true" />
     <ItemGroup>
-      <Compile Remove="$(IntermediateOutputPath)MyPluginInfo.cs" />
-      <Compile Include="$(IntermediateOutputPath)MyPluginInfo.g.cs" />
-      <FileWrites Include="$(IntermediateOutputPath)MyPluginInfo.g.cs" />
+      <Compile Remove="$(PluginInfoFile)" />
+      <Compile Include="$(GeneratedPluginInfoFile)" />
+      <FileWrites Include="$(GeneratedPluginInfoFile)" />
     </ItemGroup>
   </Target>
 
