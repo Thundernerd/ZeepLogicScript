@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using BepInEx.Logging;
 using Imui.Controls;
 using Imui.Core;
@@ -11,7 +12,7 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// <summary>
 /// The window's Scripts with their marks, New, and per Script Rename, Select group and Delete.
 /// </summary>
-internal sealed class ScriptListPanel
+internal sealed class ScriptListPanel : ItemListPanel<ScriptEntry>
 {
     public const string Help = "Right-click a Script to rename it, select its blocks or delete it";
 
@@ -19,15 +20,12 @@ internal sealed class ScriptListPanel
     private readonly ScriptList _scripts;
     private readonly DraftSaver _draftSaver;
     private readonly Action<ScriptEntry> _deleted;
-    private readonly NamePrompt _namePrompt = new("Script");
-    private readonly DeletePrompt _deletePrompt = new();
-    private ScriptEntry _renamed;
-    private string _message = string.Empty;
 
     /// <summary>
     /// <paramref name="deleted"/> is called with a Script after Delete dropped it from <paramref name="scripts"/>.
     /// </summary>
     public ScriptListPanel(ManualLogSource logger, ScriptList scripts, DraftSaver draftSaver, Action<ScriptEntry> deleted)
+        : base("Script")
     {
         _logger = logger;
         _scripts = scripts;
@@ -35,113 +33,72 @@ internal sealed class ScriptListPanel
         _deleted = deleted;
     }
 
-    public bool NameFocused => _namePrompt.Focused;
+    protected override IReadOnlyList<ScriptEntry> Entries => _scripts.Entries;
+    protected override string EmptyText => "None yet in this level. New Script makes one, and right-clicking a Script renames it, selects its blocks or deletes it.";
 
-    public void ReleaseFocus()
+    protected override string GetName(ScriptEntry entry)
     {
-        _namePrompt.Focused = false;
+        return entry.Name;
     }
 
-    public void Clear()
+    protected override string GetLabel(ScriptEntry entry)
     {
-        _namePrompt.Close();
-        _deletePrompt.Close();
-        _message = string.Empty;
+        var (glyph, _, _) = ScriptMarkText.Get(entry.Mark);
+        return glyph == null ? entry.Name : $"{glyph} {entry.Name}";
     }
 
-    /// <summary>
-    /// Returns the Script the player clicked, or null.
-    /// </summary>
-    public ScriptEntry DrawEntries(ImGui gui, ScriptEntry current)
+    protected override string GetTooltip(ScriptEntry entry)
     {
-        ScriptEntry selected = null;
-        foreach (var entry in _scripts.Entries)
-        {
-            gui.AddSpacingIfLayoutFrameNotEmpty();
-            var rect = gui.AddSingleRowRect(default);
-            ref readonly var style = ref entry == current ? ref gui.Style.List.ItemSelected : ref gui.Style.List.ItemNormal;
-            var (glyph, _, tooltip) = ScriptMarkText.Get(entry.Mark);
-            if (gui.Button(gui.GetNextControlId(), glyph == null ? entry.Name : $"{glyph} {entry.Name}", rect, in style, out _) && entry != current)
-                selected = entry;
-
-            gui.TooltipAtLastControl(tooltip == null ? Help : $"{tooltip}. {Help}");
-
-            if (gui.BeginContextMenu(rect))
-            {
-                if (gui.Menu("Rename"))
-                {
-                    _renamed = entry;
-                    _namePrompt.OpenRename(entry.Name);
-                }
-
-                if (gui.Menu("Select group"))
-                    SelectGroup(entry);
-
-                if (gui.Menu("Delete"))
-                {
-                    _namePrompt.Close();
-                    _deletePrompt.Open(entry);
-                }
-
-                gui.EndContextMenu();
-            }
-        }
-
-        if (_scripts.Entries.Count == 0)
-            gui.Text("None yet in this level. New Script makes one, and right-clicking a Script renames it, selects its blocks or deletes it.", WindowColors.Muted, wrap: true);
-
-        return selected;
+        var (_, _, tooltip) = ScriptMarkText.Get(entry.Mark);
+        return tooltip == null ? Help : $"{tooltip}. {Help}";
     }
 
-    /// <summary>
-    /// New Script, the name and delete prompts and the result line. Returns the Script the player made, or null.
-    /// </summary>
-    public ScriptEntry DrawActions(ImGui gui)
+    protected override void DrawMenuItems(ImGui gui, ScriptEntry entry)
     {
-        ScriptEntry made = null;
-        if (gui.Button("New Script"))
-        {
-            _deletePrompt.Close();
-            _renamed = null;
-            _namePrompt.OpenNew();
-        }
+        if (gui.Menu("Select group"))
+            SelectGroup(entry);
+    }
 
-        var named = _namePrompt.Draw(gui, name => _scripts.GetNameError(name, _renamed?.Id));
-        if (named != null)
-        {
-            _message = string.Empty;
-            if (_renamed == null)
-                made = _scripts.Add(named);
-            else
-                _renamed.Name = named;
+    protected override string GetNameError(string name, ScriptEntry renamed)
+    {
+        return _scripts.GetNameError(name, renamed?.Id);
+    }
 
-            _namePrompt.Close();
-            _draftSaver.Request();
-        }
+    protected override ScriptEntry Add(string name)
+    {
+        var entry = _scripts.Add(name);
+        _draftSaver.Request();
+        return entry;
+    }
 
-        var deleteChoice = _deletePrompt.Draw(gui);
-        if (deleteChoice != DeleteChoice.None)
-        {
-            DeleteScript(_deletePrompt.Deleted, deleteChoice);
-            _deletePrompt.Close();
-        }
+    protected override void Rename(ScriptEntry entry, string name)
+    {
+        entry.Name = name;
+        _draftSaver.Request();
+    }
 
-        if (_message.Length > 0)
-            gui.Text(_message, wrap: true);
+    protected override bool AsksAboutBlocks(ScriptEntry entry)
+    {
+        return entry.HasGroup;
+    }
 
-        return made;
+    protected override string GetDeleteQuestion(ScriptEntry entry)
+    {
+        return entry.HasGroup
+            ? $"Delete \"{entry.Name}\"? Its blocks can go too, or stay as plain Logic Blocks."
+            : $"Delete \"{entry.Name}\"? It has no blocks in the level.";
     }
 
     /// <summary>
     /// Removes the Script's blocks or untags them as one undo step, then drops the Script from the window. Its Draft
     /// stays, so undo brings the Script back with the text typed since its last Compile.
     /// </summary>
-    private void DeleteScript(ScriptEntry entry, DeleteChoice choice)
+    protected override void Delete(ScriptEntry entry, DeleteChoice choice)
     {
         var central = LevelEdit.GetCentral(out var blocker);
         if (central == null)
         {
-            _message = blocker;
+            Message = blocker;
             return;
         }
 
@@ -154,7 +111,7 @@ internal sealed class ScriptListPanel
 
         if (edited is not { } count)
         {
-            _message = "Delete failed, level unchanged";
+            Message = "Delete failed, level unchanged";
             return;
         }
 
@@ -162,11 +119,11 @@ internal sealed class ScriptListPanel
         _deleted(entry);
 
         if (count == 0)
-            _message = $"Deleted \"{entry.Name}\"";
+            Message = $"Deleted \"{entry.Name}\"";
         else if (choice == DeleteChoice.KeepBlocks)
-            _message = $"Deleted \"{entry.Name}\" and kept its {count} blocks as plain Logic Blocks";
+            Message = $"Deleted \"{entry.Name}\" and kept its {count} blocks as plain Logic Blocks";
         else
-            _message = $"Deleted \"{entry.Name}\" and its {count} blocks";
+            Message = $"Deleted \"{entry.Name}\" and its {count} blocks";
     }
 
     private void SelectGroup(ScriptEntry entry)
@@ -174,18 +131,18 @@ internal sealed class ScriptListPanel
         var central = LevelEdit.GetCentral(out var blocker);
         if (central == null)
         {
-            _message = blocker;
+            Message = blocker;
             return;
         }
 
         var group = BlockGroups.Find(central, entry.Id);
         if (group.Count == 0)
         {
-            _message = $"\"{entry.Name}\" has no blocks in the level";
+            Message = $"\"{entry.Name}\" has no blocks in the level";
             return;
         }
 
         BlockGroups.Select(central, group);
-        _message = $"Selected {group.Count} blocks of \"{entry.Name}\"";
+        Message = $"Selected {group.Count} blocks of \"{entry.Name}\"";
     }
 }
