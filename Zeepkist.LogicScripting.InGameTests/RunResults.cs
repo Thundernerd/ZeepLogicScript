@@ -35,9 +35,9 @@ internal sealed class RunResults
         return Path.Combine(_folder, name + ".png");
     }
 
-    public void Add(string name, bool passed, string detail = "")
+    public void Add(RunStep step)
     {
-        Steps.Add(new RunStep { Name = name, Passed = passed, Detail = detail });
+        Steps.Add(step);
         Write();
     }
 

@@ -79,7 +79,7 @@ internal sealed class TestRun : IDisposable
         if (error != null)
         {
             _logger.LogError(error);
-            Step("no errors", false, $"{error.GetType().Name}: {error.Message}");
+            Step(RunStep.Fail("no errors", $"{error.GetType().Name}: {error.Message}"));
             yield return Screenshot("failure");
         }
 
@@ -90,8 +90,7 @@ internal sealed class TestRun : IDisposable
     {
         // BepInEx flushes its log file every couple of seconds, and the copies it skipped are logged before plugins load
         yield return new WaitForSecondsRealtime(3);
-        var problem = BuildCheck.Problem(_folder);
-        Step("right build", problem == null, problem ?? "");
+        Step(BuildCheck.Run(_folder));
         if (_results.AnyStepFailed)
             yield break;
 
@@ -105,7 +104,7 @@ internal sealed class TestRun : IDisposable
         PlayerManager.Instance.modPanelHasAlreadyBeenDisplayed = true;
         PlayerManager.Instance.epilepsyPanelHasAlreadyBeenDisplayed = true;
         startScreen.LoadNextLevel();
-        Step("start screen", true);
+        Step(RunStep.Pass("start screen"));
 
         LevelEditorUI menu = null;
         yield return WaitFor(() => menu = Find<LevelEditorUI>(), "the main menu");
@@ -116,7 +115,7 @@ internal sealed class TestRun : IDisposable
         yield return new WaitForSecondsRealtime(2);
         var blocksBefore = LevelChanges.Count;
         PressLevelEditorButton(menu);
-        Step("main menu", true);
+        Step(RunStep.Pass("main menu"));
 
         yield return WaitUntil(() => _enteredEditor && LevelChanges.Count > blocksBefore, "the level editor");
         if (_results.AnyStepFailed)
@@ -125,7 +124,7 @@ internal sealed class TestRun : IDisposable
         // The editor's own UI fades in after the level is ready
         yield return new WaitForSecondsRealtime(2);
         yield return Screenshot("editor");
-        Step("editor reached", true);
+        Step(RunStep.Pass("editor reached"));
     }
 
     private static T Find<T>()
@@ -184,7 +183,7 @@ internal sealed class TestRun : IDisposable
         {
             if (Time.realtimeSinceStartup > giveUpAt)
             {
-                Step(what, false, $"not reached after {WaitSeconds} seconds");
+                Step(RunStep.Fail(what, $"not reached after {WaitSeconds} seconds"));
                 yield return Screenshot("failure");
                 yield break;
             }
@@ -202,11 +201,11 @@ internal sealed class TestRun : IDisposable
         _logger.LogInfo($"{Marker} screenshot {name}");
     }
 
-    private void Step(string name, bool passed, string detail = "")
+    private void Step(RunStep step)
     {
-        _results.Add(name, passed, detail);
-        var line = $"{Marker} {name} {(passed ? "PASS" : "FAIL")} {detail}".TrimEnd();
-        if (passed)
+        _results.Add(step);
+        var line = $"{Marker} {step.Name} {(step.Passed ? "PASS" : "FAIL")} {step.Detail}".TrimEnd();
+        if (step.Passed)
             _logger.LogInfo(line);
         else
             _logger.LogError(line);

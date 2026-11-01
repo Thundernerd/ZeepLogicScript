@@ -14,7 +14,13 @@ internal static class BuildCheck
     private const string Guid = LogicScripting.MyPluginInfo.PLUGIN_GUID;
     private const string OldGuid = "net.tnrd.zeepkist.logicscripting";
 
-    public static string Problem(string testFolder)
+    public static RunStep Run(string testFolder)
+    {
+        var problem = Problem(testFolder);
+        return problem == null ? RunStep.Pass("right build") : RunStep.Fail("right build", problem);
+    }
+
+    private static string Problem(string testFolder)
     {
         if (!Chainloader.PluginInfos.TryGetValue(Guid, out var mod))
             return "Logic Scripting isn't loaded";
