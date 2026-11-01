@@ -137,6 +137,14 @@ public class PlacedTests
     }
 
     [Fact]
+    public void AWiringUsedAsAValue_WiresNothing()
+    {
+        var result = Compile("l = placed(\"L\")\nx = l(1)\nl(2)");
+
+        Assert.Equal(["2:5 Wiring into 'l' gives no value. Put it on its own line"], Errors(result));
+    }
+
+    [Fact]
     public void ANameDefinedLater_CantBeWiredIntoAPlacedBlock_EvenInsideADelay()
     {
         var result = Compile(
