@@ -77,6 +77,11 @@ internal sealed class StepContext
         Actual = actual;
     }
 
+    public void FailNoScript(string name)
+    {
+        Fail($"no Script named \"{name}\"", name, string.Join(", ", Window.ScriptNames));
+    }
+
     /// <summary>
     /// For a step on an entry of the shown tab's list that has none by the name.
     /// </summary>

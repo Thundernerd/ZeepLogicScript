@@ -62,12 +62,10 @@ internal sealed partial class ScriptWindow
 
         public bool IsFieldFocused => _window.AnyFieldFocused;
 
-        public bool ShowsLibraries => _window._state.ShowLibraries;
-
         /// <summary>
         /// The shown tab's list and footer.
         /// </summary>
-        public IListPanel ShownList => ShowsLibraries ? _window._libraryListPanel : _window._scriptListPanel;
+        public IListPanel ShownList => _window._state.ShowLibraries ? _window._libraryListPanel : _window._scriptListPanel;
 
         /// <summary>
         /// The window's rect as Imui last drew it.
