@@ -8,15 +8,15 @@ using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
 using TNRD.Zeepkist.LogicScripting.UI;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using ZeepSDK.LevelEditor;
+using ZeepSDK.Utilities;
 using Object = UnityEngine.Object;
 
 namespace TNRD.Zeepkist.LogicScripting.InGameTests;
 
 /// <summary>
 /// Walks from the start screen to a new level in the level editor the way a player does, takes a screenshot of it, runs
-/// the scenarios and quits. Each wait gives up after <see cref="WaitSeconds"/>, so a changed menu fails the run instead of hanging it.
+/// the scenarios, each on a new level of its own, and quits. Each wait gives up after <see cref="WaitSeconds"/>, so a
+/// changed menu fails the run instead of hanging it.
 /// </summary>
 internal sealed class TestRun : IDisposable
 {
@@ -28,8 +28,13 @@ internal sealed class TestRun : IDisposable
     private readonly RunResults _results;
     private readonly RunRequest _request;
     private readonly string _folder;
-    private int _scenesLoaded;
-    private bool _enteredEditor;
+    private readonly GameEvents _game = new();
+
+    // Set once a step of the walk failed, which ends the run, unlike a failed step of a scenario
+    private bool _walkFailed;
+
+    // The scenario a walk to a new level is for, so the results list its steps under it
+    private string _walkScenario = string.Empty;
 
     public TestRun(ManualLogSource logger, RunResults results, RunRequest request, string folder)
     {
@@ -37,14 +42,11 @@ internal sealed class TestRun : IDisposable
         _results = results;
         _request = request;
         _folder = folder;
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        LevelEditorApi.EnteredLevelEditor += OnEnteredLevelEditor;
     }
 
     public void Dispose()
     {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-        LevelEditorApi.EnteredLevelEditor -= OnEnteredLevelEditor;
+        _game.Dispose();
     }
 
     /// <summary>
@@ -73,7 +75,7 @@ internal sealed class TestRun : IDisposable
             Step(RunStep.Fail("no errors", $"{error.GetType().Name}: {error.Message}"));
             yield return Screenshot("failure");
         }
-        else if (scenarios.Count > 0 && !_results.AnyStepFailed)
+        else if (scenarios.Count > 0 && !_walkFailed)
         {
             yield return RunScenarios(scenarios);
         }
@@ -98,16 +100,26 @@ internal sealed class TestRun : IDisposable
     }
 
     /// <summary>
-    /// A failed step stops its scenario with a screenshot, and the run goes on with the next.
+    /// A failed step stops its scenario with a screenshot, and the run goes on with the next, on a new level. The walk
+    /// already brought the first one to a new level.
     /// </summary>
     private IEnumerator RunScenarios(List<Scenario> scenarios)
     {
         var window = ((LogicScripting.Plugin)Chainloader.PluginInfos[LogicScripting.MyPluginInfo.PLUGIN_GUID].Instance).ScriptWindow;
         var driver = new ScriptWindow.Driver(window);
-        foreach (var scenario in scenarios)
+        for (var i = 0; i < scenarios.Count; i++)
         {
+            var scenario = scenarios[i];
             _logger.LogInfo($"{Marker} scenario {scenario.Name}");
-            var context = new StepContext(scenario.Name, driver, _logger, Screenshot);
+            if (i > 0)
+            {
+                yield return GuardedRoutine.Run(NewLevel(scenario.Name), WalkFailed);
+                _walkScenario = string.Empty;
+                if (_walkFailed)
+                    yield break;
+            }
+
+            var context = new StepContext(scenario.Name, driver, _game, _logger, Screenshot);
             foreach (var step in scenario.Steps)
             {
                 context.Reset();
@@ -143,14 +155,16 @@ internal sealed class TestRun : IDisposable
     {
         // BepInEx flushes its log file every couple of seconds, and the copies it skipped are logged before plugins load
         yield return new WaitForSecondsRealtime(3);
-        Step(BuildCheck.Run(_folder));
-        if (_results.AnyStepFailed)
+        var buildCheck = BuildCheck.Run(_folder);
+        Step(buildCheck);
+        _walkFailed = !buildCheck.Passed;
+        if (_walkFailed)
             yield break;
 
         PressAnyKeyToStartGame startScreen = null;
         yield return WaitFor(() => startScreen = Find<PressAnyKeyToStartGame>(), "the start screen");
         yield return WaitUntil(() => startScreen.disableThisIntroPanel.activeInHierarchy && PlayerManager.Instance != null, "press any key");
-        if (_results.AnyStepFailed)
+        if (_walkFailed)
             yield break;
 
         // Skips the main menu's one-time warning panels for this session, without changing settings
@@ -159,25 +173,70 @@ internal sealed class TestRun : IDisposable
         startScreen.LoadNextLevel();
         Step(RunStep.Pass("start screen"));
 
+        yield return EnterEditor();
+        if (_walkFailed)
+            yield break;
+
+        yield return Screenshot("editor");
+        Step(RunStep.Pass("editor reached"));
+    }
+
+    /// <summary>
+    /// From the main menu, or on the way to it, to a new level in the editor.
+    /// </summary>
+    private IEnumerator EnterEditor()
+    {
         LevelEditorUI menu = null;
         yield return WaitFor(() => menu = Find<LevelEditorUI>(), "the main menu");
-        if (_results.AnyStepFailed)
+        if (_walkFailed)
             yield break;
 
         // Let the menu finish opening, as a player can't click it any sooner
         yield return new WaitForSecondsRealtime(2);
+        var entriesBefore = _game.EditorEntries;
         var blocksBefore = LevelChanges.Count;
         PressLevelEditorButton(menu);
         Step(RunStep.Pass("main menu"));
 
-        yield return WaitUntil(() => _enteredEditor && LevelChanges.Count > blocksBefore, "the level editor");
-        if (_results.AnyStepFailed)
+        yield return WaitUntil(() => _game.EditorEntries > entriesBefore && LevelChanges.Count > blocksBefore, "the level editor");
+        if (_walkFailed)
             yield break;
 
         // The editor's own UI fades in after the level is ready
         yield return new WaitForSecondsRealtime(2);
-        yield return Screenshot("editor");
-        Step(RunStep.Pass("editor reached"));
+    }
+
+    /// <summary>
+    /// Takes the game to a new level in the editor the way a player starts one: out of test mode if the last scenario
+    /// stopped there, back to the main menu without saving, and into the editor again.
+    /// </summary>
+    private IEnumerator NewLevel(string scenario)
+    {
+        _walkScenario = scenario;
+        if (TestModeControls.IsActive)
+        {
+            var loadsBefore = _game.LevelLoads;
+            yield return TestModeControls.Leave();
+            yield return WaitUntil(() => TestModeControls.IsLevelBack(_game, loadsBefore), "the level editor, from test mode");
+            if (_walkFailed)
+                yield break;
+        }
+
+        var central = ComponentCache.Get<LEV_LevelEditorCentral>();
+        if (central == null)
+        {
+            WalkFailed("new level", "not in the level editor, where a new level starts from");
+            yield return Screenshot($"{scenario}-failure");
+            yield break;
+        }
+
+        central.pause.QuitToMenu();
+        if (central.unsavedContentPopup.IsOpen)
+            central.unsavedContentPopup.Yes();
+
+        yield return EnterEditor();
+        if (!_walkFailed)
+            Step(RunStep.Pass("new level"));
     }
 
     private static T Find<T>()
@@ -217,10 +276,10 @@ internal sealed class TestRun : IDisposable
         return WaitUntil(
             () =>
             {
-                if (checkedAt == _scenesLoaded)
+                if (checkedAt == _game.ScenesLoaded)
                     return false;
 
-                checkedAt = _scenesLoaded;
+                checkedAt = _game.ScenesLoaded;
                 return find() != null;
             },
             what);
@@ -228,7 +287,7 @@ internal sealed class TestRun : IDisposable
 
     private IEnumerator WaitUntil(Func<bool> condition, string what)
     {
-        if (_results.AnyStepFailed)
+        if (_walkFailed)
             yield break;
 
         var giveUpAt = Time.realtimeSinceStartup + WaitSeconds;
@@ -236,13 +295,25 @@ internal sealed class TestRun : IDisposable
         {
             if (Time.realtimeSinceStartup > giveUpAt)
             {
-                Step(RunStep.Fail(what, $"not reached after {WaitSeconds} seconds"));
-                yield return Screenshot("failure");
+                WalkFailed(what, $"not reached after {WaitSeconds} seconds");
+                yield return Screenshot(_walkScenario.Length > 0 ? $"{_walkScenario}-failure" : "failure");
                 yield break;
             }
 
             yield return null;
         }
+    }
+
+    private void WalkFailed(Exception exception)
+    {
+        _logger.LogError(exception);
+        WalkFailed("new level", $"{exception.GetType().Name}: {exception.Message}");
+    }
+
+    private void WalkFailed(string what, string detail)
+    {
+        _walkFailed = true;
+        Step(RunStep.Fail(what, detail));
     }
 
     private IEnumerator Screenshot(string name)
@@ -256,6 +327,9 @@ internal sealed class TestRun : IDisposable
 
     private void Step(RunStep step)
     {
+        if (step.Scenario.Length == 0)
+            step.Scenario = _walkScenario;
+
         _results.Add(step);
         var scenario = step.Scenario.Length > 0 ? $"{step.Scenario}:{step.Line} " : string.Empty;
         var expected = step.Expected == null ? string.Empty : $" (expected: {step.Expected}, actual: {step.Actual})";
@@ -274,15 +348,5 @@ internal sealed class TestRun : IDisposable
         // Quitting this way skips the editor's unsaved-level prompt
         yield return null;
         Application.Quit();
-    }
-
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        _scenesLoaded++;
-    }
-
-    private void OnEnteredLevelEditor()
-    {
-        _enteredEditor = true;
     }
 }

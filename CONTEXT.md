@@ -89,9 +89,9 @@ A Script's pointer to a block the player already placed in the level, written `n
 _Avoid_: external block, UID literal
 
 **In-Game Test Run**:
-One go of `tools/ingame-test.sh`: it installs the branch's build, starts the game, lets a test plugin drive it, records each Run Step's result and screenshots, then puts the install and the mod's data back. A Run Step is one check or action in it, not a Tick, and the run itself has nothing to do with a Compile.
+One go of `tools/ingame-test.sh`: it installs the branch's build, starts the game, lets a test plugin drive it, records each Run Step's result and screenshots, then puts the install, the mod's data and the game's level saves back. A Run Step is one check or action in it, not a Tick, and the run itself has nothing to do with a Compile.
 _Avoid_: playtest, test session
 
 **Scenario**:
-A `.zlstest` file of steps, one per line, each of which becomes a Run Step of the In-Game Test Run that takes it, such as a ticket's "try in game" steps written down. The first step that fails stops its Scenario.
+A `.zlstest` file of steps, one per line, each of which becomes a Run Step of the In-Game Test Run that takes it, such as a ticket's "try in game" steps written down. Each Scenario runs on a new, empty level. The first step that fails stops its Scenario, and the run goes on with the next one.
 _Avoid_: test case, test script (a Script is what a player writes)

@@ -1,0 +1,107 @@
+# In-game tests
+
+`tools/ingame-test.sh` runs Scenarios against the real game: it builds this branch, installs exactly that build into Zeepkist, starts the game through Steam, and lets a test plugin (`Zeepkist.LogicScripting.InGameTests`) walk from the start screen into the level editor and run each Scenario's steps there. It records every Run Step's result and screenshots, quits the game, and puts the install back as it was.
+
+It runs on Linux, with Zeepkist installed through Steam and running under Proton.
+
+## Running it
+
+```sh
+tools/ingame-test.sh                     # the smoke Scenario
+tools/ingame-test.sh my.zlstest other.zlstest
+```
+
+Steam has to be running and Zeepkist closed. A run takes over the game for a minute or two: don't touch it meanwhile.
+
+Scenarios run in the order given, each on a new, empty level in the editor: the first on the one the walk from the start screen opens, every later one on a new level started from the main menu, the way a player starts one. A failing step stops its own Scenario, with a screenshot, and the run goes on with the next. If the game can't get to a new level, the run stops there.
+
+The script prints a summary and exits 0 only when every step of every Scenario passed. Everything the run found is in `.ingame-test/<run id>/`:
+
+- `results.md`: each Scenario's steps, with what a failing check expected and found
+- `results.json`: the same, for tools
+- the screenshots, named `<scenario>-<name>.png`
+- `LogOutput.log`: the game's BepInEx log, where the test plugin's lines start with `[ZLS-TEST]`
+
+Only one run can use the game at a time. A second run, say from another worktree, waits until the first is done.
+
+### Options
+
+| Option | What it does |
+| --- | --- |
+| `--no-build` | Uses the Release build that's already there instead of building. |
+| `--keep` | Leaves this build installed afterwards, for playing it by hand. The other copies of the mod stay set aside until the next run puts them back. The test plugin is always removed. |
+| `--timeout <seconds>` | Stops the game and fails the run after this long. The default is 300. |
+| `-h`, `--help` | Prints the usage. |
+
+`ZEEPKIST_DIR` sets the game's install folder, when it isn't found in Steam's libraries.
+
+## Scenarios
+
+A Scenario is a `.zlstest` file, named after the file. It has one step per line. Blank lines and lines starting with `#` are skipped. `set-text` takes the lines below it, up to a line that is just `end`, so indent a Function's own `end` inside it. The indentation they share is taken off.
+
+```
+# A Script drives a block in test mode, and is still there back in the editor
+open-window
+new-script Lights
+set-text
+power_display(1 & 1)
+end
+compile
+expect-result Placed 3 blocks
+expect-blocks 3
+place-start
+test-mode
+screenshot running
+back-to-editor
+expect-blocks 3
+open-window
+select-script Lights
+```
+
+A Scenario that can't be read fails before the game starts it, with the line that's wrong.
+
+The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scenarios/`.
+
+### Steps
+
+| Step | What it does |
+| --- | --- |
+| `open-window` | Opens the Script window. |
+| `close-window` | Closes it. |
+| `new-script <name>` | Makes a new Script and selects it, as New Script does. Fails when the name is taken. |
+| `select-script <name>` | Selects a Script, as clicking it in the list does. Fails when there's none by that name. |
+| `set-text` | Replaces the selected Script's text with the lines up to `end`, as one edit. |
+| `compile` | Compiles the selected Script, as Ctrl+Enter does. It passes whatever the Compile did: check that with the steps below. |
+| `expect-result <text>` | The result line contains the text, matching case. |
+| `expect-no-errors` | The window's check finds no errors in the text. |
+| `expect-errors <count>` | The check finds this many errors. |
+| `expect-blocks <count>` | The level has this many Logic Blocks, placed by a Script or not. Other blocks, such as a start block, don't count. |
+| `undo` | Presses the editor's undo key. Fails when there was nothing to undo. |
+| `redo` | Presses the editor's redo key. Fails when there was nothing to redo. |
+| `place-start` | Places a start block on the ground below the camera, facing the way it looks, as one undo step. A level needs one for test mode. |
+| `test-mode` | Starts test mode, as the editor's Test key does, and waits until the round starts and the soapbox can drive. Fails without a start block. |
+| `back-to-editor` | Quits test mode from the pause menu, and waits until the editor has loaded the level again. |
+| `wait <seconds>` | Waits, such as for the level to run a little before a screenshot. |
+| `screenshot <name>` | Saves a screenshot as `<scenario>-<name>.png`. The name takes letters, digits, `-` and `_`. |
+| `log <text>` | Writes the text to the game's log. |
+
+The window steps need the window open, and the steps for a Script need one selected: they fail and say which step to add first.
+
+### Adding a step
+
+1. Add a class to `Zeepkist.LogicScripting.InGameTests/Steps/` that derives from `ScenarioStep`. Its `Run` is a coroutine: it can wait for frames, and it fails the step with `context.Fail(...)`. A check also records what it compared, with `context.Pass(...)` or `context.Fail(detail, expected, actual)`.
+2. Add it to `StepList`, by the name it's written with, reading what follows the name with `StepArgument`.
+3. Add it to the table above and to `StepListTests`, which checks that the two lists match.
+
+To do what a button in the Script window does, add a method to `ScriptWindow.Driver` in the mod. It calls the same code the button does, so the step tests the real thing.
+
+## What a run changes, and how it puts it back
+
+The script undoes all of this when it ends, also after a failure, a timeout or Ctrl+C:
+
+- **Other copies of the mod** anywhere under `BepInEx/plugins` (mod.io, an old manual install) move to `BepInEx/zls-ingame-test-disabled/`, so the game loads only this build. They move back afterwards. The test plugin fails the run when the game loaded the mod from anywhere else.
+- **This build** goes into `BepInEx/plugins/Sideloaded/Plugins/Zeepkist.LogicScripting/`, and the test plugin, the Scenarios and a `run.json` into `.../Zeepkist.LogicScripting.InGameTests/`. Both are removed afterwards, except the build with `--keep`.
+- **The mod's data** (Drafts, Libraries, the window's layout) and its BepInEx config are copied into the run folder first and put back once the game has quit.
+- **The game's level saves** in its `Autosaves` and `Backups` folders, which test mode and going back to the main menu add to, are copied the same way and put back.
+
+The test plugin only does anything when the game starts with the script's command-line flag and finds a `run.json` next to it, so a copy left behind by a crash can't take over normal play. If a run was killed outright, the next run first puts back what the last one left.

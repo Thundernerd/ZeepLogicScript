@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds this branch, installs exactly that build into Zeepkist, starts the game through Steam, lets the in-game test
-# plugin walk it into the level editor and run the scenarios there, collects the results and puts the install and the
-# mod's data back as they were.
+# plugin walk it into the level editor and run the scenarios there, collects the results and puts the install, the
+# mod's data and the levels the game saved meanwhile back as they were.
 #
 # Usage: tools/ingame-test.sh [--no-build] [--keep] [--timeout <seconds>] [<scenario.zlstest>...]
 #   --no-build   use the existing Release build
@@ -113,7 +113,10 @@ plugins="$bepinex/plugins"
 
 prefix="$(cd "$game/../.." && pwd)/compatdata/$app_id/pfx"
 [[ -d "$prefix" ]] || fail "No Proton prefix at $prefix, so the mod's data can't be backed up. Is $game in a Steam library?"
-mod_data="$prefix/drive_c/users/steamuser/AppData/Roaming/Zeepkist/Mods/$mod_guid"
+game_data="$prefix/drive_c/users/steamuser/AppData/Roaming/Zeepkist"
+mod_data="$game_data/Mods/$mod_guid"
+# Test mode and leaving the editor save the level into these, on top of the player's own
+level_saves=(Autosaves Backups)
 mod_cfg="$bepinex/config/$mod_guid.cfg"
 test_cfg="$bepinex/config/$test_guid.cfg"
 disabled="$bepinex/zls-ingame-test-disabled"
@@ -239,12 +242,20 @@ restore() {
     if [[ -f "$backup/had-mod-data" ]]; then
         rm -rf "$mod_data"
         cp -a "$backup/mod-data" "$mod_data"
-    elif [[ -f "$backup/mod-data-checked" ]]; then
+    elif [[ -f "$backup/backed-up" ]]; then
         rm -rf "$mod_data"
     fi
+    for folder in "${level_saves[@]}"; do
+        if [[ -f "$backup/had-$folder" ]]; then
+            rm -rf "${game_data:?}/$folder"
+            cp -a "$backup/$folder" "$game_data/$folder"
+        elif [[ -f "$backup/backed-up" ]]; then
+            rm -rf "${game_data:?}/$folder"
+        fi
+    done
     if [[ -f "$backup/had-mod-cfg" ]]; then
         cp -a "$backup/$mod_guid.cfg" "$mod_cfg"
-    elif [[ -f "$backup/mod-data-checked" ]]; then
+    elif [[ -f "$backup/backed-up" ]]; then
         rm -f "$mod_cfg"
     fi
 
@@ -257,7 +268,7 @@ restore() {
         move_tree_back "$disabled" "$plugins"
         log "Restored the game install"
     fi
-    log "Restored the mod's data"
+    log "Restored the mod's data and the game's level saves"
     set -e
 }
 
@@ -290,7 +301,13 @@ if [[ -f "$mod_cfg" ]]; then
     touch "$backup/had-mod-cfg"
 fi
 [[ -f "$test_cfg" ]] && touch "$backup/had-test-cfg"
-touch "$backup/mod-data-checked"
+for folder in "${level_saves[@]}"; do
+    if [[ -d "$game_data/$folder" ]]; then
+        cp -a "$game_data/$folder" "$backup/$folder"
+        touch "$backup/had-$folder"
+    fi
+done
+touch "$backup/backed-up"
 
 while IFS= read -r -d '' file; do
     relative="${file#"$plugins"/}"

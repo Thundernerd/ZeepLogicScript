@@ -14,16 +14,23 @@ internal sealed class StepContext
 {
     private readonly Func<string, IEnumerator> _screenshot;
 
-    public StepContext(string scenario, ScriptWindow.Driver window, ManualLogSource logger, Func<string, IEnumerator> screenshot)
+    public StepContext(
+        string scenario,
+        ScriptWindow.Driver window,
+        GameEvents game,
+        ManualLogSource logger,
+        Func<string, IEnumerator> screenshot)
     {
         Scenario = scenario;
         Window = window;
+        Game = game;
         Logger = logger;
         _screenshot = screenshot;
     }
 
     public string Scenario { get; }
     public ScriptWindow.Driver Window { get; }
+    public GameEvents Game { get; }
     public ManualLogSource Logger { get; }
 
     public bool Failed { get; private set; }
