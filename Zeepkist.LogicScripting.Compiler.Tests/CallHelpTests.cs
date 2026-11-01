@@ -105,6 +105,11 @@ public class CallHelpTests
     [InlineData("x = logic(a,\n    op: |", "op:")]
     [InlineData("toggler(1, targets: [|", "targets:")]
     [InlineData("toggler(1, targets: [d, |", "targets:")]
+    [InlineData("x = logic(logic(1, 2), |", "b")]
+    [InlineData("x = logic([1, (2)], |", "b")]
+    [InlineData("x = logic(a, logic(1, 2), op: |", "op:")]
+    [InlineData("x = logic(logic(1, |), 2)", "b")]
+    [InlineData("x = logic(1, logic(|", "a")]
     public void Active_TheInputOrSettingTheArgumentAtTheCaretGives(string text, string active)
     {
         var help = At(text);

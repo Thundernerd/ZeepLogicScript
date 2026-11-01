@@ -262,25 +262,8 @@ public sealed class CaretContext
     /// </summary>
     private static int FindOpenParen(List<Token> tokens, int closeParen)
     {
-        var depth = 0;
-        for (var i = closeParen; i >= 0; i--)
-        {
-            switch (tokens[i].Kind)
-            {
-                case TokenKind.CloseParen or TokenKind.CloseBracket:
-                    depth++;
-                    break;
-
-                case TokenKind.OpenParen or TokenKind.OpenBracket:
-                    depth--;
-                    if (depth == 0)
-                        return tokens[i].Kind == TokenKind.OpenParen ? i : -1;
-
-                    break;
-            }
-        }
-
-        return -1;
+        var open = BracketWalk.FindOpen(tokens, closeParen);
+        return open >= 0 && tokens[open].Kind == TokenKind.OpenParen ? open : -1;
     }
 
     /// <summary>

@@ -33,6 +33,8 @@ public class DefinedNamesTests
     [InlineData("x = logic(1, ", "logic")]
     [InlineData("x = placed(\"L\")", "lamp")]
     [InlineData("x = placed(\"OTHER\")", "block")]
+    [InlineData("x = logic(logic(1, 2), [3])", "logic")]
+    [InlineData("x = logic(logic(1, ", "logic")]
     public void Read_TheBlockType_OfACall(string text, string function)
     {
         Assert.Equal(function, Read(text)[0].Value?.Type?.Function);
@@ -43,6 +45,7 @@ public class DefinedNamesTests
     [InlineData("x = a")]
     [InlineData("x = a & b")]
     [InlineData("x = logic(1) & 1")]
+    [InlineData("x = logic(logic(1), [2]) & 1")]
     [InlineData("x = p.horn")]
     [InlineData("x = player_input().horn")]
     [InlineData("x = unknown(1)")]
@@ -73,6 +76,7 @@ public class DefinedNamesTests
     [InlineData("t = simple_telemetry()", null)]
     [InlineData("t = simple_telemetry(mode: )", null)]
     [InlineData("t = simple_telemetry(logic(mode: x))", null)]
+    [InlineData("t = simple_telemetry([mode: x], mode: basic)", "basic")]
     [InlineData("t = logic(mode: and)", null)]
     public void Read_TheWrittenMode(string text, string mode)
     {
