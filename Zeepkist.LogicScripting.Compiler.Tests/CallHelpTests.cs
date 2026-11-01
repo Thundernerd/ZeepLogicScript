@@ -236,6 +236,54 @@ public class CallHelpTests
         Assert.Equal("logic", session.Help.Callee);
     }
 
+    [Fact]
+    public void Session_Dismiss_ShowsANewCallWithItsParenAtTheSamePlace()
+    {
+        var session = new CallHelpSession();
+        session.Update(Snapshot("v = logic(|"), focused: true);
+        session.Dismiss();
+
+        session.Update(Snapshot("w = logic(|"), focused: true);
+
+        Assert.Equal("logic", session.Help.Callee);
+    }
+
+    [Fact]
+    public void Session_Dismiss_ShowsANewCalleeWithItsParenAtTheSamePlace()
+    {
+        var session = new CallHelpSession();
+        session.Update(Snapshot("v = logic(|"), focused: true);
+        session.Dismiss();
+
+        session.Update(Snapshot("v = delay(|"), focused: true);
+
+        Assert.Equal("delay", session.Help.Callee);
+    }
+
+    [Fact]
+    public void Session_Dismiss_ForgetsTheCallWhenALineAboveChanges()
+    {
+        var session = new CallHelpSession();
+        session.Update(Snapshot("a = 1\nv = logic(|"), focused: true);
+        session.Dismiss();
+
+        session.Update(Snapshot("b = 1\nv = logic(|"), focused: true);
+
+        Assert.Equal("logic", session.Help.Callee);
+    }
+
+    [Fact]
+    public void Session_Dismiss_WithoutHelpHidesNothing()
+    {
+        var session = new CallHelpSession();
+        session.Update(Snapshot("x = 1|"), focused: true);
+        session.Dismiss();
+
+        session.Update(Snapshot("x = logic(|"), focused: true);
+
+        Assert.Equal("logic", session.Help.Callee);
+    }
+
     private static CallHelp At(string marked, Func<string, PlacedBlock> findPlacedBlock = null)
     {
         var snapshot = Snapshot(marked);
