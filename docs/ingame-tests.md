@@ -134,7 +134,7 @@ The script undoes all of this when it ends, also after a failure, a timeout or C
 
 - **Other copies of the mod** anywhere under `BepInEx/plugins` (mod.io, an old manual install) move to `BepInEx/zls-ingame-test-disabled/`, so the game loads only this build. They move back afterwards. The test plugin fails the run when the game loaded the mod from anywhere else.
 - **This build** goes into `BepInEx/plugins/Sideloaded/Plugins/Zeepkist.LogicScripting/`, and the test plugin, the Scenarios and a `run.json` into `.../Zeepkist.LogicScripting.InGameTests/`. Both are removed afterwards, except the build with `--keep`.
-- **The mod's data** (Drafts, Libraries, the window's layout) and its BepInEx config are copied into the run folder first and put back once the game has quit.
+- **The mod's data** (Drafts, Libraries, the window's layout) and its BepInEx config are copied into the run folder first, in `backup/`, and put back once the game has quit. The game starts without the mod's data, so a run sees none of the player's Drafts or Libraries and the window opens as it does the first time.
 - **The game's level saves** in its `Autosaves` and `Backups` folders, which test mode and going back to the main menu add to, are copied the same way and put back.
 
 The test plugin only does anything when the game starts with the script's command-line flag and finds a `run.json` next to it, so a copy left behind by a crash can't take over normal play. If a run was killed outright, the next run first puts back what the last one left.

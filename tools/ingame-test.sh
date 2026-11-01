@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds this branch, installs exactly that build into Zeepkist, starts the game through Steam, lets the in-game test
 # plugin walk it into the level editor and run the scenarios there, collects the results and puts the install, the
-# mod's data and the levels the game saved meanwhile back as they were.
+# mod's data and the levels the game saved meanwhile back as they were. The game starts without the mod's data.
 #
 # Usage: tools/ingame-test.sh [--no-build] [--keep] [--timeout <seconds>] [<scenario.zlstest>...]
 #   --no-build   use the existing Release build
@@ -377,6 +377,8 @@ for folder in "${level_saves[@]}"; do
     fi
 done
 touch "$backup/backed-up"
+# The game starts without the mod's data, so a Scenario sees only the Libraries and Drafts the run makes
+rm -rf "$mod_data"
 
 while IFS= read -r -d '' file; do
     relative="${file#"$plugins"/}"
