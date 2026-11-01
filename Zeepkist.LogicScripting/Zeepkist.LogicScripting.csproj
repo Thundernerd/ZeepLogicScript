@@ -4,39 +4,19 @@
     <TargetFramework>net472</TargetFramework>
     <AssemblyName>Zeepkist.LogicScripting</AssemblyName>
     <Version>0.1.0</Version>
-    <LangVersion>latest</LangVersion>
-    <!-- Lets Mono skip access checks, so publicized private game members can be called directly (ADR 0007) -->
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <!-- The compiler only reports unused usings (IDE0005) when it generates docs; missing docs aren't an error -->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
     <Product>Logic Scripting</Product>
     <RootNamespace>TNRD.Zeepkist.LogicScripting</RootNamespace>
-        <RestoreAdditionalProjectSources>
-            https://api.nuget.org/v3/index.json;
-            https://nuget.bepinex.dev/v3/index.json;
-            https://nuget.samboy.dev/v3/index.json
-        </RestoreAdditionalProjectSources>
   </PropertyGroup>
 
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-        <DefineConstants>TRACE;UNITASK_UGUI_SUPPORT;UNITY_2017_1;UNITY_2017_1_OR_NEWER;UNITY_2017_2;UNITY_2017_2_OR_NEWER;UNITY_2017_3;UNITY_2017_3_OR_NEWER;UNITY_2017_4;UNITY_2017_4_OR_NEWER;UNITY_2018_1;UNITY_2018_1_OR_NEWER;UNITY_2018_2;UNITY_2018_2_OR_NEWER;UNITY_2018_3;UNITY_2018_3_OR_NEWER;UNITY_2018_4;UNITY_2018_4_OR_NEWER;UNITY_2019_1;UNITY_2019_1_OR_NEWER;UNITY_2019_2;UNITY_2019_2_OR_NEWER;UNITY_2019_3;UNITY_2019_3_OR_NEWER;UNITY_2019_4;UNITY_2019_4_OR_NEWER;UNITY_2020_1;UNITY_2020_1_OR_NEWER;UNITY_2020_2;UNITY_2020_2_OR_NEWER;UNITY_2020_3;UNITY_2020_3_OR_NEWER;UNITY_2021_1;UNITY_2021_1_OR_NEWER;UNITY_2021_2;UNITY_2021_2_OR_NEWER;UNITY_2021_3;UNITY_2021_3_OR_NEWER;UNITY_STANDALONE_WIN</DefineConstants>
-        <DebugType>full</DebugType>
-    </PropertyGroup>
+  <PropertyGroup>
+    <DefineConstants>TRACE;UNITASK_UGUI_SUPPORT;UNITY_2017_1;UNITY_2017_1_OR_NEWER;UNITY_2017_2;UNITY_2017_2_OR_NEWER;UNITY_2017_3;UNITY_2017_3_OR_NEWER;UNITY_2017_4;UNITY_2017_4_OR_NEWER;UNITY_2018_1;UNITY_2018_1_OR_NEWER;UNITY_2018_2;UNITY_2018_2_OR_NEWER;UNITY_2018_3;UNITY_2018_3_OR_NEWER;UNITY_2018_4;UNITY_2018_4_OR_NEWER;UNITY_2019_1;UNITY_2019_1_OR_NEWER;UNITY_2019_2;UNITY_2019_2_OR_NEWER;UNITY_2019_3;UNITY_2019_3_OR_NEWER;UNITY_2019_4;UNITY_2019_4_OR_NEWER;UNITY_2020_1;UNITY_2020_1_OR_NEWER;UNITY_2020_2;UNITY_2020_2_OR_NEWER;UNITY_2020_3;UNITY_2020_3_OR_NEWER;UNITY_2021_1;UNITY_2021_1_OR_NEWER;UNITY_2021_2;UNITY_2021_2_OR_NEWER;UNITY_2021_3;UNITY_2021_3_OR_NEWER;UNITY_STANDALONE_WIN</DefineConstants>
+  </PropertyGroup>
 
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <DefineConstants>TRACE;UNITASK_UGUI_SUPPORT;UNITY_2017_1;UNITY_2017_1_OR_NEWER;UNITY_2017_2;UNITY_2017_2_OR_NEWER;UNITY_2017_3;UNITY_2017_3_OR_NEWER;UNITY_2017_4;UNITY_2017_4_OR_NEWER;UNITY_2018_1;UNITY_2018_1_OR_NEWER;UNITY_2018_2;UNITY_2018_2_OR_NEWER;UNITY_2018_3;UNITY_2018_3_OR_NEWER;UNITY_2018_4;UNITY_2018_4_OR_NEWER;UNITY_2019_1;UNITY_2019_1_OR_NEWER;UNITY_2019_2;UNITY_2019_2_OR_NEWER;UNITY_2019_3;UNITY_2019_3_OR_NEWER;UNITY_2019_4;UNITY_2019_4_OR_NEWER;UNITY_2020_1;UNITY_2020_1_OR_NEWER;UNITY_2020_2;UNITY_2020_2_OR_NEWER;UNITY_2020_3;UNITY_2020_3_OR_NEWER;UNITY_2021_1;UNITY_2021_1_OR_NEWER;UNITY_2021_2;UNITY_2021_2_OR_NEWER;UNITY_2021_3;UNITY_2021_3_OR_NEWER;UNITY_STANDALONE_WIN</DefineConstants>
-    </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <!-- Full PDBs, so the release workflows can convert them with pdb2mdb -->
+    <DebugType>full</DebugType>
+  </PropertyGroup>
 
-  <ItemGroup>
-        <PackageReference Include="BepInEx.Analyzers" Version="1.0.8"  PrivateAssets="all" ExcludeAssets="runtime" />
-        <PackageReference Include="BepInEx.Core" Version="5.*" PrivateAssets="all" ExcludeAssets="runtime"/>
-        <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" PrivateAssets="all" ExcludeAssets="runtime" />
-        <PackageReference Include="Zeepkist.GameLibs" Version="18.10.2087" PrivateAssets="all" ExcludeAssets="runtime" />
-        <PackageReference Include="ZeepSDK" Version="2.7.5" PrivateAssets="all" ExcludeAssets="runtime" />
-  </ItemGroup>
-  
   <ItemGroup>
     <InternalsVisibleTo Include="Zeepkist.LogicScripting.Tests" />
     <InternalsVisibleTo Include="Zeepkist.LogicScripting.InGameTests" />
@@ -44,16 +24,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Zeepkist.LogicScripting.Compiler\Zeepkist.LogicScripting.Compiler.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="all" />
-    <AdditionalFiles Include="..\stylecop.json" Link="stylecop.json" />
-    <ProjectReference Include="..\Zeepkist.LogicScripting.Analyzers\Zeepkist.LogicScripting.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

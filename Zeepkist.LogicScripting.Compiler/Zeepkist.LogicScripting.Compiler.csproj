@@ -2,13 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
     <RootNamespace>TNRD.Zeepkist.LogicScripting.Compiler</RootNamespace>
     <Product>Logic Scripting</Product>
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <!-- The compiler only reports unused usings (IDE0005) when it generates docs; missing docs aren't an error -->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -18,12 +13,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Zeepkist.LogicScripting.Compiler.Tests" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="all" />
-    <AdditionalFiles Include="..\stylecop.json" Link="stylecop.json" />
-    <ProjectReference Include="..\Zeepkist.LogicScripting.Analyzers\Zeepkist.LogicScripting.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>
