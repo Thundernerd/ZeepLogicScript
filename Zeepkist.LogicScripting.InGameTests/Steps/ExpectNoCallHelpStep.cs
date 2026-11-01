@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Linq;
 
 namespace TNRD.Zeepkist.LogicScripting.InGameTests.Steps;
 
@@ -21,6 +20,6 @@ internal sealed class ExpectNoCallHelpStep : ScenarioStep
         if (help == null)
             context.Pass("no call help", "(no call help)", "(no call help)");
         else
-            context.Fail("the call help shows", "(no call help)", $"{help.Callee}({string.Join(", ", help.Items.Select(i => i.Label))})");
+            context.Fail("the call help shows", "(no call help)", ExpectCallHelpStep.Describe(help));
     }
 }

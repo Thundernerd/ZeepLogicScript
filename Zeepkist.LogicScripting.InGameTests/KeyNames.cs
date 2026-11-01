@@ -37,6 +37,7 @@ internal static class KeyNames
 
     private static readonly Dictionary<char, string> _symbols = new()
     {
+        [' '] = "Space",
         ['/'] = "Slash",
         ['\\'] = "Backslash",
         ['.'] = "Period",
@@ -82,9 +83,6 @@ internal static class KeyNames
     /// </summary>
     public static KeyPress ForCharacter(char character)
     {
-        if (character == ' ')
-            return new KeyPress("Space", ' ', KeyModifiers.None);
-
         var lower = char.ToLowerInvariant(character);
         var shift = lower != character ? KeyModifiers.Shift : KeyModifiers.None;
         return new KeyPress(GetKey(lower) ?? "None", character, shift);

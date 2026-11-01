@@ -31,7 +31,7 @@ internal abstract class KeysStep : ScenarioStep
             }
 
             if (keys.Any(k => k.IsEscape))
-                context.Window.HoldEscape();
+                context.Window.HoldSentEscape();
 
             yield return null;
         }

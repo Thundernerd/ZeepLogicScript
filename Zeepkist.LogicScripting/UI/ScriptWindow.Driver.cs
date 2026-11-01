@@ -52,9 +52,6 @@ internal sealed partial class ScriptWindow
         /// <inheritdoc cref="ScriptEditor.CallHelp"/>
         public CallHelp CallHelp => _window._edited?.Editor.CallHelp;
 
-        /// <summary>
-        /// Whether a field in the window has focus, and takes the keys typed.
-        /// </summary>
         public bool IsFieldFocused => _window.AnyFieldFocused;
 
         public void SetOpen(bool open)
@@ -135,7 +132,7 @@ internal sealed partial class ScriptWindow
         }
 
         /// <inheritdoc cref="ScriptEditor.HoldSentEscape"/>
-        public void HoldEscape()
+        public void HoldSentEscape()
         {
             _window._edited?.Editor.HoldSentEscape();
         }

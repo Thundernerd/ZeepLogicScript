@@ -87,8 +87,8 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `expect-call-help <text>` | The call help shows, and its call, written as `logic(a, b, op_in, op:, hide:)`, contains the text, matching case. |
 | `expect-no-completion` | The completion list is closed. |
 | `expect-no-call-help` | The call help doesn't show. |
-| `press <keys>` | Presses the keys, separated by spaces, in the same frame, such as `press ctrl+space`, `press enter` or `press escape escape`, up to 8. A key is a character, such as `a` or `/`, or one of `space`, `enter`, `tab`, `escape`, `backspace`, `delete`, `up`, `down`, `left`, `right`, `home`, `end`, `pageup` and `pagedown`, with any of `shift+`, `ctrl+`, `alt+` and `cmd+` before it. The keys go to the focused field the way a player's do; see [Keys](#keys). |
-| `type <text>` | Types the text into the focused field, one key a frame. |
+| `press <keys>` | Presses the keys, separated by spaces, in the same frame, such as `press ctrl+space`, `press enter` or `press escape escape`, up to 8. A key is a character, such as `a` or `/`, or one of `space`, `enter`, `tab`, `escape`, `backspace`, `delete`, `up`, `down`, `left`, `right`, `home`, `end`, `pageup` and `pagedown`, with any of `shift+`, `ctrl+`, `alt+` and `cmd+` before it. `shift+` makes a letter upper case and leaves other characters as they are. The keys go to the focused field the way a player's do; see [Keys](#keys). |
+| `type <text>` | Types the text into the focused field, one key a frame. Spaces at either end are taken off with the line's: press them with `press space`. |
 | `place-block <function>` | Places a block of the Block Function's type in its first style, beside where `place-start` puts the start block, and selects it. A placed-only type such as `lamp` works too. |
 | `insert-selected` | Writes a Placed Block Reference for each selected block at the caret, as Insert selected does. Fails when it writes none. |
 | `undo` | Presses the editor's undo key. Fails when there was nothing to undo. |
