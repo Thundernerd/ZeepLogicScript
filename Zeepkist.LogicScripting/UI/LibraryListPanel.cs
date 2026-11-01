@@ -13,6 +13,8 @@ internal sealed class LibraryListPanel : ItemListPanel<Library>
 {
     public const string Help = "On this machine, for Scripts in every level. Right-click a Library to rename or delete it";
 
+    private const string ReadFailedText = "Couldn't read libraries.json, so changes to Libraries aren't saved. Fix or remove the file, then restart the game.";
+
     private readonly LibraryList _libraries;
     private readonly Action<Library> _deleted;
 
@@ -31,15 +33,30 @@ internal sealed class LibraryListPanel : ItemListPanel<Library>
     protected override string NewTooltip => Help;
 
     /// <summary>
-    /// Returns the Library the player clicked or made, or null.
+    /// Returns the Library the player clicked or made, or null. With <paramref name="readFailed"/>, a warning is pinned
+    /// above the list.
     /// </summary>
-    public Library Draw(ImGui gui, Library current, bool readFailed)
+    public Library Draw(ImGui gui, ImRect rect, Library current, bool readFailed)
     {
         if (readFailed)
-            gui.Text("Couldn't read libraries.json, so changes to Libraries aren't saved. Fix or remove the file, then restart the game.", WindowColors.Error, wrap: true);
+            rect = DrawReadFailed(gui, rect);
 
+        BeginList(gui, rect);
         var selected = DrawEntries(gui, current);
-        return DrawActions(gui) ?? selected;
+        return EndList(gui) ?? selected;
+    }
+
+    /// <summary>
+    /// Returns the rest of <paramref name="rect"/>, under the warning.
+    /// </summary>
+    private static ImRect DrawReadFailed(ImGui gui, ImRect rect)
+    {
+        var spacing = gui.Style.Layout.Spacing;
+        var settings = WrappedText.GetSettings(gui);
+        var height = WrappedText.GetHeight(gui, ReadFailedText, in settings, rect.W - (spacing * 2), minHeight: 0);
+        var warning = rect.TakeTop(height + spacing, out var rest);
+        gui.Text(ReadFailedText, in settings, WindowColors.Error, warning.WithPadding(left: spacing, right: spacing, top: spacing));
+        return rest;
     }
 
     protected override string GetName(Library entry)

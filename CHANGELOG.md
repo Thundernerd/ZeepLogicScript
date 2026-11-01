@@ -55,6 +55,9 @@ All notable changes to Logic Scripting are listed here.
 - The Scripts side has two tabs, Scripts and Libraries, so it shows one list at a time.
   Orphaned Groups sit under the Scripts list and can be collapsed, and the Scripts tab shows a `!` while there are any.
   The help text moved into tooltips on the tabs and the lists.
+- New Script and New Library are pinned at the bottom of their tab, with the name and delete prompts
+  and the result line just above them, so they stay in view however long the list is.
+  The warning that `libraries.json` couldn't be read stays above the Libraries list as it scrolls.
 
 ### Fixed
 

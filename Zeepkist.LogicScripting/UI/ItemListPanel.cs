@@ -5,16 +5,23 @@ using Imui.Core;
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// A list of Scripts or Libraries, New, and per entry Rename and Delete, with the name and delete prompts and a result
-/// line under them.
+/// A list of Scripts or Libraries in a scroll region, and per entry Rename and Delete. Under the list is a footer pinned
+/// to the bottom of the tab, which holds whichever prompt is open, the result line, and New as its bottom row.
 /// </summary>
 internal abstract class ItemListPanel<T>
     where T : class
 {
+    private const int MinListRows = 2;
+
     private readonly string _noun;
     private readonly NamePrompt _namePrompt;
     private readonly DeletePrompt<T> _deletePrompt = new();
     private T _renamed;
+    private ImRect _prompts;
+    private ImRect _newRow;
+
+    // Measured as the prompts are drawn, as Imui lays out top-down and the list above them needs to know the height first
+    private float _promptsHeight;
 
     /// <summary>
     /// <paramref name="noun"/> is what's listed, such as "Script".
@@ -51,6 +58,46 @@ internal abstract class ItemListPanel<T>
     }
 
     /// <summary>
+    /// Begins the list's scroll region, for <see cref="DrawEntries"/> and what's listed with them. The prompts and result
+    /// line take the height they took last frame, so while they grow they're cut short for one frame.
+    /// </summary>
+    public void BeginList(ImGui gui, ImRect rect)
+    {
+        var spacing = gui.Style.Layout.Spacing;
+        var minListHeight = gui.GetRowsHeightWithSpacing(MinListRows) + (spacing * 2);
+        _newRow = rect.TakeBottom(gui.GetRowHeight() + (spacing * 2), out var rest);
+        _prompts = rest.TakeBottom(FooterSplit.GetFooterHeight(rest.H, _promptsHeight, minListHeight), out var list);
+
+        // A scope each, so an entry coming or going doesn't change the id, and with it the focus and text, of the name
+        // field in the footer
+        gui.PushId("list");
+        WindowRegion.Begin(gui, list);
+    }
+
+    /// <summary>
+    /// Ends the list's scroll region and draws the footer under it. Returns the entry the player made, or null.
+    /// </summary>
+    public T EndList(ImGui gui)
+    {
+        WindowRegion.End(gui);
+        gui.PopId();
+
+        var spacing = gui.Style.Layout.Spacing;
+        gui.Canvas.Rect(new ImRect(_prompts.X, _prompts.Top - 1, _prompts.W, 1), gui.Style.Window.Box.BorderColor);
+        gui.PushId("footer");
+
+        // Only the prompts scroll when there's no room for them, so New stays in view
+        WindowRegion.Begin(gui, _prompts);
+        var made = DrawPrompts(gui);
+        WindowRegion.End(gui, out var contentHeight);
+        _promptsHeight = contentHeight > 0 ? contentHeight + (spacing * 2) : 0;
+
+        DrawNew(gui, _newRow.WithPadding(spacing));
+        gui.PopId();
+        return made;
+    }
+
+    /// <summary>
     /// Returns the entry the player clicked, or null.
     /// </summary>
     public T DrawEntries(ImGui gui, T current)
@@ -79,10 +126,7 @@ internal abstract class ItemListPanel<T>
                 DrawMenuItems(gui, entry);
 
                 if (gui.Menu("Delete"))
-                {
-                    _namePrompt.Close();
-                    _deletePrompt.Open(entry);
-                }
+                    OpenDelete(entry);
 
                 gui.EndContextMenu();
             }
@@ -95,21 +139,11 @@ internal abstract class ItemListPanel<T>
     }
 
     /// <summary>
-    /// New, the name and delete prompts and the result line. Returns the entry the player made, or null.
+    /// Returns the entry the player made, or null.
     /// </summary>
-    public T DrawActions(ImGui gui)
+    private T DrawPrompts(ImGui gui)
     {
         T made = null;
-        if (gui.Button($"New {_noun}"))
-        {
-            _deletePrompt.Close();
-            _renamed = null;
-            _namePrompt.OpenNew();
-        }
-
-        if (NewTooltip != null)
-            gui.TooltipAtLastControl(NewTooltip);
-
         var named = _namePrompt.Draw(gui, name => GetNameError(name, _renamed));
         if (named != null)
         {
@@ -136,6 +170,25 @@ internal abstract class ItemListPanel<T>
             gui.Text(Message, wrap: true);
 
         return made;
+    }
+
+    private void DrawNew(ImGui gui, ImRect rect)
+    {
+        if (gui.Button($"New {_noun}", rect))
+        {
+            _deletePrompt.Close();
+            _renamed = null;
+            _namePrompt.OpenNew();
+        }
+
+        if (NewTooltip != null)
+            gui.TooltipAtLastControl(NewTooltip);
+    }
+
+    public void OpenDelete(T entry)
+    {
+        _namePrompt.Close();
+        _deletePrompt.Open(entry);
     }
 
     /// <summary>

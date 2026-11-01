@@ -472,13 +472,11 @@ internal sealed partial class ScriptWindow
 
         // A scope per tab, so their scroll areas don't share one id, and with it one scroll position
         gui.PushId(_state.ShowLibraries ? LibrariesTab : ScriptsTab);
-        WindowRegion.Begin(gui, content);
         if (_state.ShowLibraries)
-            DrawLibrariesTab(gui);
+            DrawLibrariesTab(gui, content);
         else
-            DrawScriptsTab(gui);
+            DrawScriptsTab(gui, content);
 
-        WindowRegion.End(gui);
         gui.PopId();
     }
 }

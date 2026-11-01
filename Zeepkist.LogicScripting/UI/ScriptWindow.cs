@@ -251,10 +251,14 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
             Select(_scripts.Entries[0]);
     }
 
-    private void DrawScriptsTab(ImGui gui)
+    /// <summary>
+    /// Orphaned Groups are listed under the Scripts, in the same scroll region.
+    /// </summary>
+    private void DrawScriptsTab(ImGui gui, ImRect rect)
     {
-        // A scope each for the lists, so a Script or Orphaned Group coming or going doesn't change the id, and with it
-        // the focus and text, of the name field drawn under them
+        _scriptListPanel.BeginList(gui, rect);
+
+        // A scope for the Scripts, so one coming or going doesn't change the ids of the Orphaned Groups' buttons
         gui.PushId("scripts list");
         var selected = _scriptListPanel.DrawEntries(gui, CurrentScript);
         gui.PopId();
@@ -273,14 +277,14 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
             _draftSaver.Request();
         }
 
-        selected = _scriptListPanel.DrawActions(gui) ?? selected;
+        selected = _scriptListPanel.EndList(gui) ?? selected;
         if (selected != null)
             Select(selected);
     }
 
-    private void DrawLibrariesTab(ImGui gui)
+    private void DrawLibrariesTab(ImGui gui, ImRect rect)
     {
-        var library = _libraryListPanel.Draw(gui, CurrentLibrary, _libraryStore.ReadFailed);
+        var library = _libraryListPanel.Draw(gui, rect, CurrentLibrary, _libraryStore.ReadFailed);
         if (library != null)
             SelectLibrary(library);
     }
