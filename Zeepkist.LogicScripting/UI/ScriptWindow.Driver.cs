@@ -141,6 +141,18 @@ internal sealed partial class ScriptWindow
         }
 
         /// <summary>
+        /// Like Delete on every Library on the Libraries tab, without the prompts.
+        /// </summary>
+        public void DeleteLibraries()
+        {
+            foreach (var library in _window.Libraries.Entries.ToList())
+            {
+                _window.Libraries.Remove(library.Id);
+                _window.OnLibraryDeleted(library);
+            }
+        }
+
+        /// <summary>
         /// Like clicking the Scripts or the Libraries tab, whose list the buttons for one are in.
         /// </summary>
         private void ShowTab(bool libraries)

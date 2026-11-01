@@ -110,7 +110,7 @@ The test plugin's own Scenarios are in `Zeepkist.LogicScripting.InGameTests/Scen
 | `expect-no-exceptions` | The game logged no exception since the Scenario started, or since the last `expect-no-exceptions`. It fails with the ones it logged. |
 | `log <text>` | Writes the text to the game's log. |
 
-A Library lives on this machine rather than in the level, so one a Scenario makes is still there for the rest of the run: give each Scenario's Libraries their own names.
+A run starts without the player's Libraries and Drafts, and deletes the Libraries before each Scenario after the first, so a Scenario sees only the Libraries it makes itself.
 
 The window steps need the window open, and the steps for the editor's text need a Script or a Library selected: they fail and say which step to add first. `compile` and `insert-selected` need a Script. `press` and `type` need a field focused, such as by `caret-at-end`.
 
