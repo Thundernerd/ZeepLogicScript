@@ -12,7 +12,17 @@ public class HeldEscapeTests
         Assert.True(escape.Hold(10));
 
         Assert.True(escape.Release(11));
-        Assert.False(escape.Release(11));
+        Assert.False(escape.Release(12));
+    }
+
+    [Fact]
+    public void EveryEventOfTheNextFrame_BelongsToTheHeldEscape()
+    {
+        var escape = new HeldEscape();
+        escape.Hold(10);
+
+        Assert.True(escape.Release(11));
+        Assert.True(escape.Release(11));
     }
 
     [Fact]

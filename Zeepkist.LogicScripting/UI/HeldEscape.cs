@@ -1,22 +1,24 @@
 namespace TNRD.Zeepkist.LogicScripting.UI;
 
 /// <summary>
-/// An Escape Unity reported, held until Imui's event of it, so it's handled in the order the keys were pressed. Imui
-/// collects key events after the frame is drawn, so the event comes a frame after Unity reports the key.
+/// The Escape Unity reported in a frame, held until Imui's events of it, so it's handled in the order the keys were
+/// pressed. Imui collects key events after the frame is drawn, so the events come a frame after Unity reports the key.
+/// Unity reports one Escape a frame however often it was pressed, so every Escape event of that next frame belongs to it.
 /// </summary>
 internal sealed class HeldEscape
 {
-    private int? _frame;
+    private int? _heldIn;
+    private int? _releasedIn;
 
     /// <summary>
     /// Holds the Escape Unity reported in <paramref name="frame"/>, unless one is held already.
     /// </summary>
     public bool Hold(int frame)
     {
-        if (_frame != null)
+        if (_heldIn != null)
             return false;
 
-        _frame = frame;
+        _heldIn = frame;
         return true;
     }
 
@@ -25,11 +27,15 @@ internal sealed class HeldEscape
     /// </summary>
     public bool Release(int frame)
     {
+        if (frame == _releasedIn)
+            return true;
+
         // An event in the same frame comes from an earlier press
-        if (_frame == null || frame <= _frame)
+        if (_heldIn == null || frame <= _heldIn)
             return false;
 
-        _frame = null;
+        _heldIn = null;
+        _releasedIn = frame;
         return true;
     }
 
@@ -39,10 +45,10 @@ internal sealed class HeldEscape
     /// </summary>
     public bool Expire(int frame)
     {
-        if (_frame == null || frame <= _frame + 1)
+        if (_heldIn == null || frame <= _heldIn + 1)
             return false;
 
-        _frame = null;
+        _heldIn = null;
         return true;
     }
 
@@ -51,6 +57,6 @@ internal sealed class HeldEscape
     /// </summary>
     public void Drop()
     {
-        _frame = null;
+        _heldIn = null;
     }
 }
