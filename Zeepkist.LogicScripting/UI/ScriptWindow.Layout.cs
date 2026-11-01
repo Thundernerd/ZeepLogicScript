@@ -2,7 +2,6 @@ using Imui.Controls;
 using Imui.Core;
 using Imui.Rendering;
 using TNRD.Zeepkist.LogicScripting.Blocks;
-using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 using TNRD.Zeepkist.LogicScripting.Storage;
 using UnityEngine;
 
@@ -18,7 +17,6 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 internal sealed partial class ScriptWindow
 {
     private const string Title = "Logic Script";
-    private const string CompileLabel = "Compile (Ctrl+Enter)";
     private const float DefaultWidth = 1120;
     private const float DefaultHeight = 640;
     private const float DefaultScriptsWidth = 220;
@@ -294,25 +292,15 @@ internal sealed partial class ScriptWindow
     {
         gui.Layout.Push(ImAxis.Vertical, rect.WithPadding(gui.Style.Layout.Spacing));
         DrawStartupCheck(gui);
-        if (_editor == null)
+        if (_edited == null)
         {
             gui.Text("No Script selected. Make one with New Script.", wrap: true);
             gui.Layout.Pop();
             return;
         }
 
-        var compileClicked = false;
-        if (_currentLibrary != null)
-        {
-            DrawLibraryHeader(gui);
-        }
-        else
-        {
-            compileClicked = DrawHeader(gui);
-            DrawStorageWarning(gui);
-        }
-
-        RefreshCheck();
+        var compileClicked = _edited.DrawHeader(gui);
+        _edited.RefreshCheck();
 
         var spacing = gui.Style.Layout.Spacing;
         var available = gui.Layout.GetAvailableHeight() - (spacing * 2);
@@ -331,10 +319,9 @@ internal sealed partial class ScriptWindow
         var fieldHeight = Mathf.Max(minFieldHeight, available - errorsHeight);
         var compileRequested = DrawField(gui, gui.AddLayoutRectWithSpacing(gui.GetLayoutWidth(), fieldHeight));
 
-        if (compileClicked)
-            Compile();
-        else if (compileRequested)
-            CompileFromKeyboard();
+        var result = compileClicked ? _edited.Compile() : compileRequested ? _edited.CompileFromKeyboard() : null;
+        if (result != null)
+            _result = result;
 
         var errors = gui.AddLayoutRectWithSpacing(gui.GetLayoutWidth(), Mathf.Max(0, gui.Layout.GetAvailableHeight() - spacing));
         gui.Layout.Pop();
@@ -348,11 +335,11 @@ internal sealed partial class ScriptWindow
         if (_state.Errors.Collapsed || body.H <= 0)
             return;
 
-        var hasErrors = HasCurrentErrors;
+        var hasErrors = _edited.HasCurrentErrors;
         var columns = default(ErrorColumns);
         if (hasErrors)
         {
-            columns = ErrorTable.Measure(gui, _checkErrors);
+            columns = ErrorTable.Measure(gui, _edited.Errors);
             var columnsHeader = body.TakeTop(ErrorTable.GetHeaderHeight(gui), out body);
             ErrorTable.DrawHeader(gui, columnsHeader.WithPadding(left: spacing, right: spacing), columns);
             if (body.H <= 0)
@@ -360,8 +347,8 @@ internal sealed partial class ScriptWindow
         }
 
         WindowRegion.Begin(gui, body);
-        if (hasErrors && ErrorTable.DrawRows(gui, _checkErrors, columns) is { } clicked)
-            _editor.JumpTo(clicked);
+        if (hasErrors && ErrorTable.DrawRows(gui, _edited.Errors, columns) is { } clicked)
+            _edited.Editor.JumpTo(clicked);
 
         if (_result.Length > 0)
             gui.Text(_result, wrap: true);
@@ -395,60 +382,14 @@ internal sealed partial class ScriptWindow
 
     private (string Text, Color32 Color) GetErrorsSummary()
     {
-        if (HasCurrentErrors)
+        if (_edited.HasCurrentErrors)
         {
-            var count = _checkErrors.Count;
+            var count = _edited.Errors.Count;
             return (count == 1 ? "1 error" : $"{count} errors", WindowColors.Error);
         }
 
         // A pending check hides the old errors, so the panel doesn't claim the text is fine
-        return (_checkedText == _editor.Text ? "No errors found" : "Checking...", WindowColors.Muted);
-    }
-
-    /// <summary>
-    /// The Script's name and marks, and Compile on the right. Returns whether Compile was clicked.
-    /// </summary>
-    private bool DrawHeader(ImGui gui)
-    {
-        gui.AddSpacingIfLayoutFrameNotEmpty();
-        var row = gui.AddSingleRowRect(default);
-        var buttonWidth = gui.MeasureTextSize(CompileLabel).x + (gui.Style.Layout.Indent * 2);
-        var buttonRect = row.TakeRight(buttonWidth, gui.Style.Layout.Spacing, out var nameRect);
-
-        var (glyph, label, tooltip) = ScriptMarkText.Get(_current.Mark);
-        var settings = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f, overflow: ImTextOverflow.Ellipsis);
-        gui.Text(glyph == null ? _current.Name : $"{_current.Name}  {glyph} {label}", settings, nameRect);
-        if (tooltip != null && nameRect.Contains(gui.Input.MousePosition))
-            gui.Tooltip(tooltip, nameRect);
-
-        return DrawCompileButton(gui, buttonRect);
-    }
-
-    /// <summary>
-    /// Only the name: a Library isn't compiled itself, and lives on this machine rather than in the level, so it has no
-    /// marks.
-    /// </summary>
-    private void DrawLibraryHeader(ImGui gui)
-    {
-        gui.AddSpacingIfLayoutFrameNotEmpty();
-        var row = gui.AddSingleRowRect(default);
-        var settings = new ImTextSettings(gui.Style.Layout.TextSize, 0, 0.5f, overflow: ImTextOverflow.Ellipsis);
-        gui.Text($"Library {_currentLibrary.Name}", settings, row);
-    }
-
-    /// <summary>
-    /// Stays up while the level is missing the Script's text: leaving the editor can't be canceled to save it.
-    /// </summary>
-    private void DrawStorageWarning(ImGui gui)
-    {
-        if (_current.Mark == ScriptMark.CarrierMissing)
-        {
-            gui.Text("The level has this Script's blocks but not its text, likely because a block holding it was deleted. Compile to store it again.", WindowColors.Error, wrap: true);
-        }
-        else if (_current.Mark == ScriptMark.NeverCompiled && _current.Text.Length > 0)
-        {
-            gui.Text("Not stored in the level yet: Compile to store it. Until then, loading a level or going back to the main menu loses it.", WindowColors.Error, wrap: true);
-        }
+        return (_edited.IsChecked ? "No errors found" : "Checking...", WindowColors.Muted);
     }
 
     private void DrawStartupCheck(ImGui gui)
@@ -494,17 +435,13 @@ internal sealed partial class ScriptWindow
         gui.PushId(PlacedBlocksTab);
         BlockProperties hovered = null;
         WindowRegion.Begin(gui, content);
-        if (_currentLibrary != null)
-        {
-            gui.Text("A Library can't use placed(...), since a UID belongs to one level. A Script passes its placed blocks in as inputs.", wrap: true);
-        }
-        else if (_current == null)
+        if (_edited == null)
         {
             gui.Text("No Script selected", wrap: true);
         }
         else
         {
-            hovered = _placedBlocksPanel.Draw(gui, _check, _editor, out var edited);
+            hovered = _edited.DrawPlacedBlocks(gui, _placedBlocksPanel, out var edited);
             if (edited)
                 OnEdited();
         }
@@ -523,12 +460,12 @@ internal sealed partial class ScriptWindow
         var bar = rect.WithPadding(gui.Style.Layout.Spacing).TakeTop(ImTabsPane.GetTabBarHeight(gui), out var content);
         var scriptsRect = bar.TakeLeft(bar.W / 2, out var librariesRect);
         var hasOrphans = _scripts.OrphanedGroups.Count > 0;
-        if (SideTab.Draw(gui, !_state.ShowLibraries, ScriptsTab, scriptsRect, _current != null, hasOrphans))
+        if (SideTab.Draw(gui, !_state.ShowLibraries, ScriptsTab, scriptsRect, CurrentScript != null, hasOrphans))
             _state.ShowLibraries = false;
 
         gui.TooltipAtLastControl(hasOrphans ? $"{ScriptListPanel.Help}. The level has Orphaned Groups, listed under its Scripts" : ScriptListPanel.Help);
 
-        if (SideTab.Draw(gui, _state.ShowLibraries, LibrariesTab, librariesRect, _currentLibrary != null, false))
+        if (SideTab.Draw(gui, _state.ShowLibraries, LibrariesTab, librariesRect, CurrentLibrary != null, false))
             _state.ShowLibraries = true;
 
         gui.TooltipAtLastControl(LibraryListPanel.Help);

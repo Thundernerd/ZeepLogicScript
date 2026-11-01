@@ -21,6 +21,8 @@ public sealed class CaretContext
         bool canReferAhead,
         string callee,
         string dottedName,
+        string dottedCallee,
+        string dottedMode,
         string settingName,
         IReadOnlyList<string> settingValues,
         IReadOnlyCollection<string> givenArguments,
@@ -36,6 +38,8 @@ public sealed class CaretContext
         CanReferAhead = canReferAhead;
         Callee = callee;
         DottedName = dottedName;
+        DottedCallee = dottedCallee;
+        DottedMode = dottedMode;
         SettingName = settingName;
         SettingValues = settingValues;
         GivenArguments = givenArguments;
@@ -79,9 +83,22 @@ public sealed class CaretContext
     public string Callee { get; }
 
     /// <summary>
-    /// The name before the dot whose output the word is, for <see cref="CaretContextKind.Output"/>; null otherwise.
+    /// The name before the dot whose output the word is, for <see cref="CaretContextKind.Output"/>; null otherwise, and
+    /// after a call.
     /// </summary>
     public string DottedName { get; }
+
+    /// <summary>
+    /// The function called by the call before the dot whose output the word is, for <see cref="CaretContextKind.Output"/>;
+    /// null otherwise, and after a name.
+    /// </summary>
+    public string DottedCallee { get; }
+
+    /// <summary>
+    /// The option written for the mode Setting of the <see cref="DottedCallee"/>'s call (<c>mode: local_velocity</c>);
+    /// null when none is written, or the call isn't to a Block Function.
+    /// </summary>
+    public string DottedMode { get; }
 
     /// <summary>
     /// The Setting whose value the word is, for <see cref="CaretContextKind.SettingValue"/>; null otherwise.
@@ -130,7 +147,7 @@ public sealed class CaretContext
         var tokens = Lexer.Tokenize(text, [], comments);
         var call = OpenCall.FindStartedAt(tokens, word.Start);
         var settingValues = FindSettingValues(tokens, word, out var settingCallee, out var settingName);
-        var dottedName = FindDottedName(tokens, word);
+        var dotted = FindDotted(tokens, word, out var isDottedCall);
         CaretContextKind kind;
         if (IsInCommentOrString(tokens, comments, caret))
             kind = CaretContextKind.None;
@@ -140,7 +157,7 @@ public sealed class CaretContext
             kind = CaretContextKind.None;
         else if (IsOnFunctionsFirstLine(tokens, word))
             kind = CaretContextKind.None;
-        else if (dottedName != null)
+        else if (dotted >= 0)
             kind = CaretContextKind.Output;
         else
             kind = GetKind(tokens, word, call != null);
@@ -149,6 +166,13 @@ public sealed class CaretContext
         var inCall = kind is CaretContextKind.Argument or CaretContextKind.ArgumentName;
         var callee = inCall ? call.Callee : null;
         var positionalArguments = 0;
+        var isOutput = kind == CaretContextKind.Output;
+        var dottedName = isOutput && !isDottedCall ? tokens[dotted].Text : null;
+        var dottedCallee = isOutput && isDottedCall ? tokens[dotted].Text : null;
+        var dottedMode = dottedCallee != null && BlockManifest.TryGetFunction(dottedCallee, out var type)
+            ? DefinedNames.FindWrittenMode(tokens, dotted + 1, type)
+            : null;
+
         IReadOnlyCollection<string> givenArguments = inCall ? FindGivenArguments(call, word, out positionalArguments) : [];
         if (kind == CaretContextKind.SettingValue)
         {
@@ -168,7 +192,9 @@ public sealed class CaretContext
             statementStart,
             canReferAhead,
             callee,
-            kind == CaretContextKind.Output ? dottedName : null,
+            dottedName,
+            dottedCallee,
+            dottedMode,
             settingName,
             settingValues,
             givenArguments,
@@ -210,20 +236,51 @@ public sealed class CaretContext
     }
 
     /// <summary>
-    /// The name the word picks an output of: right before a dot that's right before the word, and not itself after a
-    /// dot, since only a name or a call has outputs. Null when there's none.
+    /// The token of the name the word picks an output of, or of the function whose call it does: right before a dot
+    /// that's right before the word, and not itself after a dot, since only a name or a call has outputs. -1 when
+    /// there's none.
     /// </summary>
-    private static string FindDottedName(List<Token> tokens, TextSpan word)
+    private static int FindDotted(List<Token> tokens, TextSpan word, out bool isCall)
     {
+        isCall = false;
         var dot = tokens.FindLastIndex(t => t.Span.Start < word.Start);
-        if (dot < 1 || tokens[dot].Kind != TokenKind.Dot || tokens[dot].Span.End != word.Start)
-            return null;
+        if (dot < 1 || tokens[dot].Kind != TokenKind.Dot || tokens[dot].Span.End != word.Start
+            || tokens[dot - 1].Span.End != tokens[dot].Span.Start)
+            return -1;
 
-        var name = tokens[dot - 1];
-        if (name.Kind != TokenKind.Name || name.Span.End != tokens[dot].Span.Start)
-            return null;
+        isCall = tokens[dot - 1].Kind == TokenKind.CloseParen;
+        var name = isCall ? FindOpenParen(tokens, dot - 1) - 1 : dot - 1;
+        if (name < 0 || tokens[name].Kind != TokenKind.Name)
+            return -1;
 
-        return dot >= 2 && tokens[dot - 2].Kind == TokenKind.Dot ? null : name.Text;
+        return name >= 1 && tokens[name - 1].Kind == TokenKind.Dot ? -1 : name;
+    }
+
+    /// <summary>
+    /// The opening parenthesis the one at <paramref name="closeParen"/> closes, past the brackets in between; -1 when
+    /// nothing opens it, or a bracket does.
+    /// </summary>
+    private static int FindOpenParen(List<Token> tokens, int closeParen)
+    {
+        var depth = 0;
+        for (var i = closeParen; i >= 0; i--)
+        {
+            switch (tokens[i].Kind)
+            {
+                case TokenKind.CloseParen or TokenKind.CloseBracket:
+                    depth++;
+                    break;
+
+                case TokenKind.OpenParen or TokenKind.OpenBracket:
+                    depth--;
+                    if (depth == 0)
+                        return tokens[i].Kind == TokenKind.OpenParen ? i : -1;
+
+                    break;
+            }
+        }
+
+        return -1;
     }
 
     /// <summary>

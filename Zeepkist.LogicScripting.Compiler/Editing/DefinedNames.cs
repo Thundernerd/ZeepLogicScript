@@ -231,8 +231,18 @@ public static class DefinedNames
     }
 
     /// <summary>
+    /// The option the call written from <paramref name="openParen"/> gives the type's mode Setting; null when it gives
+    /// none.
+    /// </summary>
+    internal static string FindWrittenMode(List<Token> tokens, int openParen, BlockType type)
+    {
+        FindCallEnd(tokens, openParen, type, out var mode);
+        return mode;
+    }
+
+    /// <summary>
     /// The token after the call's closing parenthesis, or the end of its statement when it has none, while typing.
-    /// Notes the option of a named argument that sets the type's mode Setting on the way.
+    /// Notes the option of the first named argument that sets the type's mode Setting on the way.
     /// </summary>
     private static int FindCallEnd(List<Token> tokens, int openParen, BlockType type, out string mode)
     {
@@ -256,6 +266,7 @@ public static class DefinedNames
                     break;
 
                 case TokenKind.Name when depth == 1
+                    && mode == null
                     && tokens[i].Text == modeSetting
                     && tokens[i - 1].Kind is TokenKind.OpenParen or TokenKind.Comma
                     && tokens[i + 1].Kind == TokenKind.Colon

@@ -519,11 +519,31 @@ public class CompletionTests
     }
 
     [Theory]
+    [InlineData("x = f().|", "f", null)]
+    [InlineData("x = f().ho|", "f", null)]
+    [InlineData("x = f(g(1), [a]).|", "f", null)]
+    [InlineData("x = logic(simple_telemetry(mode: local_velocity).|", "simple_telemetry", "local_velocity")]
+    [InlineData("x = simple_telemetry(a: logic(mode: b), mode: local_velocity).|", "simple_telemetry", "local_velocity")]
+    public void Output_AfterACallAndADot(string text, string callee, string mode)
+    {
+        var context = At(text);
+
+        Assert.Equal(CaretContextKind.Output, context.Kind);
+        Assert.Equal(callee, context.DottedCallee);
+        Assert.Equal(mode, context.DottedMode);
+        Assert.Null(context.DottedName);
+    }
+
+    [Theory]
     [InlineData("x = 1.|")]
-    [InlineData("x = f().|")]
     [InlineData("x = p .|")]
     [InlineData("# p.|")]
-    public void None_AfterADotThatDoesntFollowAName(string text)
+    [InlineData("x = f() .|")]
+    [InlineData("x = (a).|")]
+    [InlineData("x = f()(1).|")]
+    [InlineData("x = t.f().|")]
+    [InlineData("x = [a].|")]
+    public void None_AfterADotThatDoesntFollowANameOrACall(string text)
     {
         Assert.Equal(CaretContextKind.None, At(text).Kind);
     }
@@ -630,6 +650,44 @@ public class CompletionTests
     public void Items_AfterADot_TheOutputsOfAFunctionCallInsideAFunction()
     {
         Assert.Equal(["lo", "hi"], NameLabels("function f(a) -> lo, hi\nend\nfunction g()\n  r = f(1)\n  x = r.|\nend"));
+    }
+
+    [Theory]
+    [InlineData("x = simple_telemetry().|", new[] { "speed", "yaw", "up", "state" })]
+    [InlineData("x = simple_telemetry(mode: global_velocity).|", new[] { "x", "y", "z", "heading" })]
+    [InlineData("x = simple_telemetry(hide: true, mode: local_velocity).|", new[] { "yaw", "x", "y", "z" })]
+    public void Items_AfterACallsDot_TheOutputsOfTheBlockFunction_InItsWrittenMode(string text, string[] expected)
+    {
+        Assert.Equal(expected, Labels(text));
+    }
+
+    [Theory]
+    [InlineData("x = simple_telemetry(mode: global_velocity, mode: local_velocity).|")]
+    [InlineData("t = simple_telemetry(mode: global_velocity, mode: local_velocity)\nx = t.|")]
+    public void Items_AfterADot_TheFirstModeOfACallThatWritesItTwice(string text)
+    {
+        Assert.Equal(["x", "y", "z", "heading"], NameLabels(text));
+    }
+
+    [Theory]
+    [InlineData("function f(a) -> lo, hi\nend\nx = f(1).|")]
+    [InlineData("x = f(1).|\nfunction f(a) -> lo, hi\nend")]
+    [InlineData("function f(a) -> lo, hi\nend\nfunction f(a) -> x, y, z\nend\nx = f(1).|")]
+    [InlineData("function f(a) -> lo, hi\nend\nfunction g()\n  x = f(1).|\nend")]
+    public void Items_AfterACallsDot_TheOutputsOfTheFirstDefinitionOfTheFunction_InTheOrderItWritesThem(string text)
+    {
+        Assert.Equal(["lo", "hi"], Labels(text));
+    }
+
+    [Theory]
+    [InlineData("x = logic(1, 2).|")]
+    [InlineData("x = simple_telemetry(mode: sideways).|")]
+    [InlineData("function f(a) -> hi\nend\nx = f(1).|")]
+    [InlineData("x = g(1).|")]
+    [InlineData("x = placed(\"T\").|")]
+    public void Items_AfterACallsDot_NothingWhenItsNotToABlockOrFunctionWithSeveralOutputs(string text)
+    {
+        Assert.Empty(Labels(text));
     }
 
     [Fact]

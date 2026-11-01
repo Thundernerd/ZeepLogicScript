@@ -2,11 +2,9 @@ using System;
 using System.Collections.Generic;
 using BepInEx.Configuration;
 using BepInEx.Logging;
-using Imui.Controls;
 using Imui.Core;
 using TNRD.Zeepkist.LogicScripting.Blocks;
 using TNRD.Zeepkist.LogicScripting.Compiler;
-using TNRD.Zeepkist.LogicScripting.Compiler.Editing;
 using TNRD.Zeepkist.LogicScripting.Compiler.Storage;
 using TNRD.Zeepkist.LogicScripting.Storage;
 using UnityEngine;
@@ -23,16 +21,6 @@ namespace TNRD.Zeepkist.LogicScripting.UI;
 /// </summary>
 internal sealed partial class ScriptWindow : IZeepGUIDrawer
 {
-    /// <summary>
-    /// Seconds between checks of an unchanged Script, in case blocks were added or deleted.
-    /// </summary>
-    private const float CheckInterval = 1;
-
-    /// <summary>
-    /// Seconds after the last edit before the Script is checked, so it isn't checked on every key while typing.
-    /// </summary>
-    private const float CheckDelay = 0.4f;
-
     private const string LogFile = "BepInEx/LogOutput.log";
 
     private readonly ManualLogSource _logger;
@@ -57,27 +45,19 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     private readonly PlacedBlocksPanel _placedBlocksPanel = new();
     private readonly ReferencePanel _referencePanel;
 
-    // At most one of the two is selected; the editor shows that one
-    private ScriptEntry _current;
-    private Library _currentLibrary;
-    private ScriptEditor _editor;
+    private EditedItem _edited;
     private int? _readLevelChanges;
     private string _result = string.Empty;
-
-    // Null for a Library, which only gets errors
-    private CompileResult _check;
-    private IReadOnlyList<Diagnostic> _checkErrors;
-    private string _checkedText;
-    private float _nextCheckTime;
     private bool _mouseOver;
     private bool _fieldFocused;
     private bool _blockingMouse;
     private bool _blockingKeyboard;
     private bool _failed;
 
-    private bool HasCurrentErrors => _checkErrors != null && _editor != null && _checkedText == _editor.Text && _checkErrors.Count > 0;
     private bool AnyFieldFocused => _fieldFocused || _scriptListPanel.NameFocused || _libraryListPanel.NameFocused || _referencePanel.FilterFocused;
     private LibraryList Libraries => _libraryStore.Libraries;
+    private ScriptEntry CurrentScript => (_edited as EditedScript)?.Entry;
+    private Library CurrentLibrary => (_edited as EditedLibrary)?.Library;
 
     public ScriptWindow(
         ManualLogSource logger,
@@ -100,7 +80,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         _libraryStore = libraries;
         _librarySaver = new LibrarySaver(libraries);
         _scriptListPanel = new ScriptListPanel(logger, _scripts, _draftSaver, OnScriptDeleted);
-        _libraryListPanel = new LibraryListPanel(libraries.Libraries);
+        _libraryListPanel = new LibraryListPanel(libraries.Libraries, OnLibraryDeleted);
         _referencePanel = new ReferencePanel(libraries.Libraries);
         _orphanedGroupsPanel = new OrphanedGroupsPanel(logger);
     }
@@ -247,8 +227,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         _orphanedGroupsPanel.ClearMessage();
         _readLevelChanges = null;
 
-        // A Library belongs to no level, so it stays open
-        if (_currentLibrary == null)
+        if (_edited?.BelongsToLevel ?? true)
             Select(null);
     }
 
@@ -268,7 +247,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
 
         // A Compile or undo changes the text a Draft is based on
         _draftSaver.Request();
-        if (_current == null && _currentLibrary == null && _scripts.Entries.Count > 0)
+        if (_edited == null && _scripts.Entries.Count > 0)
             Select(_scripts.Entries[0]);
     }
 
@@ -277,7 +256,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         // A scope each for the lists, so a Script or Orphaned Group coming or going doesn't change the id, and with it
         // the focus and text, of the name field drawn under them
         gui.PushId("scripts list");
-        var selected = _scriptListPanel.DrawEntries(gui, _current);
+        var selected = _scriptListPanel.DrawEntries(gui, CurrentScript);
         gui.PopId();
 
         // Restored after drawing, which goes through the list that restoring changes
@@ -301,10 +280,7 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
 
     private void DrawLibrariesTab(ImGui gui)
     {
-        var library = _libraryListPanel.Draw(gui, _currentLibrary, _libraryStore.ReadFailed, out var deleted);
-        if (deleted != null)
-            OnLibraryDeleted(deleted);
-
+        var library = _libraryListPanel.Draw(gui, CurrentLibrary, _libraryStore.ReadFailed);
         if (library != null)
             SelectLibrary(library);
     }
@@ -312,51 +288,36 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
     private void OnLibraryDeleted(Library library)
     {
         _libraryEditors.Remove(library.Id);
-        if (library == _currentLibrary)
+        if (library == CurrentLibrary)
             Select(_scripts.Entries.Count > 0 ? _scripts.Entries[0] : null);
     }
 
     private void OnScriptDeleted(ScriptEntry entry)
     {
         _editors.Remove(entry.Id);
-        if (entry == _current)
+        if (entry == CurrentScript)
             Select(_scripts.Entries.Count > 0 ? _scripts.Entries[0] : null);
     }
 
-    /// <summary>
-    /// The result line, errors and checks belong to the Script they were made for.
-    /// </summary>
     private void Select(ScriptEntry entry)
     {
-        _current = entry;
-        _currentLibrary = null;
-        ShowEditor(entry == null ? null : GetEditor(entry));
+        Show(entry == null ? null : new EditedScript(entry, GetEditor(entry), _draftSaver, _startupCheck, Libraries, _logger));
     }
 
     private void SelectLibrary(Library library)
     {
-        _current = null;
-        _currentLibrary = library;
-        if (!_libraryEditors.TryGetValue(library.Id, out var editor))
-        {
-            editor = new ScriptEditor(library.Text, _editorAssist);
-            _libraryEditors.Add(library.Id, editor);
-        }
-
-        ShowEditor(editor);
+        Show(new EditedLibrary(library, GetEditor(library), Libraries));
     }
 
-    private void ShowEditor(ScriptEditor editor)
+    /// <summary>
+    /// The result line belongs to the Script or Library it was made for, like the errors and checks.
+    /// </summary>
+    private void Show(EditedItem edited)
     {
-        _editor = editor;
+        _edited = edited;
         _fieldFocused = false;
         _result = string.Empty;
         _placedBlocksPanel.ClearMessage();
-        _check = null;
-        _checkErrors = null;
-        _checkedText = null;
-        _nextCheckTime = 0;
-        _editor?.SetErrors([]);
     }
 
     private ScriptEditor GetEditor(ScriptEntry entry)
@@ -370,125 +331,41 @@ internal sealed partial class ScriptWindow : IZeepGUIDrawer
         return editor;
     }
 
+    private ScriptEditor GetEditor(Library library)
+    {
+        if (!_libraryEditors.TryGetValue(library.Id, out var editor))
+        {
+            editor = new ScriptEditor(library.Text, _editorAssist);
+            _libraryEditors.Add(library.Id, editor);
+        }
+
+        return editor;
+    }
+
     /// <summary>
     /// Returns whether Ctrl+Enter was pressed in the field.
     /// </summary>
     private bool DrawField(ImGui gui, ImRect rect)
     {
-        if (_editor.Draw(gui, rect, out var compileRequested))
+        var editor = _edited.Editor;
+        if (editor.Draw(gui, rect, out var compileRequested))
         {
             _placedBlocksPanel.ClearMessage();
             OnEdited();
         }
 
-        _fieldFocused = FieldFocus.Update(gui, _editor.Id, _editor.HoldsEscape);
+        _fieldFocused = FieldFocus.Update(gui, editor.Id, editor.HoldsEscape);
 
         return compileRequested;
     }
 
     /// <summary>
-    /// The result line belongs to the text it was made for, and the check waits until typing stops.
+    /// The result line belongs to the text it was made for.
     /// </summary>
     private void OnEdited()
     {
-        if (_currentLibrary != null)
-        {
-            Libraries.SetText(_currentLibrary, _editor.Text);
-        }
-        else
-        {
-            _current.Text = _editor.Text;
-            _draftSaver.Request();
-        }
-
+        _edited.OnEdited();
         _result = string.Empty;
-        _nextCheckTime = Time.unscaledTime + CheckDelay;
-        _editor.SetErrors([]);
-    }
-
-    private bool DrawCompileButton(ImGui gui, ImRect rect)
-    {
-        var blocker = GetCompileBlocker();
-        gui.BeginReadOnly(blocker != null);
-        var clicked = gui.Button(CompileLabel, rect);
-        gui.EndReadOnly();
-
-        if (blocker != null)
-            gui.TooltipAtLastControl(blocker);
-
-        return clicked && blocker == null;
-    }
-
-    /// <summary>
-    /// Why Compile can't run right now, or null when it can.
-    /// </summary>
-    private string GetCompileBlocker()
-    {
-        if (HasCurrentErrors)
-            return "Fix the errors first";
-
-        LevelEdit.GetCentral(out var blocker);
-        return blocker;
-    }
-
-    /// <summary>
-    /// Ctrl+Enter has no button to show why Compile can't run, so the result line says it.
-    /// </summary>
-    private void CompileFromKeyboard()
-    {
-        if (_currentLibrary != null)
-        {
-            _result = $"A Library isn't compiled itself. Compile a Script that calls {_currentLibrary.Name}.function(...)";
-            return;
-        }
-
-        var blocker = GetCompileBlocker();
-        if (blocker == null)
-            Compile();
-        else
-            _result = blocker;
-    }
-
-    /// <summary>
-    /// Checks a Script edited since the last check first, so errors typed just now show in the list, not in the
-    /// result line.
-    /// </summary>
-    private void Compile()
-    {
-        if (_checkedText != _editor.Text)
-        {
-            _nextCheckTime = 0;
-            RefreshCheck();
-            if (HasCurrentErrors)
-                return;
-        }
-
-        _result = ScriptCompile.Run(_current.ToStored(), _startupCheck, Libraries.FindText, _logger);
-
-        // Placing changed the level, so the Placed blocks panel checks again now
-        _nextCheckTime = 0;
-    }
-
-    private void RefreshCheck()
-    {
-        if (Time.unscaledTime < _nextCheckTime)
-            return;
-
-        var text = _editor.Text;
-        if (_currentLibrary != null)
-        {
-            _check = null;
-            _checkErrors = ScriptCompiler.CheckLibrary(text, Libraries.FindText, _currentLibrary.Name);
-        }
-        else
-        {
-            _check = ScriptCompile.Check(text, _current.Id, _startupCheck, Libraries.FindText);
-            _checkErrors = _check?.Errors;
-        }
-
-        _checkedText = text;
-        _nextCheckTime = Time.unscaledTime + CheckInterval;
-        _editor.SetErrors(_checkErrors == null ? [] : ScriptText.GetErrorUnderlines(text, _checkErrors));
     }
 
     private static bool IsAnyMouseButtonDown()
