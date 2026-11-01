@@ -245,7 +245,7 @@ public sealed class CaretContext
         isCall = false;
         var dot = tokens.FindLastIndex(t => t.Span.Start < word.Start);
         if (dot < 1 || tokens[dot].Kind != TokenKind.Dot || tokens[dot].Span.End != word.Start
-            || tokens[dot - 1].Span.End != tokens[dot].Span.Start)
+            || !tokens[dot].IsDirectlyAfter(tokens[dot - 1]))
             return -1;
 
         isCall = tokens[dot - 1].Kind == TokenKind.CloseParen;

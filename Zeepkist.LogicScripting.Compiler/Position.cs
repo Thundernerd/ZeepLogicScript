@@ -16,11 +16,6 @@ public readonly struct Position : IComparable<Position>
     public int Line { get; }
     public int Column { get; }
 
-    public bool IsDirectlyAfter(Position other)
-    {
-        return Line == other.Line && Column == other.Column + 1;
-    }
-
     public int CompareTo(Position other)
     {
         var line = Line.CompareTo(other.Line);
