@@ -25,7 +25,7 @@ internal sealed partial class GraphBuilder
         /// </summary>
         public Scope Scope { get; }
 
-        // A Setting input is never a value: looking it up gives a FailedValue, as its Function reports it
+        // Only a Function's body reads a Setting input, and its Function reports one used as a value
         public override InputFeed ToFeed(GraphBuilder builder, Expression origin)
         {
             return FailedValue.Instance;

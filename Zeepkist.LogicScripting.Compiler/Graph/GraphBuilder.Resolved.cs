@@ -16,8 +16,8 @@ internal sealed partial class GraphBuilder
         public virtual BlockNode PlacedBlock => null;
 
         /// <summary>
-        /// The value as what feeds an input, or a <see cref="FailedValue"/> after reporting at
-        /// <paramref name="origin"/> why it isn't one output.
+        /// The value as what feeds an input, or a <see cref="FailedValue"/> once it's reported, at
+        /// <paramref name="origin"/> or before, why it isn't one output.
         /// </summary>
         public abstract InputFeed ToFeed(GraphBuilder builder, Expression origin);
 

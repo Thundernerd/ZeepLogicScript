@@ -10,7 +10,7 @@ internal sealed partial class GraphBuilder
     {
         var operand = EvaluateFeed(unary.Operand);
         if (operand is FailedValue)
-            return operand;
+            return FailedValue.Instance;
 
         var op = unary.Operator;
         List<Func<InputFeed>> inputs = [];

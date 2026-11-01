@@ -19,7 +19,7 @@ internal sealed partial class GraphBuilder
     private readonly List<(GraphWire Wire, SyntaxNode Origin, Scope Scope)> _wiresIntoPlaced = [];
 
     /// <summary>
-    /// Null after reporting why the reference reaches no block. Several references to one UID share one block.
+    /// A <see cref="FailedValue"/> after reporting why the reference reaches no block. Several references to one UID share one block.
     /// </summary>
     private Resolved VisitPlaced(CallExpression call)
     {
