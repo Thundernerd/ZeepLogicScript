@@ -176,7 +176,7 @@ internal sealed partial class GraphBuilder
                 return VisitPlaced(call);
 
             case CallExpression call when IsReferenceCall(call):
-                VisitReferenceCall(call);
+                VisitReferenceCall(call, isValue: true);
                 return Fail(call, $"Wiring into '{call.Function}' gives no value. Put it on its own line");
 
             case CallExpression call when IsFunctionCall(call):

@@ -89,7 +89,7 @@ internal sealed partial class GraphBuilder
     /// <c>lamp_1(intensity: x)</c>: wires into a placed block's inputs, each at most once, and never changes its
     /// Settings.
     /// </summary>
-    private void VisitReferenceCall(CallExpression call)
+    private void VisitReferenceCall(CallExpression call, bool isValue = false)
     {
         var block = GetPlacedBlock(_scope.Names[call.Function]);
         var type = block.Type;
@@ -128,7 +128,8 @@ internal sealed partial class GraphBuilder
                 : $"'{call.Function}' has no input '{argument.Name}'. Use {string.Join(", ", type.Inputs.Select(i => i.Name))}");
         }
 
-        if (check.Failed)
+        // A call used as a value is already an error, and a Wire's own errors would only pile on top of it
+        if (check.Failed || isValue)
             return;
 
         for (var i = 0; i < check.Inputs.Length; i++)
@@ -139,7 +140,7 @@ internal sealed partial class GraphBuilder
             if (feed is OutputValue output)
                 WireIntoPlaced(call, wired.IsByPosition, i, output.Output, block);
             else
-                Error(GetInputOrigin(call, wired.IsByPosition, i, block.Type), $"A name defined later can't be wired into a placed block, since {MessageFragments.OnlyDelayCanReferAhead}");
+                Error(GetInputOrigin(call, wired.IsByPosition, i, block.Type), "A Wire into a placed block doesn't pass through the Delay, so it can't take a name defined later");
         }
     }
 

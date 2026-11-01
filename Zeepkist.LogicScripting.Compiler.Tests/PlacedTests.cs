@@ -129,15 +129,21 @@ public class PlacedTests
     }
 
     [Fact]
-    public void ANameDefinedLater_CantBeWiredIntoAPlacedBlock()
+    public void AWiringUsedAsAValue_InsideADelay_IsOneError()
     {
         var result = Compile("l = placed(\"L\")\ndelay(l(y), ticks: 1)\ny = 1");
 
+        Assert.Equal(["2:7 Wiring into 'l' gives no value. Put it on its own line"], Errors(result));
+    }
+
+    [Fact]
+    public void ANameDefinedLater_CantBeWiredIntoAPlacedBlock_EvenInsideADelay()
+    {
+        var result = Compile(
+            "function f(lamp, x) -> y\n    lamp(x)\n    y = x\nend\nl = placed(\"L\")\npower_display(delay(f(l, later), ticks: 1))\nlater = 1");
+
         Assert.Equal(
-            [
-                "2:7 Wiring into 'l' gives no value. Put it on its own line",
-                "2:9 A name defined later can't be wired into a placed block, since only delay(...) can refer ahead"
-            ],
+            ["2:10 A Wire into a placed block doesn't pass through the Delay, so it can't take a name defined later"],
             Errors(result));
     }
 
