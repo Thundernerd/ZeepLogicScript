@@ -73,8 +73,8 @@ public class Plugin : BaseUnityPlugin
     }
 
     /// <summary>
-    /// Saves before taking the UI down, and runs every step even when one throws. When the game quits, the UI goes with
-    /// it: ZeepSDK's toolbar is already gone by then, and removing a drawer from it throws.
+    /// When the game quits, the UI goes with it: ZeepSDK's toolbar is already gone by then, and removing a drawer from
+    /// it throws.
     /// </summary>
     private void OnDestroy()
     {
