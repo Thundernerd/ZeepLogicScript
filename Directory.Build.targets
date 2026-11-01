@@ -16,4 +16,18 @@
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- BepInEx.PluginInfoProps' MyPluginInfo.cs is only generated code to .editorconfig in an obj/ inside the repo; as .g.cs it is wherever obj/ is -->
+  <Target Name="MarkPluginInfoGenerated" AfterTargets="AddGeneratedFile" Condition=" '$(TargetFrameworkIdentifier)' == '.NETFramework' ">
+    <PropertyGroup>
+      <PluginInfoFile>$(IntermediateOutputPath)MyPluginInfo.cs</PluginInfoFile>
+      <GeneratedPluginInfoFile>$(IntermediateOutputPath)MyPluginInfo.g.cs</GeneratedPluginInfoFile>
+    </PropertyGroup>
+    <Copy SourceFiles="$(PluginInfoFile)" DestinationFiles="$(GeneratedPluginInfoFile)" SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <Compile Remove="$(PluginInfoFile)" />
+      <Compile Include="$(GeneratedPluginInfoFile)" />
+      <FileWrites Include="$(GeneratedPluginInfoFile)" />
+    </ItemGroup>
+  </Target>
+
 </Project>
